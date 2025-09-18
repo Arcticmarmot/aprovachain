@@ -1,8 +1,7 @@
 [package]
-name = "guest"
+name = "aprova-guest"
 version = "0.1.0"
 edition = "2024"
 
-[workspace]
-
 [dependencies]
+risc0-zkvm = { workspace = true }
