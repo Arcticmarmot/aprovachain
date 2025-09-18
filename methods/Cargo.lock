@@ -60,19 +60,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0674a1ddeecb70197781e945de4b3b8ffb61fa939a5597bcf48503737663100"
 
 [[package]]
-name = "aprova"
-version = "0.1.0"
-dependencies = [
- "aprova-core",
- "aprova-methods",
- "risc0-zkvm",
-]
-
-[[package]]
-name = "aprova-core"
-version = "0.1.0"
-
-[[package]]
 name = "aprova-methods"
 version = "0.1.0"
 dependencies = [

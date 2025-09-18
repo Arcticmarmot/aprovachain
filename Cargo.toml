@@ -2,5 +2,9 @@
 name = "aprova"
 version = "0.1.0"
 edition = "2024"
+authors = ["marmot"]
 
 [dependencies]
+risc0-zkvm = "3.0.3"
+aprova-core = { path = "core" }
+aprova-methods = { path = "methods" }
