@@ -5,4 +5,6 @@ edition = "2024"
 
 [dependencies]
 risc0-zkvm = { workspace = true }
+json = "0.12"
+serde_json = "1.0"
 aprova-core = { path = "../../core" }

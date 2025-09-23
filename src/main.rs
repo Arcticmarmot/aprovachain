@@ -4,9 +4,11 @@ use aprova_methods::APROVA_GUEST_ELF;
 use aprova_methods::APROVA_GUEST_ID;
 use aprova_core::CheckResult;
 
-fn check(s: String) -> (Receipt, String, CheckResult){
+fn check() -> (Receipt, CheckResult){
+    let request = include_str!("../res/uav-request.json");
+
     let env = ExecutorEnv::builder()
-        .write(&s)
+        .write(&request)
         .unwrap()
         .build()
         .unwrap();
@@ -18,22 +20,17 @@ fn check(s: String) -> (Receipt, String, CheckResult){
 
     let check_result: CheckResult = receipt.journal.decode().expect("Could not get the check result.");
 
-    println!("==={:?}===", check_result);
-
-    let input = check_result.input.clone();
-    println!("{}", input);
-
     let result = check_result.result;
     match result {
         true => {
-            println!("Aprova!")
+            println!("审核结果：Aprova!")
         },
         false => {
-            println!("Rollback!")
+            println!("审核结果：Rollback!")
         }
     }
 
-    (receipt, s, check_result)
+    (receipt, check_result)
 }
 
 fn main() {
@@ -41,32 +38,13 @@ fn main() {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
-    let (receipt, input, output) = check("This is my scrat".to_string());
-
-    receipt.verify(APROVA_GUEST_ID).expect("Verify failed");
-    println!("INPUT: {:?}", input);
-    println!("OUTPUT: {:?}", output);
-    println!("RECEIPT: {:?}", receipt);
-    println!("RECEIPT DIGEST: {:?}", receipt.claim().unwrap().digest());
-
-
-
-    let (receipt, input, output) = check("This dsafsfdsfis mydsafs secret".to_string());
+    let (receipt, check_result) = check();
 
     receipt.verify(APROVA_GUEST_ID).expect("Verify failed");
 
-    println!("INPUT: {:?}", input);
-    println!("OUTPUT: {:?}", output);
+    println!("INPUT: {:?}", check_result.input);
+    println!("OUTPUT: {:?}", check_result.result);
     println!("RECEIPT: {:?}", receipt);
     println!("RECEIPT DIGEST: {:?}", receipt.claim().unwrap().digest());
 
-
-    // let (receipt, input, output) = check("This mydsafs secret".to_string());
-    //
-    // receipt.verify(APROVA_GUEST_ID).expect("Verify failed");
-    //
-    // println!("INPUT: {:?}", input);
-    // println!("OUTPUT: {:?}", output);
-    // println!("OUTPUT: {:?}", receipt);
-    // println!("RECEIPT: {:?}", receipt.claim().unwrap().digest());
 }
