@@ -16,7 +16,6 @@ members = [
     "methods",
     "methods/guest",
 ]
-exclude = ["front"]
 
 [workspace.dependencies]
 risc0-zkvm = "3.0.3"
