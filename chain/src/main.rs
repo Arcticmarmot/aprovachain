@@ -1,12 +1,17 @@
-use crate::app::Block;
+use crate::app::{Block, Chain};
 
 mod p2p;
 mod app;
 mod common;
 
 fn main() {
-    let b = Block::new(1, "dd3f9b978558184603e6c4ed4195b35dbce9c643e156d330169df7ecc9c33adf".to_string(), "hello blockchain".to_string());
-    println!("{:?}", b);
-    let b = Block::new(2, b.hash, "hello blockchain again".to_string());
-    println!("{:?}", b);
+    let b1 = Block::new(1, "None".to_string(), "hello blockchain".to_string());
+    let b2 = Block::new(2, b1.hash.clone(), "hello blockchain again".to_string());
+
+    let mut chain = Chain::new();
+    chain.genesis();
+    chain.add_block(b1);
+    chain.add_block(b2);
+    println!("{:?}", chain.blocks.last().unwrap());
+
 }
