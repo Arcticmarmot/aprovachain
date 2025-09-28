@@ -1,20 +1,21 @@
 use chrono::Utc;
 use crate::app::{Block, Chain};
-use crate::p2p::discovery;
+use crate::common::{calc_peer_hash, get_default_outbound_ip, UDP_DISC_PORT};
+use crate::p2p::{discovery, DiscPeerList, Peer};
 
 mod p2p;
 mod app;
 mod common;
 #[tokio::main]
 async fn main() {
-    // let b1 = Block::new(1, "None".to_string(), "hello blockchain".to_string());
-    // let b2 = Block::new(2, b1.hash.clone(), "hello blockchain again".to_string());
-    //
-    // let mut chain = Chain::new();
-    // chain.genesis();
-    // chain.add_block(b1);
-    // chain.add_block(b2);
-    // println!("{:?}", chain.blocks.last().unwrap());
-    let timestamp = Utc::now().timestamp().to_string();
-    discovery(timestamp).await;
+    let local_ip_addr = get_default_outbound_ip().unwrap();
+    let local_default_port = UDP_DISC_PORT;
+    let local_peer_id = calc_peer_hash(local_ip_addr, local_default_port);
+    let local_peer = Peer {
+        peer_id: local_peer_id,
+        ip_addr: local_ip_addr,
+        listen_port: local_default_port,
+    };
+    println!("{:?}", local_peer);
+    discovery(&local_peer).await;
 }
