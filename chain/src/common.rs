@@ -36,10 +36,10 @@ pub fn chose_chain<'a>(left: &'a Chain, right: &'a Chain) -> &'a Chain {
     let is_left_chain_valid = left.is_chain_valid();
     let is_right_chain_valid = right.is_chain_valid();
     if is_left_chain_valid && is_right_chain_valid {
-        if left.blocks.len() > right.blocks.len() {
-            return left
+        return if left.blocks.len() > right.blocks.len() {
+            left
         } else {
-            return right
+            right
         }
     }
     if is_left_chain_valid { left } else { right }
