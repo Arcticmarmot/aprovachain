@@ -1,2 +1,2 @@
 Aprova Chain 
-— An Automated Approval Blockchain Powered by Zero-Knowledge Proofs
+— An Automated Approval Blockchain Powered by Verifiable Computation.

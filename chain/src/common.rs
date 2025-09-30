@@ -62,7 +62,7 @@ pub fn chose_chain<'a>(left: &'a Chain, right: &'a Chain) -> &'a Chain {
 
 pub fn get_default_outbound_ip() -> Option<IpAddr> {
     // 这个地址不会被实际连接/发送数据，只用于内核选择出口接口，从而能读取 local_addr。
-    // 8.8.8.8:80 是常见选择（任何可达的公网 IP 都可）。
+    // 8.8.8.8:80 是常见选择（任何可达的公网 IP 都可）
     match UdpSocket::bind("0.0.0.0:0") {
         Ok(sock) => {
             if sock.connect("8.8.8.8:80").is_ok() {
