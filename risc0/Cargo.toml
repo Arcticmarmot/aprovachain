@@ -1,0 +1,21 @@
+[package]
+name = "risc0"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+aprova-methods = { path = "methods" }
+aprova-core = { path = "core" }
+risc0-zkvm = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[workspace]
+members = [
+    "core",
+    "methods",
+    "methods/guest",
+]
+
+[workspace.dependencies]
+risc0-zkvm = "3.0.3"
+risc0-build = "3.0.3"
