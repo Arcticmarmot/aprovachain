@@ -1,5 +1,3 @@
-use chrono::Utc;
-use crate::app::{Block, Chain};
 use crate::common::{calc_peer_hash, get_default_outbound_ip, UDP_DISC_PORT};
 use crate::p2p::{discovery, DiscPeerList, Peer};
 
