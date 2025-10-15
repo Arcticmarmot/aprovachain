@@ -16,4 +16,4 @@ log = "0.4"
 pretty_env_logger = "0.4"
 
 [workspace]
-exclude = ["risc0"]
+members = []
