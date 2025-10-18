@@ -1,0 +1,12 @@
+.git
+.git/**
+target/
+**/target/
+.idea/
+.vscode/
+node_modules/
+**/node_modules/
+*.swp
+*.tmp
+*.cache
+.DS_Store
