@@ -22,4 +22,6 @@ async fn main() {
     };
     println!("{:?}", local_peer);
     discovery(&local_peer).await;
+
+    // test
 }
