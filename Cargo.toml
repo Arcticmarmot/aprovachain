@@ -11,6 +11,9 @@ serde_json = "1.0"
 libp2p = { version = "0.39", features = ["tcp-tokio", "mdns"] }
 tokio = { version = "1.0", features = ["io-util", "io-std", "macros", "rt", "rt-multi-thread", "sync", "time"] }
 hex = "0.4"
+futures = { version = "0.3" }
+futures-bounded = { version = "0.2.4" }
+futures-rustls = { version = "0.26.0", default-features = false }
 once_cell = "1.5"
 log = "0.4"
 pretty_env_logger = "0.4"
