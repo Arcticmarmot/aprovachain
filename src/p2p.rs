@@ -69,7 +69,7 @@ pub async fn discovery(peer: &Peer) {
             let broadcast_addr = format!("{}:{}", BROADCAST_IP_ADDR, UDP_LISTENER_PORT);
             let content = format!("DISCOVERY: peer_id: {}, ip_addr: {}, port: {}, established_connection: {}",
                                   peer_id, ip_addr, port, established_connection);
-            println!("{}", content);
+            println!("{} MARKS", content);
             let message = peer_id.as_bytes();
             udp_disc_socket.send_to(message, broadcast_addr).await.unwrap();
             sleep(Duration::from_secs(BROADCAST_INTERVAL_SECS)).await;

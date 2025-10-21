@@ -1,13 +1,4 @@
 use chrono::prelude::*;
-use libp2p::{
-    core::upgrade,
-    futures::StreamExt,
-    mplex,
-    noise::{Keypair, NoiseConfig, X25519Spec},
-    swarm::{Swarm, SwarmBuilder},
-    tcp::TokioTcpConfig,
-    Transport,
-};
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
