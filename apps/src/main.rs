@@ -5,11 +5,11 @@ use anyhow::{bail, Result};
 #[clap(author, version, about, long_about=None)]
 struct Args {
     // 用户调用的 image_id
-    #[clap(short, long, next_help_heading = "The ImageId to be invoked")]
+    #[clap(short, long, env, next_help_heading = "The ImageId to be invoked")]
     image_id: String,
 
     // 用户的输入数据
-    #[clap(short, long, next_help_heading = "The input of user")]
+    #[clap(short, long, env, next_help_heading = "The input of user")]
     data: u32
 }
 

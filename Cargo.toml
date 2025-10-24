@@ -2,9 +2,14 @@
 name = "aprova"
 version = "0.1.0"
 edition = "2024"
+authors = ["marmot"]
 
 [workspace]
-members = ["app"]
+members = [
+    "account",
+    "apps",
+
+]
 
 [dependencies]
 chrono = "0.4"
