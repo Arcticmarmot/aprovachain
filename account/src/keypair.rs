@@ -37,6 +37,10 @@ impl AccountVerifyingKey {
         Ok(Self(verifying_key))
     }
 
+    pub fn to_bytes(&self) -> VerifyingKeyBytes {
+        self.0.to_bytes()
+    }
+
     pub fn verify(&self, msg: &[u8], sig: &Signature) -> Result<()> {
         self.0.verify(msg, sig).map_err(AccountError::SignatureVerifyingError)?;
         Ok(())
@@ -65,10 +69,6 @@ impl Keypair {
         }
     }
 }
-
-
-
-
 
 #[cfg(test)]
 mod tests {

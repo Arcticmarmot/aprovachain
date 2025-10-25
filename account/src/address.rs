@@ -1,75 +1,54 @@
 //! Address protocol implementation
-
-use core::iter;
-use std::net::IpAddr;
-use std::ops::Deref;
-use rand::{CryptoRng, RngCore};
-use serde::{Serialize, Deserialize};
+use sha2::{Digest, Sha256};
 use ed25519_dalek::Signer;
+use bech32::{hrp, Hrp, Bech32m};
+use crate::error::AccountError;
+use crate::keypair::AccountVerifyingKey;
+use std::marker::PhantomData;
 
-use bech32::{self, FromBase32, ToBase32};
+pub type Result<T> = std::result::Result<T, AccountError>;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct AddressLabel {
-    inner: String
+pub trait AccountType {
+    const HRP: &'static str;
 }
 
-impl AddressLabel {
-    pub fn new(label: String) -> Option<Self> {
-        if let Ok(data) = bech32::encode(&label, [0x42u8; 1].to_base32()){
-            println!("{}", data);
-            Some(Self { inner: label })
-        } else {
-            None
-        }
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.inner
-    }
+pub enum UserAddress {}
+impl AccountType for UserAddress {
+    const HRP: &'static str = "user";
 }
+pub struct AccountAddress<T: AccountType>([u8; 20], PhantomData<T>);
 
-impl Deref for AddressLabel {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
+impl<T: AccountType> AccountAddress<T> {
+    fn to_bech32_address(&self) -> Result<String> {
+        let hrp = Hrp::parse(T::HRP).unwrap();
+        let addr = bech32::encode::<Bech32m>(hrp, &self.0).map_err(AccountError::Bech32EncodeError)?;
+        Ok(addr)
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Address {
-    label: AddressLabel,
+impl<T: AccountType> From<&AccountVerifyingKey> for AccountAddress<T> {
+    fn from(vk: &AccountVerifyingKey) -> Self {
+        let digest = Sha256::digest(vk.to_bytes());
+        println!("{:?}", digest);
+        let mut out = [0u8; 20];
+        out.copy_from_slice(&digest[..20]);
+        AccountAddress(out, PhantomData)
+    }
 }
-
-impl Address {
-
-}
-
-
-
-
-
-
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::address::{AccountAddress, UserAddress};
+    use crate::keypair::Keypair;
 
     #[test]
-    fn test_invalid_label() {
-        assert_eq!(AddressLabel::new("".to_string()), None);
-        AddressLabel::new("test".to_string());
+    fn test_address() {
+        let keypair = Keypair::generate();
+        let sk = keypair.signing_key;
+        let pk = keypair.verifying_key;
+        let addr = AccountAddress::<UserAddress>::from(&pk);
+        println!("{}", addr.to_bech32_address().unwrap());
     }
 }
-
-
-
-
-
-
-
-
-
 
 
