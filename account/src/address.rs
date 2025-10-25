@@ -20,6 +20,8 @@ use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::{IsIdentity, VartimeMultiscalarMul};
+use ed25519_dalek::Signer;
+
 use bech32::{self, FromBase32, ToBase32};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -82,8 +84,8 @@ impl Address {
 
     pub fn to_string(&self) -> String {
         let mut bytes = Vec::new();
-        bytes.extend_from_slice(&self.control_key.as_bytes());
-        bytes.extend_from_slice(&self.encryption_key.as_bytes());
+        bytes.extend_from_slice(&self.control_key.as_bytes()[..]);
+        bytes.extend_from_slice(&self.encryption_key.as_bytes()[..]);
         bech32::encode(&self.label, bytes.to_base32())
             .expect("Label should be 1 to 83 characters long, printable ASCII, w/o mixing case.")
     }
