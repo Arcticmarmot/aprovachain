@@ -1,43 +1,76 @@
 //! Address protocol implementation
+
+use std::fmt;
+use std::fmt::{Display, Formatter};
 use sha2::{Digest, Sha256};
 use ed25519_dalek::Signer;
 use bech32::{hrp, Hrp, Bech32m};
 use crate::error::AccountError;
 use crate::keypair::AccountVerifyingKey;
 use std::marker::PhantomData;
+use std::str::FromStr;
 
 pub type Result<T> = std::result::Result<T, AccountError>;
 
-pub trait AccountType {
+pub trait AccountPrefix {
     const HRP: &'static str;
 }
 
 pub enum UserAddress {}
-impl AccountType for UserAddress {
+impl AccountPrefix for UserAddress {
     const HRP: &'static str = "user";
 }
-pub struct AccountAddress<T: AccountType>([u8; 20], PhantomData<T>);
+pub struct AccountAddress<T: AccountPrefix>([u8; 20], PhantomData<T>);
 
-impl<T: AccountType> AccountAddress<T> {
-    fn to_bech32_address(&self) -> Result<String> {
-        let hrp = Hrp::parse(T::HRP).unwrap();
+impl<T: AccountPrefix> AccountAddress<T> {
+    pub fn to_bech32(&self) -> Result<String> {
+        let hrp = Hrp::parse(T::HRP)?;
         let addr = bech32::encode::<Bech32m>(hrp, &self.0).map_err(AccountError::Bech32EncodeError)?;
         Ok(addr)
     }
+
+    pub fn as_bytes(&self) -> &[u8; 20] {
+        &self.0
+    }
+
+    pub fn from_bytes(b: [u8; 20]) -> Self {
+        Self(b, PhantomData)
+    }
 }
 
-impl<T: AccountType> From<&AccountVerifyingKey> for AccountAddress<T> {
+impl<T: AccountPrefix> From<&AccountVerifyingKey> for AccountAddress<T> {
     fn from(vk: &AccountVerifyingKey) -> Self {
         let digest = Sha256::digest(vk.to_bytes());
-        println!("{:?}", digest);
-        let mut out = [0u8; 20];
-        out.copy_from_slice(&digest[..20]);
-        AccountAddress(out, PhantomData)
+        let mut bytes = [0u8; 20];
+        bytes.copy_from_slice(&digest[..20]);
+        AccountAddress(bytes, PhantomData)
+    }
+}
+
+impl<T: AccountPrefix> FromStr for AccountAddress<T> {
+    type Err = AccountError;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let (hrp, data) = bech32::decode(s).map_err(AccountError::Bech32DecodeError)?;
+        if hrp.as_str() != T::HRP {
+            return Err(AccountError::HrpMismatchError)
+        }
+        let mut bytes = [0u8; 20];
+        bytes.copy_from_slice(&data);
+        Ok(AccountAddress(bytes, PhantomData))
+    }
+}
+
+impl<T: AccountPrefix> Display for AccountAddress<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let bech32_str = self.to_bech32().map_err(|_| fmt::Error)?;
+        f.write_str(&bech32_str)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
     use crate::address::{AccountAddress, UserAddress};
     use crate::keypair::Keypair;
 
@@ -47,7 +80,14 @@ mod tests {
         let sk = keypair.signing_key;
         let pk = keypair.verifying_key;
         let addr = AccountAddress::<UserAddress>::from(&pk);
-        println!("{}", addr.to_bech32_address().unwrap());
+        let bech32_str = addr.to_bech32().unwrap();
+        println!("{}", bech32_str);
+        println!("{}", addr.to_bech32().unwrap());
+        println!("{}", addr.to_string());
+        let addr_from_str = AccountAddress::<UserAddress>::from_str(&bech32_str).unwrap();
+        println!("{}", addr_from_str.to_bech32().unwrap());
+        println!("{}", addr_from_str.to_string());
+        println!("{:?}", addr_from_str.as_bytes());
     }
 }
 
