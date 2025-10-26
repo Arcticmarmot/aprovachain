@@ -7,8 +7,7 @@ authors = ["marmot"]
 [workspace]
 members = [
     "account",
-    "apps",
-
+    "apps", "keygen",
 ]
 
 [dependencies]
@@ -26,3 +25,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 clap = { version = "4.5", features = ["derive", "env"] }
 dotenvy = { version = "0.15.0" }
 anyhow = { version = "1.0" }
+account = { path="account" }

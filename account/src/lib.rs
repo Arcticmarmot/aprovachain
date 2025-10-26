@@ -1,3 +1,3 @@
-mod address;
-mod keypair;
+pub mod address;
+pub mod keypair;
 mod error;

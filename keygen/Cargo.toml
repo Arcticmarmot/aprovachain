@@ -1,0 +1,8 @@
+[package]
+name = "keygen"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+account.workspace = true
+hex="0.4"

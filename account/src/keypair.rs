@@ -1,3 +1,5 @@
+use std::fs;
+use std::path::Path;
 use ed25519_dalek::{Signer, Verifier};
 use ed25519_dalek::{SigningKey, VerifyingKey, Signature};
 use rand_core::OsRng;
@@ -19,6 +21,10 @@ pub struct AccountVerifyingKey(VerifyingKey);
 impl AccountSigningKey {
     pub fn from_bytes(signing_key_bytes: &SigningKeyBytes) -> Self {
         Self(SigningKey::from_bytes(signing_key_bytes))
+    }
+
+    pub fn to_bytes(&self) -> SigningKeyBytes {
+        self.0.to_bytes()
     }
 
     pub fn sign(&self, msg: &[u8]) -> Signature {
@@ -68,17 +74,27 @@ impl Keypair {
             verifying_key
         }
     }
+
+    pub fn save_sk_hex(&self, dir: &Path, name: &str) -> Result<()>{
+        let sk_hex = hex::encode(self.signing_key.to_bytes());
+        fs::create_dir_all(dir).map_err(AccountError::CreateDirError)?;
+        let pathname = dir.join(format!("{name}.hex"));
+        fs::write(&pathname, sk_hex).map_err(AccountError::WriteHexError)?;
+        Ok(())
+    }
+
+    pub fn save_vk_hex(&self, dir: &Path, name: &str) -> Result<()>{
+        let vk_hex = hex::encode(self.signing_key.to_bytes());
+        fs::create_dir_all(dir).map_err(AccountError::CreateDirError)?;
+        let pathname = dir.join(format!("{name}.hex"));
+        fs::write(&pathname, vk_hex).map_err(AccountError::WriteHexError)?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::keypair::Keypair;
-
-    #[test]
-    fn test_keypair_generate() {
-        let keypair = Keypair::generate();
-        println!("{:?}", keypair);
-    }
 
     #[test]
     fn test_sign_and_verify() {
