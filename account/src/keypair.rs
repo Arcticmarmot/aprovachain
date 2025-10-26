@@ -48,7 +48,7 @@ impl AccountVerifyingKey {
     }
 
     pub fn verify(&self, msg: &[u8], sig: &Signature) -> Result<()> {
-        self.0.verify(msg, sig).map_err(AccountError::SignatureVerifyingError)?;
+        self.0.verify(msg, sig).map_err(AccountError::SignatureVerify)?;
         Ok(())
     }
 
@@ -77,17 +77,17 @@ impl Keypair {
 
     pub fn save_sk_hex(&self, dir: &Path, name: &str) -> Result<()>{
         let sk_hex = hex::encode(self.signing_key.to_bytes());
-        fs::create_dir_all(dir).map_err(AccountError::CreateDirError)?;
+        fs::create_dir_all(dir).map_err(AccountError::CreateDir)?;
         let pathname = dir.join(format!("{name}.hex"));
-        fs::write(&pathname, sk_hex).map_err(AccountError::WriteHexError)?;
+        fs::write(&pathname, sk_hex).map_err(AccountError::WriteHex)?;
         Ok(())
     }
 
     pub fn save_vk_hex(&self, dir: &Path, name: &str) -> Result<()>{
         let vk_hex = hex::encode(self.signing_key.to_bytes());
-        fs::create_dir_all(dir).map_err(AccountError::CreateDirError)?;
+        fs::create_dir_all(dir).map_err(AccountError::CreateDir)?;
         let pathname = dir.join(format!("{name}.hex"));
-        fs::write(&pathname, vk_hex).map_err(AccountError::WriteHexError)?;
+        fs::write(&pathname, vk_hex).map_err(AccountError::WriteHex)?;
         Ok(())
     }
 }
@@ -97,15 +97,22 @@ mod tests {
     use crate::keypair::Keypair;
 
     #[test]
-    fn test_sign_and_verify() {
+    fn test_verify() {
         let keypair = Keypair::generate();
         let sk = keypair.signing_key;
         let pk = keypair.verifying_key;
         let msg = [100, 150, 200];
         let sig = sk.sign(&msg);
-        println!("{:?}", sig);
-        let result = pk.verify(&msg, &sig);
-        println!("{:?}", result);
+        assert_eq!(pk.verify(&msg, &sig).is_ok(), true);
+    }
+
+    #[test]
+    fn test_is_valid_sig() {
+        let keypair = Keypair::generate();
+        let sk = keypair.signing_key;
+        let pk = keypair.verifying_key;
+        let msg = [100, 150, 200];
+        let sig = sk.sign(&msg);
         let is_valid_sig = pk.is_valid_sig(&msg, &sig);
         assert_eq!(is_valid_sig, true);
     }

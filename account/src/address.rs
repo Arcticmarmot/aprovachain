@@ -4,7 +4,7 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use sha2::{Digest, Sha256};
 use ed25519_dalek::Signer;
-use bech32::{hrp, Hrp, Bech32m};
+use bech32::{Hrp, Bech32m};
 use crate::error::AccountError;
 use crate::keypair::AccountVerifyingKey;
 use std::marker::PhantomData;
@@ -16,16 +16,19 @@ pub trait AccountPrefix {
     const HRP: &'static str;
 }
 
+#[derive(Debug, PartialEq)]
 pub enum UserAddress {}
 impl AccountPrefix for UserAddress {
     const HRP: &'static str = "user";
 }
+
+#[derive(Debug, PartialEq)]
 pub struct AccountAddress<T: AccountPrefix>([u8; 20], PhantomData<T>);
 
 impl<T: AccountPrefix> AccountAddress<T> {
     pub fn to_bech32(&self) -> Result<String> {
         let hrp = Hrp::parse(T::HRP)?;
-        let addr = bech32::encode::<Bech32m>(hrp, &self.0).map_err(AccountError::Bech32EncodeError)?;
+        let addr = bech32::encode::<Bech32m>(hrp, &self.0).map_err(AccountError::Bech32Encode)?;
         Ok(addr)
     }
 
@@ -51,9 +54,9 @@ impl<T: AccountPrefix> FromStr for AccountAddress<T> {
     type Err = AccountError;
 
     fn from_str(s: &str) -> Result<Self> {
-        let (hrp, data) = bech32::decode(s).map_err(AccountError::Bech32DecodeError)?;
+        let (hrp, data) = bech32::decode(s).map_err(AccountError::Bech32Decode)?;
         if hrp.as_str() != T::HRP {
-            return Err(AccountError::HrpMismatchError)
+            return Err(AccountError::HrpMismatch)
         }
         let mut bytes = [0u8; 20];
         bytes.copy_from_slice(&data);
@@ -77,17 +80,14 @@ mod tests {
     #[test]
     fn test_address() {
         let keypair = Keypair::generate();
-        let sk = keypair.signing_key;
         let pk = keypair.verifying_key;
         let addr = AccountAddress::<UserAddress>::from(&pk);
-        let bech32_str = addr.to_bech32().unwrap();
-        println!("{}", bech32_str);
-        println!("{}", addr.to_bech32().unwrap());
-        println!("{}", addr.to_string());
-        let addr_from_str = AccountAddress::<UserAddress>::from_str(&bech32_str).unwrap();
-        println!("{}", addr_from_str.to_bech32().unwrap());
-        println!("{}", addr_from_str.to_string());
-        println!("{:?}", addr_from_str.as_bytes());
+        let addr_bech32 = addr.to_bech32().unwrap();
+        let addr_str = addr.to_string();
+        assert_eq!(addr_bech32, addr_str);
+        println!("{}", addr_bech32);
+        let decoded_addr = AccountAddress::<UserAddress>::from_str(&addr_bech32).unwrap();
+        assert_eq!(decoded_addr, addr);
     }
 }
 

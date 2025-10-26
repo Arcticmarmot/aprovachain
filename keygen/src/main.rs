@@ -1,7 +1,6 @@
 use std::path::{PathBuf};
 use account::keypair::*;
 
-
 fn main() {
     let keypair = Keypair::generate();
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
