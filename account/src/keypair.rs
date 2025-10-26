@@ -3,6 +3,7 @@ use std::path::Path;
 use ed25519_dalek::{Signer, Verifier};
 use ed25519_dalek::{SigningKey, VerifyingKey, Signature};
 use rand_core::OsRng;
+use crate::address::{AccountAddress, AccountPrefix, UserAddress};
 use crate::error::AccountError;
 
 
@@ -75,6 +76,14 @@ impl Keypair {
         }
     }
 
+    pub fn save_address<T: AccountPrefix>(&self, dir: &Path, name: &str) -> Result<()> {
+        let addr = AccountAddress::<T>::from(&self.verifying_key);
+        fs::create_dir_all(dir).map_err(AccountError::CreateDir)?;
+        let pathname = dir.join(format!("{name}"));
+        fs::write(&pathname, addr.to_string()).map_err(AccountError::WriteHex)?;
+        Ok(())
+    }
+
     pub fn save_sk_hex(&self, dir: &Path, name: &str) -> Result<()>{
         let sk_hex = hex::encode(self.signing_key.to_bytes());
         fs::create_dir_all(dir).map_err(AccountError::CreateDir)?;
@@ -84,7 +93,7 @@ impl Keypair {
     }
 
     pub fn save_vk_hex(&self, dir: &Path, name: &str) -> Result<()>{
-        let vk_hex = hex::encode(self.signing_key.to_bytes());
+        let vk_hex = hex::encode(self.verifying_key.to_bytes());
         fs::create_dir_all(dir).map_err(AccountError::CreateDir)?;
         let pathname = dir.join(format!("{name}.hex"));
         fs::write(&pathname, vk_hex).map_err(AccountError::WriteHex)?;
