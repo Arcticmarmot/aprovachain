@@ -9,6 +9,7 @@ use crate::error::AccountError;
 use crate::keypair::AccountVerifyingKey;
 use std::marker::PhantomData;
 use std::str::FromStr;
+use serde::{Deserialize, Serialize};
 
 pub type Result<T> = std::result::Result<T, AccountError>;
 
@@ -22,7 +23,7 @@ impl AccountPrefix for UserAddress {
     const HRP: &'static str = "user";
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct AccountAddress<T: AccountPrefix>([u8; 20], PhantomData<T>);
 
 impl<T: AccountPrefix> AccountAddress<T> {

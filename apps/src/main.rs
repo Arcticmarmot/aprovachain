@@ -2,25 +2,15 @@ use std::fs;
 use clap::Parser;
 use anyhow::{bail, Result};
 use account::address::*;
-use account::keypair::AccountVerifyingKey;
+use account::keypair::{AccountSigningKey, AccountVerifyingKey};
 use ed25519_dalek::Signature;
-use rpassword::prompt_password;
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ExecuteTx {
-    nonce: u64,
-    image_id: String,
-    input: String
-}
-
-pub struct TxEnvelope {
-
-}
+use base64::prelude::*;
+use tx::{Tx, TxBody, TxPayload};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
-struct Args {
+struct TxArgs {
     #[clap(short, long, env, next_help_heading = "The Account Address of the User")]
     address: String,
 
@@ -31,10 +21,31 @@ struct Args {
     signing_key: String,
 
     #[clap(short, long, env, next_help_heading = "The body of the Request")]
-    execute_tx_path: String,
+    payload_path: String,
 }
 
+fn parse_tx_args(args: TxArgs) -> Result<Tx> {
+    // read the payload file
+    let bytes = fs::read(args.payload_path)?;
+    let payload = serde_json::from_slice(&bytes)?;
+    println!("{:?}", payload);
 
+    // build vk from Args
+    let mut vk_bytes = [0u8; 32];
+    hex::decode_to_slice(args.verifying_key, &mut vk_bytes)?;
+    let vk = AccountVerifyingKey::from_bytes(&vk_bytes)?;
+    let addr = AccountAddress::<UserAddress>::from(&vk);
+
+    // build sk from Args
+    let mut sk_bytes = [0u8; 32];
+    hex::decode_to_slice(args.signing_key, &mut sk_bytes)?;
+    let sk = AccountSigningKey::from_bytes(&sk_bytes);
+
+    let tx_body = TxBody::new(addr, vk, payload);
+    let tx = Tx::new(tx_body, sk);
+    println!("{:?}", tx);
+    Ok(tx)
+}
 
 fn main() -> Result<()> {
     tracing_subscriber::fmt()
@@ -47,24 +58,11 @@ fn main() -> Result<()> {
         Err(e) => bail!("failed to load .env file: {}", e),
     }
 
-    let args = Args::parse();
-
+    let args = TxArgs::parse();
     println!("{:?}", args);
 
-    let bytes = fs::read(args.execute_tx_path)?;
+    parse_tx_args(args)?;
 
-    let execute_tx: ExecuteTx = serde_json::from_slice(&bytes)?;
-
-    println!("{:?}", execute_tx);
-
-    let vk_bytes = hex::decode(args.verifying_key)?;
-    let mut vk_source = [0u8; 32];
-    vk_source.copy_from_slice(&vk_bytes);
-    let vk = AccountVerifyingKey::from_bytes(&vk_source)?;
-    let addr = AccountAddress::<UserAddress>::from(&vk);
-    println!("{:?}", vk);
-    println!("{}", addr.to_string());
-    println!("{}", args.address);
     Ok(())
 
 }

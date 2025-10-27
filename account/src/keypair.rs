@@ -3,6 +3,7 @@ use std::path::Path;
 use ed25519_dalek::{Signer, Verifier};
 use ed25519_dalek::{SigningKey, VerifyingKey, Signature};
 use rand_core::OsRng;
+use serde::{Deserialize, Serialize};
 use crate::address::{AccountAddress, AccountPrefix, UserAddress};
 use crate::error::AccountError;
 

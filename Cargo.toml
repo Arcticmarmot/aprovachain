@@ -7,7 +7,7 @@ authors = ["marmot"]
 [workspace]
 members = [
     "account",
-    "apps", "keygen",
+    "apps", "keygen", "tx",
 ]
 
 [dependencies]
@@ -20,6 +20,9 @@ tokio = { workspace = true }
 log = "0.4"
 
 [workspace.dependencies]
+account = { path="account" }
+tx = { path="tx" }
+
 tracing = { version="0.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 clap = { version = "4.5", features = ["derive", "env"] }
@@ -35,5 +38,4 @@ rand_core = { version="0.6" }
 serde = {version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.0", features = ["net", "io-util", "io-std", "macros", "rt", "rt-multi-thread", "sync", "time"] }
-
-account = { path="account" }
+base64 = { version = "0.22" }
