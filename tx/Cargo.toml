@@ -7,5 +7,4 @@ edition = "2024"
 serde = { workspace = true }
 account = { workspace = true }
 ed25519-dalek = { workspace = true }
-rand_core = { workspace = true }
-rand = { workspace = true }
+rand_core = { version = "0.9", features = ["os_rng"] }

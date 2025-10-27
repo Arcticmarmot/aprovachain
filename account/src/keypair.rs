@@ -4,7 +4,7 @@ use ed25519_dalek::{Signer, Verifier};
 use ed25519_dalek::{SigningKey, VerifyingKey, Signature};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
-use crate::address::{AccountAddress, AccountPrefix, UserAddress};
+use crate::address::{AccountAddress, AccountPrefix};
 use crate::error::AccountError;
 
 
@@ -68,8 +68,8 @@ pub struct Keypair {
 impl Keypair {
     // random generate keypair
     pub fn generate() -> Self {
-        let mut csprng = OsRng;
-        let signing_key = AccountSigningKey(SigningKey::generate(&mut csprng));
+        let mut rng = OsRng;
+        let signing_key = AccountSigningKey(SigningKey::generate(&mut rng));
         let verifying_key = signing_key.verifying_key();
         Self {
             signing_key,

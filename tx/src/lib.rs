@@ -1,26 +1,24 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 use ed25519_dalek::Signature;
-use rand_core::{OsRng, RngCore};
+use rand_core::{OsRng, TryRngCore};
 use serde::{Deserialize, Serialize};
 use account::address::{AccountAddress, UserAddress};
 use account::keypair::{AccountSigningKey, AccountVerifyingKey};
 
-fn now_unix() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()
+fn now_timestamp() -> u64 {
+    SystemTime::now().duration_since(UNIX_EPOCH).expect("accessing timestamp").as_secs()
 }
 
 fn random_u128() -> u128 {
-    let mut rng = OsRng;
-    // RngCore 没有 next_u128，手工拼两段
-    let hi = (rng.next_u64() as u128) << 64;
-    let lo = rng.next_u64() as u128;
-    hi | lo
+    let mut bytes = [0u8; 16];
+    OsRng.try_fill_bytes(&mut bytes).expect("OS RNG unavailable");
+    u128::from_le_bytes(bytes)
 }
 
 impl TxBody {
     pub fn new(addr: AccountAddress<UserAddress>, vk: AccountVerifyingKey, payload: TxPayload) -> Self {
         let nonce = random_u128();
-        let timestamp = now_unix();
+        let timestamp = now_timestamp();
         Self{
             nonce,
             timestamp,
@@ -43,7 +41,7 @@ impl Tx {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag="type")]
+#[serde(tag = "type")]
 pub enum TxPayload {
     Exec { image_id: String, input:Vec<u8> }
 }
