@@ -12,3 +12,5 @@ primitives = { workspace = true }
 thiserror = { workspace = true }
 sha2 = { workspace = true }
 bcs = { version = "0.1" }
+serde_with = "3.15"
+hex = { workspace = true }

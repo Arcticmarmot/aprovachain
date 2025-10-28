@@ -6,7 +6,7 @@ use account::keypair::{AccountSigningKey, AccountVerifyingKey};
 use ed25519_dalek::Signature;
 use serde::{Deserialize, Serialize};
 use base64::prelude::*;
-use tx::tx_envelope::{TxIntent};
+use tx::tx_envelope::{TxEnvelopWire, TxEnvelope, TxIntent};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
@@ -24,28 +24,34 @@ struct TxArgs {
     payload_path: String,
 }
 
-fn parse_tx_args(args: TxArgs) -> Result<TxIntent> {
-    // read the payload file
-    let bytes = fs::read(args.payload_path)?;
-    let payload = serde_json::from_slice(&bytes)?;
-    println!("{:?}", payload);
-
-    // build vk from Args
+fn parse_tx_args(args: TxArgs) -> Result<TxEnvelope> {
+    /// build vk from Args
     let mut vk_bytes = [0u8; 32];
     hex::decode_to_slice(args.verifying_key, &mut vk_bytes)?;
     let vk = AccountVerifyingKey::from_bytes(&vk_bytes)?;
+
+    /// build addr from vk
     let addr = AccountAddress::<UserAddress>::from(&vk);
 
-    // build sk from Args
+    /// build sk from Args
     let mut sk_bytes = [0u8; 32];
     hex::decode_to_slice(args.signing_key, &mut sk_bytes)?;
     let sk = AccountSigningKey::from_bytes(&sk_bytes);
 
-    let tx_intent = TxIntent::create(addr, vk, payload).unwrap();
-    // let tx = Tx::new(tx_body, sk);
-    println!("{:?}", tx_intent);
-    println!("{:?}", tx_intent.intent_id());
-    Ok(tx_intent)
+    /// read the payload file
+    let bytes = fs::read(args.payload_path)?;
+    let payload = serde_json::from_slice(&bytes)?;
+
+    let tx_intent = TxIntent::create(addr, vk, payload)?;
+
+    println!("\r\n{:?}", tx_intent);
+    println!("\r\n{:?}", tx_intent.tx_intent_id());
+
+    let tx_envelope = TxEnvelope::create(tx_intent, sk);
+
+    println!("\r\n{:?}", tx_envelope);
+    println!("\r\n{:?}", tx_envelope.tx_id());
+    Ok(tx_envelope)
 }
 
 fn main() -> Result<()> {
@@ -65,5 +71,4 @@ fn main() -> Result<()> {
     parse_tx_args(args)?;
 
     Ok(())
-
 }
