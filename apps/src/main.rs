@@ -6,7 +6,7 @@ use account::keypair::{AccountSigningKey, AccountVerifyingKey};
 use ed25519_dalek::Signature;
 use serde::{Deserialize, Serialize};
 use base64::prelude::*;
-use tx::{Tx, TxBody, TxPayload};
+use tx::tx_envelope::{TxIntent};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
@@ -24,7 +24,7 @@ struct TxArgs {
     payload_path: String,
 }
 
-fn parse_tx_args(args: TxArgs) -> Result<Tx> {
+fn parse_tx_args(args: TxArgs) -> Result<TxIntent> {
     // read the payload file
     let bytes = fs::read(args.payload_path)?;
     let payload = serde_json::from_slice(&bytes)?;
@@ -41,10 +41,11 @@ fn parse_tx_args(args: TxArgs) -> Result<Tx> {
     hex::decode_to_slice(args.signing_key, &mut sk_bytes)?;
     let sk = AccountSigningKey::from_bytes(&sk_bytes);
 
-    let tx_body = TxBody::new(addr, vk, payload);
-    let tx = Tx::new(tx_body, sk);
-    println!("{:?}", tx);
-    Ok(tx)
+    let tx_intent = TxIntent::create(addr, vk, payload).unwrap();
+    // let tx = Tx::new(tx_body, sk);
+    println!("{:?}", tx_intent);
+    println!("{:?}", tx_intent.intent_id());
+    Ok(tx_intent)
 }
 
 fn main() -> Result<()> {
