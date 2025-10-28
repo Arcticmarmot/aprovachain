@@ -1,22 +1,27 @@
 use std::fs;
 use std::path::Path;
-use ed25519_dalek::{Signer, Verifier};
+use ed25519_dalek::{SecretKey, Signer, Verifier};
 use ed25519_dalek::{SigningKey, VerifyingKey, Signature};
+use ed25519_dalek::ed25519::SignatureBytes;
+use ed25519_dalek::PUBLIC_KEY_LENGTH;
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use crate::address::{AccountAddress, AccountPrefix};
 use crate::error::AccountError;
 
-
 pub type Result<T> = std::result::Result<T, AccountError>;
-pub type SigBytes = [u8; 64];
-pub type SigningKeyBytes = [u8; 32];
-pub type VerifyingKeyBytes = [u8; 32];
-// 账户私钥
+pub type AccountSignatureBytes = SignatureBytes;
+pub type SigningKeyBytes = SecretKey;
+pub type VerifyingKeyBytes = [u8; PUBLIC_KEY_LENGTH];
+
+/// 签名
+pub type AccountSignature = Signature;
+
+/// 账户私钥
 #[derive(Debug)]
 pub struct AccountSigningKey(SigningKey);
 
-// 账户公钥
+/// 账户公钥
 #[derive(Debug)]
 pub struct AccountVerifyingKey(VerifyingKey);
 

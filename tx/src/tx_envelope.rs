@@ -1,9 +1,7 @@
-use ed25519_dalek::{Signature};
-use ed25519_dalek::ed25519::SignatureBytes;
 use rand_core::{TryRngCore};
 use serde::{Deserialize, Serialize};
 use account::address::{AccountAddress, UserAddress};
-use account::keypair::{AccountSigningKey, AccountVerifyingKey};
+use account::keypair::{AccountSignature, AccountSignatureBytes, AccountSigningKey, AccountVerifyingKey};
 use primitives::rand::random_u128;
 use primitives::clock::unix_time_secs;
 use primitives::hash::{sha256, Hash32};
@@ -11,8 +9,6 @@ use crate::error::TxError;
 use serde_with::{serde_as, Bytes};
 
 pub type Result<T> = std::result::Result<T, TxError>;
-
-pub type Sig64 = [u8; 64];
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct TxIntentId(Hash32);
@@ -81,17 +77,15 @@ impl From<&TxIntent> for TxIntentWire {
 #[derive(Debug)]
 pub struct TxEnvelope {
     pub intent: TxIntent,
-    pub signature: Signature,
+    pub signature: AccountSignature,
 }
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TxEnvelopWire {
     pub intent: TxIntentWire,
-    /// TODO: serde_as 格式是否合适
-    /// TODO: 字节数组格式归一
     #[serde_as(as = "Bytes")]
-    pub signature: [u8; 64]
+    pub signature: AccountSignatureBytes
 }
 
 impl From<&TxEnvelope> for TxEnvelopWire {
@@ -109,6 +103,7 @@ impl TxEnvelope {
         /// 使用私钥对 TxIntent 计算出的 tx_intent_id 进行签名
         let tx_intent_id = intent.tx_intent_id();
         let signature = sk.sign(&tx_intent_id.0);
+        println!("signature signed: {:?}", signature.to_bytes());
         Self {
             intent,
             signature
@@ -121,6 +116,7 @@ impl TxEnvelope {
     }
 
     pub fn tx_id(&self) -> TxId {
+        println!("canonical: {:?}", self.to_canonical_bytes());
         TxId(sha256(self.to_canonical_bytes()))
     }
 }

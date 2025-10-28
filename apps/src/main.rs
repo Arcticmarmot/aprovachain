@@ -44,12 +44,10 @@ fn parse_tx_args(args: TxArgs) -> Result<TxEnvelope> {
 
     let tx_intent = TxIntent::create(addr, vk, payload)?;
 
-    println!("\r\n{:?}", tx_intent);
     println!("\r\n{:?}", tx_intent.tx_intent_id());
 
     let tx_envelope = TxEnvelope::create(tx_intent, sk);
 
-    println!("\r\n{:?}", tx_envelope);
     println!("\r\n{:?}", tx_envelope.tx_id());
     Ok(tx_envelope)
 }
