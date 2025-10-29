@@ -19,12 +19,6 @@ pub trait AccountPrefix {
     const HRP: &'static str;
 }
 
-#[derive(Debug, PartialEq)]
-pub enum UserAddress {}
-impl AccountPrefix for UserAddress {
-    const HRP: &'static str = "user";
-}
-
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct AccountAddress<T: AccountPrefix>([u8; 20], PhantomData<T>);
 

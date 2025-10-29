@@ -7,7 +7,7 @@ authors = ["marmot"]
 [workspace]
 members = [
     "account",
-    "apps", "keygen", "primitives", "tx",
+    "apps", "chain", "keygen", "primitives", "tx",
 ]
 
 [dependencies]
@@ -23,7 +23,7 @@ log = "0.4"
 account = { path="account" }
 tx = { path="tx" }
 primitives = { path="primitives" }
-
+chain = { path = "chain" }
 
 tracing = { version="0.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
