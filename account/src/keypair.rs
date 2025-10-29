@@ -11,8 +11,8 @@ use crate::error::AccountError;
 
 pub type Result<T> = std::result::Result<T, AccountError>;
 pub type AccountSignatureBytes = SignatureBytes;
-pub type SigningKeyBytes = SecretKey;
-pub type VerifyingKeyBytes = [u8; PUBLIC_KEY_LENGTH];
+pub type AccountSigningKeyBytes = SecretKey;
+pub type AccountVerifyingKeyBytes = [u8; PUBLIC_KEY_LENGTH];
 
 /// 签名
 pub type AccountSignature = Signature;
@@ -26,11 +26,11 @@ pub struct AccountSigningKey(SigningKey);
 pub struct AccountVerifyingKey(VerifyingKey);
 
 impl AccountSigningKey {
-    pub fn from_bytes(signing_key_bytes: &SigningKeyBytes) -> Self {
+    pub fn from_bytes(signing_key_bytes: &AccountSigningKeyBytes) -> Self {
         Self(SigningKey::from_bytes(signing_key_bytes))
     }
 
-    pub fn to_bytes(&self) -> SigningKeyBytes {
+    pub fn to_bytes(&self) -> AccountSigningKeyBytes {
         self.0.to_bytes()
     }
 
@@ -44,13 +44,13 @@ impl AccountSigningKey {
 }
 
 impl AccountVerifyingKey {
-    pub fn from_bytes(verifying_key_bytes: &VerifyingKeyBytes) -> Result<Self> {
+    pub fn from_bytes(verifying_key_bytes: &AccountVerifyingKeyBytes) -> Result<Self> {
         let verifying_key = VerifyingKey::from_bytes(verifying_key_bytes)
             .map_err(AccountError::InvalidVerifyingKey)?;
         Ok(Self(verifying_key))
     }
 
-    pub fn to_bytes(&self) -> VerifyingKeyBytes {
+    pub fn to_bytes(&self) -> AccountVerifyingKeyBytes {
         self.0.to_bytes()
     }
 

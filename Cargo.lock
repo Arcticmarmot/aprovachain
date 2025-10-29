@@ -1232,6 +1232,7 @@ version = "0.1.0"
 dependencies = [
  "account",
  "bcs",
+ "hex",
  "primitives",
  "rand_core 0.9.3",
  "serde",

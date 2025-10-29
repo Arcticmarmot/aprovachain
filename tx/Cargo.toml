@@ -11,3 +11,4 @@ primitives = { workspace = true }
 thiserror = { workspace = true }
 bcs = { workspace = true }
 serde_with = { workspace = true }
+hex = { workspace = true }

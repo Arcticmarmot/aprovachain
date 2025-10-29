@@ -6,4 +6,6 @@ pub enum TxError {
     OsRng(#[from] rand_core::OsError),
     #[error("system time error")]
     SystemTime(#[from] std::time::SystemTimeError),
+    #[error("hex decode error")]
+    HexDecode(#[from] hex::FromHexError)
 }

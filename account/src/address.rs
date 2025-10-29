@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 
 pub type Result<T> = std::result::Result<T, AccountError>;
 
+pub type AccountAddressBytes = [u8; 20];
+
 pub trait AccountPrefix {
     const HRP: &'static str;
 }
@@ -27,14 +29,14 @@ impl AccountPrefix for UserAddress {
 pub struct AccountAddress<T: AccountPrefix>([u8; 20], PhantomData<T>);
 
 impl<T: AccountPrefix> AccountAddress<T> {
-    pub fn to_bech32(&self) -> Result<String> {
+    fn to_bech32(&self) -> Result<String> {
         let hrp = Hrp::parse(T::HRP)?;
         let addr = bech32::encode::<Bech32m>(hrp, &self.0).map_err(AccountError::Bech32Encode)?;
         Ok(addr)
     }
 
-    pub fn as_bytes(&self) -> &[u8; 20] {
-        &self.0
+    pub fn to_bytes(&self) -> [u8; 20] {
+        self.0
     }
 
     pub fn from_bytes(b: [u8; 20]) -> Self {

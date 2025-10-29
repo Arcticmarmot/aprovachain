@@ -1,2 +1,4 @@
-mod error;
 pub mod tx_envelope;
+pub mod tx_intent;
+mod error;
+

@@ -6,11 +6,15 @@ use account::keypair::{AccountSigningKey, AccountVerifyingKey};
 use ed25519_dalek::Signature;
 use serde::{Deserialize, Serialize};
 use base64::prelude::*;
-use tx::tx_envelope::{TxEnvelopWire, TxEnvelope, TxIntent};
+use tx::tx_envelope::{TxEnvelopWire, TxEnvelope};
+use tx::tx_intent::{TxIntent};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
 struct TxArgs {
+    #[clap(short, long, env, next_help_heading = "The Chain Id of the Tx")]
+    chain_id: u64,
+
     #[clap(short, long, env, next_help_heading = "The Account Address of the User")]
     address: String,
 
@@ -25,6 +29,10 @@ struct TxArgs {
 }
 
 fn parse_tx_args(args: TxArgs) -> Result<TxEnvelope> {
+    /// build chain id from Args
+    let chain_id = args.chain_id;
+    println!("{}", chain_id);
+
     /// build vk from Args
     let mut vk_bytes = [0u8; 32];
     hex::decode_to_slice(args.verifying_key, &mut vk_bytes)?;
@@ -69,4 +77,12 @@ fn main() -> Result<()> {
     parse_tx_args(args)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn access_args() {
+
+    }
 }
