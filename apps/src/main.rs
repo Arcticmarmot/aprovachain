@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use base64::prelude::*;
 use tx::tx_envelope::{TxEnvelopWire, TxEnvelope};
 use tx::tx_intent::{TxIntent};
-use chain::spec::{Testnet, Mainnet, ChainMetadata, ChainNetwork};
+use chain::spec::{ChainId, ChainSpec};
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
 struct TxArgs {
@@ -30,8 +30,8 @@ struct TxArgs {
 
 fn parse_tx_args(args: TxArgs) -> Result<TxEnvelope> {
     /// build chain id from Args
-    let chain_id = args.chain_id;
-    println!("{}", chain_id);
+    let chain_id = ChainId(args.chain_id);
+    println!("{:?}", chain_id);
 
     /// build vk from Args
     let mut vk_bytes = [0u8; 32];
@@ -39,11 +39,7 @@ fn parse_tx_args(args: TxArgs) -> Result<TxEnvelope> {
     let vk = AccountVerifyingKey::from_bytes(&vk_bytes)?;
 
     /// build addr from vk and chain_id
-    let addr = match ChainNetwork::from_chain_id(chain_id) {
-        ChainNetwork::Mainnet => generate_addr::<Mainnet>(&vk),
-        ChainNetwork::Testnet => generate_addr::<Testnet>(&vk),
-        _ => panic!("bad network id")
-    };
+    let addr = ChainAddress::create(chain_id, &vk);
 
     println!("{:?}", addr);
 
@@ -62,12 +58,8 @@ fn parse_tx_args(args: TxArgs) -> Result<TxEnvelope> {
 
     let tx_envelope = TxEnvelope::create(tx_intent, sk);
 
-    println!("\r\n{:?}", tx_envelope.tx_id());
+    println!("\r\n{:?}", tx_envelope);
     Ok(tx_envelope)
-}
-
-fn generate_addr<T: ChainMetadata>(vk: &AccountVerifyingKey) -> AccountAddress<T> {
-    AccountAddress::<T>::from(vk)
 }
 
 fn main() -> Result<()> {

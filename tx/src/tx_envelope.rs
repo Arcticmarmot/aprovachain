@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use account::keypair::{AccountSignature, AccountSignatureBytes, AccountSigningKey};
 use primitives::hash::{sha256, Hash32};
 use crate::error::TxError;
-use serde_with::{serde_as, Bytes, hex::Hex};
+use serde_with::{serde_as, Bytes};
 use crate::tx_intent::{TxIntent, TxIntentWire};
 
 pub type Result<T> = std::result::Result<T, TxError>;

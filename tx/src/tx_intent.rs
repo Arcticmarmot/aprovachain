@@ -2,9 +2,9 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use rand_core::{TryRngCore};
 use serde::{Deserialize, Serialize};
-use account::address::{AccountAddress, AccountAddressBytes};
+use account::address::{AddressBytes, ChainAddress};
 use account::keypair::{AccountVerifyingKey, AccountVerifyingKeyBytes};
-use chain::spec::ChainMetadata;
+use chain::spec::{ChainId, ChainSpec};
 use primitives::rand::random_u128;
 use primitives::clock::unix_time_secs;
 use primitives::hash::{sha256, Hash32};
@@ -41,9 +41,9 @@ pub enum TxPayload {
 
 #[derive(Debug)]
 pub struct TxIntent {
-    pub chain_id: u64,
+    pub chain_id: ChainId,
     pub nonce: u128,
-    pub address: AccountAddress<dyn ChainMetadata>,
+    pub address: ChainAddress,
     pub verifying_key: AccountVerifyingKey,
     pub timestamp: u64,
     pub payload: TxPayload,
@@ -53,14 +53,14 @@ pub struct TxIntent {
 pub struct TxIntentWire {
     pub chain_id: u64,
     pub nonce: u128,
-    pub address: AccountAddressBytes,
+    pub address: AddressBytes,
     pub verifying_key: AccountVerifyingKeyBytes,
     pub timestamp: u64,
     pub payload: TxPayload
 }
 
 impl TxIntent {
-    pub fn create(chain_id: u64, addr: AccountAddress<dyn ChainMetadata>, vk: AccountVerifyingKey, payload: TxPayload) -> Result<Self> {
+    pub fn create(chain_id: ChainId, addr: ChainAddress, vk: AccountVerifyingKey, payload: TxPayload) -> Result<Self> {
         let nonce = random_u128()?;
         let timestamp = unix_time_secs()?;
         Ok(Self {
@@ -86,7 +86,7 @@ impl TxIntent {
 impl From<&TxIntent> for TxIntentWire {
     fn from(intent: &TxIntent) -> Self {
         Self {
-            chain_id: intent.chain_id,
+            chain_id: intent.chain_id.0,
             nonce: intent.nonce,
             address: intent.address.to_bytes(),
             verifying_key: intent.verifying_key.to_bytes(),

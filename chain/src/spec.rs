@@ -1,12 +1,12 @@
-use std::string::ToString;
 use bech32::Hrp;
 use crate::error::ChainError;
-use std::sync::OnceLock;
+
 type Result<T> = std::result::Result<T, ChainError>;
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 pub struct ChainId(pub u64);
 
+#[derive(Debug, PartialEq)]
 pub struct ChainSpec {
     pub id: ChainId,
     pub name: &'static str,
