@@ -7,8 +7,10 @@ name = "account"
 version = "0.1.0"
 dependencies = [
  "bech32",
+ "chain",
  "ed25519-dalek",
  "hex",
+ "primitives",
  "rand_core 0.6.4",
  "serde",
  "sha2",
@@ -111,6 +113,7 @@ dependencies = [
  "account",
  "anyhow",
  "base64",
+ "chain",
  "clap",
  "dotenvy",
  "ed25519-dalek",
@@ -231,7 +234,9 @@ checksum = "2fd1289c04a9ea8cb22300a459a72a385d7c73d3259e2ed7dcb2af674838cfa9"
 name = "chain"
 version = "0.1.0"
 dependencies = [
- "account",
+ "bech32",
+ "once_cell",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1239,6 +1244,7 @@ version = "0.1.0"
 dependencies = [
  "account",
  "bcs",
+ "chain",
  "hex",
  "primitives",
  "rand_core 0.9.3",

@@ -6,7 +6,7 @@ use ed25519_dalek::ed25519::SignatureBytes;
 use ed25519_dalek::PUBLIC_KEY_LENGTH;
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
-use crate::address::{AccountAddress, AccountPrefix};
+use crate::address::{ChainAddress};
 use crate::error::AccountError;
 
 pub type Result<T> = std::result::Result<T, AccountError>;
@@ -82,7 +82,7 @@ impl Keypair {
         }
     }
 
-    pub fn save_address<T: AccountPrefix>(&self, dir: &Path, name: &str) -> Result<()> {
+    pub fn save_address<T: ChainMetadata>(&self, dir: &Path, name: &str) -> Result<()> {
         let addr = AccountAddress::<T>::from(&self.verifying_key);
         fs::create_dir_all(dir).map_err(AccountError::CreateDir)?;
         let pathname = dir.join(format!("{name}"));
