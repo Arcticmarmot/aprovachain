@@ -71,6 +71,7 @@ async fn send_envelope(envelope_wire: TxEnvelopeWire) -> Result<()> {
         .send()
         .await?;
     println!("{:?}", response);
+    println!("{}", response.text().await?);
     Ok(())
 }
 
@@ -92,12 +93,4 @@ async fn main() -> Result<()> {
     let tx_envelope = parse_tx_args(args)?;
 
     send_envelope(tx_envelope).await
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn access_args() {
-
-    }
 }
