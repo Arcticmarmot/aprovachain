@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use rand_core::{TryRngCore};
 use serde::{Deserialize, Serialize};
+use serde::__private226::de::IdentifierDeserializer;
 use account::keypair::{AccountSignature, AccountSignatureBytes, AccountSigningKey};
 use primitives::hash::{sha256, Hash32};
 use crate::error::TxError;
@@ -38,13 +39,28 @@ pub struct TxEnvelope {
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TxEnvelopWire {
+pub struct TxEnvelopeWire {
     pub intent: TxIntentWire,
     #[serde_as(as = "Bytes")]
     pub signature: AccountSignatureBytes
 }
 
-impl From<&TxEnvelope> for TxEnvelopWire {
+impl TxEnvelopeWire {
+    pub fn to_bcs_bytes(&self) -> Vec<u8> {
+        bcs::to_bytes(self).expect("BCS should be infallible by design")
+    }
+
+    pub fn from_bcs_bytes(b: &[u8]) -> Self {
+        bcs::from_bytes(b).expect("BCS should be infallible by design")
+    }
+
+    pub fn try_from_bcs_bytes(b: &[u8]) -> Result<Self> {
+        Ok(bcs::from_bytes(b)?)
+    }
+}
+
+
+impl From<&TxEnvelope> for TxEnvelopeWire {
     fn from(envelope: &TxEnvelope) -> Self {
         let intent = &envelope.intent;
         Self {
@@ -66,11 +82,24 @@ impl TxEnvelope {
     }
 
     pub fn to_canonical_bytes(&self) -> Vec<u8> {
-        let envelop_wire = TxEnvelopWire::from(self);
+        let envelop_wire = TxEnvelopeWire::from(self);
         bcs::to_bytes(&envelop_wire).expect("BCS should be infallible by design")
     }
 
     pub fn tx_id(&self) -> TxId {
         TxId(sha256(self.to_canonical_bytes()))
+    }
+}
+
+impl TryFrom<TxEnvelopeWire> for TxEnvelope {
+    type Error = TxError;
+
+    fn try_from(wire: TxEnvelopeWire) -> Result<Self> {
+        let intent = TxIntent::try_from(wire.intent)?;
+        let signature = AccountSignature::from_bytes(&wire.signature);
+        Ok(Self {
+            intent,
+            signature
+        })
     }
 }

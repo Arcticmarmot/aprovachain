@@ -2,6 +2,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum TxError {
+    #[error(transparent)]
+    Account(#[from] account::error::AccountError),
     #[error("OS RNG failed")]
     OsRng(#[from] rand_core::OsError),
     #[error("system time error")]
@@ -12,4 +14,6 @@ pub enum TxError {
     TxIntentIdPrefix,
     #[error("tx_id parse error")]
     TxIdPrefix,
+    #[error("bcs parse failed")]
+    BcsParse(#[from] bcs::Error),
 }

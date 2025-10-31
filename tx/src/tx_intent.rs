@@ -33,7 +33,6 @@ impl FromStr for TxIntentId {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type")]
 pub enum TxPayload {
     Exec { image_id: String, input:Vec<u8> },
     Deploy { source: Vec<u8> },
@@ -49,15 +48,24 @@ pub struct TxIntent {
     pub payload: TxPayload,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TxIntentWire {
-    pub chain_id: u64,
-    pub nonce: u128,
-    pub address: AddressBytes,
-    pub verifying_key: AccountVerifyingKeyBytes,
-    pub timestamp: u64,
-    pub payload: TxPayload
+impl TryFrom<TxIntentWire> for TxIntent {
+    type Error = TxError;
+
+    fn try_from(wire: TxIntentWire) -> Result<Self> {
+        let chain_id = ChainId(wire.chain_id);
+        let address = ChainAddress::create_from_bytes(chain_id, wire.address);
+        let verifying_key = AccountVerifyingKey::from_bytes(&wire.verifying_key)?;
+        Ok(Self {
+            chain_id,
+            nonce: wire.nonce,
+            address,
+            verifying_key,
+            timestamp: wire.timestamp,
+            payload: wire.payload
+        })
+    }
 }
+
 
 impl TxIntent {
     pub fn create(chain_id: ChainId, addr: ChainAddress, vk: AccountVerifyingKey, payload: TxPayload) -> Result<Self> {
@@ -80,6 +88,31 @@ impl TxIntent {
 
     pub fn tx_intent_id(&self) -> TxIntentId {
         TxIntentId(sha256(self.to_canonical_bytes()))
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TxIntentWire {
+    pub chain_id: u64,
+    pub nonce: u128,
+    pub address: AddressBytes,
+    pub verifying_key: AccountVerifyingKeyBytes,
+    pub timestamp: u64,
+    pub payload: TxPayload
+}
+
+
+impl TxIntentWire {
+    pub fn to_bcs_bytes(&self) -> Vec<u8> {
+        bcs::to_bytes(self).expect("BCS should be infallible by design")
+    }
+
+    pub fn from_bcs_bytes(b: &[u8]) -> Self {
+        bcs::from_bytes(b).expect("BCS should be infallible by design")
+    }
+
+    pub fn try_from_bcs_bytes(b: &[u8]) -> Result<Self> {
+        Ok(bcs::from_bytes(b)?)
     }
 }
 

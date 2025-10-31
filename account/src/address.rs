@@ -60,10 +60,24 @@ impl From<&AccountVerifyingKey> for Address {
 }
 
 impl ChainAddress {
-    pub fn create(chain_id: ChainId, vk: &AccountVerifyingKey) -> Self {
+    pub fn create(chain_id: ChainId, addr: Address) -> Self {
+        Self {
+            chain_id,
+            addr
+        }
+    }
+
+    pub fn create_from_vk(chain_id: ChainId, vk: &AccountVerifyingKey) -> Self {
         Self {
             chain_id,
             addr: Address::from(vk)
+        }
+    }
+
+    pub fn create_from_bytes(chain_id: ChainId, addr_bytes: AddressBytes) -> Self {
+        Self {
+            chain_id,
+            addr: Address::from(addr_bytes)
         }
     }
 

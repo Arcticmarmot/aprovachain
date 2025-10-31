@@ -4,5 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+tx = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+primitives = { workspace = true }

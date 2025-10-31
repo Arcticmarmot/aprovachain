@@ -1,3 +1,3 @@
 pub mod spec;
 pub mod registry;
-mod error;
+pub mod error;

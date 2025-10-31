@@ -7,8 +7,8 @@ authors = ["marmot"]
 [dependencies]
 tx = { workspace = true }
 chain = { workspace = true }
+reqwest = { version = "0.12" }
 clap = { workspace = true }
-base64 = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 dotenvy = { workspace = true }
@@ -18,5 +18,4 @@ ed25519-dalek = { workspace = true }
 hex = { workspace = true }
 serde_json = { workspace = true }
 serde = { workspace = true }
-reqwest = { version = "0.12" }
 tokio = { workspace = true }
