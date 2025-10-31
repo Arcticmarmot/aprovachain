@@ -17,4 +17,6 @@ account = { workspace = true }
 ed25519-dalek = { workspace = true }
 hex = { workspace = true }
 serde_json = { workspace = true }
-serde = { version = "1.0.226", features = ["derive"] }
+serde = { workspace = true }
+reqwest = { version = "0.12" }
+tokio = { workspace = true }

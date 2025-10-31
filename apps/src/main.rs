@@ -1,6 +1,7 @@
 use std::fs;
 use clap::Parser;
 use anyhow::{bail, Result};
+use base64::encode_engine;
 use account::address::*;
 use account::keypair::{AccountSigningKey, AccountVerifyingKey};
 use ed25519_dalek::Signature;
@@ -9,6 +10,9 @@ use base64::prelude::*;
 use tx::tx_envelope::{TxEnvelopWire, TxEnvelope};
 use tx::tx_intent::{TxIntent};
 use chain::spec::{ChainId, ChainSpec};
+use tx::tx_envelope;
+use reqwest::Client;
+
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
 struct TxArgs {
@@ -62,7 +66,21 @@ fn parse_tx_args(args: TxArgs) -> Result<TxEnvelope> {
     Ok(tx_envelope)
 }
 
-fn main() -> Result<()> {
+async  fn send_envelope(envelope: TxEnvelope) -> Result<()> {
+    let client = Client::new();
+    let response = client
+        .post("http://localhost:8888/api/tx")
+        .header("content-type", "application/octet-stream")
+        .body(envelope.to_canonical_bytes())
+        .send()
+        .await
+        .map_err(|e| e)?;
+    println!("{:?}", response);
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
@@ -76,9 +94,9 @@ fn main() -> Result<()> {
     let args = TxArgs::parse();
     println!("{:?}", args);
 
-    parse_tx_args(args)?;
+    let tx_envelope = parse_tx_args(args)?;
 
-    Ok(())
+    send_envelope(tx_envelope).await
 }
 
 #[cfg(test)]
