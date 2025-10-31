@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 use rand_core::{TryRngCore};
 use serde::{Deserialize, Serialize};
 use account::keypair::{AccountSignature, AccountSignatureBytes, AccountSigningKey};
@@ -11,6 +13,22 @@ pub type Result<T> = std::result::Result<T, TxError>;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct TxId(pub Hash32);
 
+impl Display for TxId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "0x{}", hex::encode(&self.0))
+    }
+}
+
+impl FromStr for TxId {
+    type Err = TxError;
+
+    fn from_str(s: &str) -> crate::tx_intent::Result<Self> {
+        let s = s.strip_prefix("0x").ok_or(TxError::TxIdPrefix)?;
+        let mut out = [0u8; 32];
+        hex::decode_to_slice(s, &mut out)?;
+        Ok(TxId(out))
+    }
+}
 
 #[derive(Debug)]
 pub struct TxEnvelope {

@@ -1,6 +1,5 @@
 use std::io;
 use thiserror::Error;
-use bech32::primitives::hrp::Error as HrpParseError;
 
 #[derive(Debug, Error)]
 pub enum AccountError {
@@ -12,10 +11,10 @@ pub enum AccountError {
     Bech32Encode(#[source] bech32::EncodeError),
     #[error("bech32 decode failed")]
     Bech32Decode(#[source] bech32::DecodeError),
-    #[error("hrp parse failed")]
-    HrpParse(#[from] HrpParseError),
     #[error("hrp mismatched")]
     HrpMismatch,
+    #[error("hrp not in registry")]
+    HrpNotInRegistry,
     #[error("create dir failed")]
     CreateDir(#[source] io::Error),
     #[error("write hex failed")]

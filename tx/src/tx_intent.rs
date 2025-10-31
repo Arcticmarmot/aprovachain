@@ -4,7 +4,7 @@ use rand_core::{TryRngCore};
 use serde::{Deserialize, Serialize};
 use account::address::{AddressBytes, ChainAddress};
 use account::keypair::{AccountVerifyingKey, AccountVerifyingKeyBytes};
-use chain::spec::{ChainId, ChainSpec};
+use chain::spec::{ChainId};
 use primitives::rand::random_u128;
 use primitives::clock::unix_time_secs;
 use primitives::hash::{sha256, Hash32};
@@ -25,7 +25,7 @@ impl FromStr for TxIntentId {
     type Err = TxError;
 
     fn from_str(s: &str) -> Result<Self> {
-        let s = s.strip_prefix("0x").unwrap_or(s);
+        let s = s.strip_prefix("0x").ok_or(TxError::TxIntentIdPrefix)?;
         let mut out = [0u8; 32];
         hex::decode_to_slice(s, &mut out)?;
         Ok(TxIntentId(out))

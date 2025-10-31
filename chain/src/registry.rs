@@ -10,8 +10,8 @@ struct ChainSpecConf {
 }
 
 static KNOWN_CHAIN: &[ChainSpecConf] = &[
-    ChainSpecConf { id: ChainId(1000), name: "mainnet" },
-    ChainSpecConf { id: ChainId(2000), name: "testnet" },
+    ChainSpecConf { id: ChainId(1000), name: "main" },
+    ChainSpecConf { id: ChainId(2000), name: "test" },
 ];
 
 static REGISTRY_MAP: Lazy<HashMap<ChainId, Arc<ChainSpec>>> = Lazy::new(|| {
@@ -42,17 +42,9 @@ pub fn get_custom(id: ChainId) -> Option<Arc<ChainSpec>> {
 
 
 pub fn by_id(id: ChainId) -> Option<Arc<ChainSpec>> {
-    let spec = REGISTRY_MAP.get(&id).cloned();
-    if spec != None {
-        return spec;
-    }
-    get_custom(id)
+    REGISTRY_MAP.get(&id).cloned().or_else(|| get_custom(id))
 }
 
 pub fn hrp_by_id(id: ChainId) -> Option<Hrp> {
-    let spec = by_id(id);
-    if spec != None {
-        return Some(spec?.hrp)
-    }
-    None
+    by_id(id).map(|spec| spec.hrp)
 }

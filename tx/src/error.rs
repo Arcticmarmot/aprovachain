@@ -7,5 +7,9 @@ pub enum TxError {
     #[error("system time error")]
     SystemTime(#[from] std::time::SystemTimeError),
     #[error("hex decode error")]
-    HexDecode(#[from] hex::FromHexError)
+    HexDecode(#[from] hex::FromHexError),
+    #[error("tx_intent_id parse error")]
+    TxIntentIdPrefix,
+    #[error("tx_id parse error")]
+    TxIdPrefix,
 }

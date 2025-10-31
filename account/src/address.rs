@@ -1,7 +1,5 @@
 //! Address protocol implementation
 use chain::registry;
-use std::fmt;
-use std::fmt::{Display, Formatter};
 use sha2::{Digest};
 use ed25519_dalek::Signer;
 use bech32::{Bech32};
@@ -26,22 +24,30 @@ pub struct ChainAddress {
 }
 
 impl Address {
-    pub fn as_bytes(&self) -> &[u8; 20] {
-        &self.0
-    }
-
-    pub fn into_bytes(self) -> [u8; 20] {
+    pub fn into_bytes(self) -> AddressBytes {
         self.0
     }
 
-    pub fn to_bytes(&self) -> [u8; 20] {
+    pub fn to_bytes(&self) -> AddressBytes {
         self.0
     }
 }
 
-impl From<[u8; 20]> for Address {
-    fn from(b: [u8; 20]) -> Self {
+impl From<AddressBytes> for Address {
+    fn from(b: AddressBytes) -> Self {
         Self(b)
+    }
+}
+
+impl AsRef<AddressBytes> for Address {
+    fn as_ref(&self) -> &AddressBytes {
+        &self.0
+    }
+}
+
+impl From<Address> for AddressBytes {
+    fn from(addr: Address) -> Self {
+        addr.0
     }
 }
 
@@ -62,19 +68,16 @@ impl ChainAddress {
     }
 
     pub fn to_bech32(&self) -> Result<String> {
-        let hrp = registry::hrp_by_id(self.chain_id);
-        if hrp == None {
-            return Err(AccountError::HrpMismatch);
-        }
-        let addr_str = bech32::encode::<Bech32>(hrp.unwrap(), self.addr.as_bytes())
+        let hrp = registry::hrp_by_id(self.chain_id).ok_or(AccountError::HrpNotInRegistry)?;
+        let addr_str = bech32::encode::<Bech32>(hrp, self.addr.as_ref())
             .map_err(AccountError::Bech32Encode)?;
         Ok(addr_str)
     }
 
     pub fn try_from_str_with_id(chain_id: ChainId, s: &str) -> Result<Self> {
         let (hrp, data) = bech32::decode(s).map_err(AccountError::Bech32Decode)?;
-        let registry_hrp = registry::hrp_by_id(chain_id);
-        if registry_hrp == None || hrp.as_str() != registry_hrp.unwrap().as_str() {
+        let registry_hrp = registry::hrp_by_id(chain_id).ok_or(AccountError::HrpNotInRegistry)?;
+        if hrp.as_str() != registry_hrp.as_str() {
             return Err(AccountError::HrpMismatch);
         }
         let mut bytes: AddressBytes = [0u8; 20];
@@ -97,7 +100,6 @@ mod tests {
 
     #[test]
     fn test_address() {
-        /// TODO: 完善地址测试
         let keypair = Keypair::generate();
         let pk = keypair.verifying_key;
         let addr = Address::from(&pk);

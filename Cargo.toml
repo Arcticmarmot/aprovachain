@@ -7,7 +7,7 @@ authors = ["marmot"]
 [workspace]
 members = [
     "account",
-    "apps", "chain", "keygen", "primitives", "tx",
+    "apps", "chain", "keygen", "node", "primitives", "tx",
 ]
 
 [dependencies]

@@ -7,7 +7,7 @@ use ed25519_dalek::PUBLIC_KEY_LENGTH;
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use chain::spec::ChainId;
-use crate::address::{Address, ChainAddress};
+use crate::address::{ChainAddress};
 use crate::error::AccountError;
 
 pub type Result<T> = std::result::Result<T, AccountError>;
@@ -92,18 +92,18 @@ impl Keypair {
         Ok(())
     }
 
-    pub fn save_sk_hex(&self, dir: &Path, name: &str) -> Result<()>{
+    pub fn save_sk_hex(&self, dir: &Path, filename: &str) -> Result<()>{
         let sk_hex = hex::encode(self.signing_key.to_bytes());
         fs::create_dir_all(dir).map_err(AccountError::CreateDir)?;
-        let pathname = dir.join(format!("{name}.hex"));
+        let pathname = dir.join(format!("{filename}.hex"));
         fs::write(&pathname, sk_hex).map_err(AccountError::WriteHex)?;
         Ok(())
     }
 
-    pub fn save_vk_hex(&self, dir: &Path, name: &str) -> Result<()>{
+    pub fn save_vk_hex(&self, dir: &Path, filename: &str) -> Result<()>{
         let vk_hex = hex::encode(self.verifying_key.to_bytes());
         fs::create_dir_all(dir).map_err(AccountError::CreateDir)?;
-        let pathname = dir.join(format!("{name}.hex"));
+        let pathname = dir.join(format!("{filename}.hex"));
         fs::write(&pathname, vk_hex).map_err(AccountError::WriteHex)?;
         Ok(())
     }
