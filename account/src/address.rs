@@ -1,11 +1,8 @@
 //! Address protocol implementation
 use chain::registry;
-use sha2::{Digest};
-use ed25519_dalek::Signer;
 use bech32::{Bech32};
 use crate::error::AccountError;
 use crate::keypair::AccountVerifyingKey;
-use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use chain::spec::ChainId;
 use primitives::hash::sha256;

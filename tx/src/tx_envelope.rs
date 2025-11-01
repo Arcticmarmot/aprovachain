@@ -1,8 +1,6 @@
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use rand_core::{TryRngCore};
 use serde::{Deserialize, Serialize};
-use serde::__private226::de::IdentifierDeserializer;
 use account::keypair::{AccountSignature, AccountSignatureBytes, AccountSigningKey};
 use primitives::hash::{sha256, Hash32};
 use crate::error::TxError;
@@ -72,7 +70,7 @@ impl From<&TxEnvelope> for TxEnvelopeWire {
 
 impl TxEnvelope {
     pub fn create(intent: TxIntent, sk: AccountSigningKey) -> Self {
-        /// 使用私钥对 TxIntent 计算出的 tx_intent_id 进行签名
+        // 使用私钥对 TxIntent 计算出的 tx_intent_id 进行签名
         let tx_intent_id = intent.tx_intent_id();
         let signature: AccountSignature = sk.sign(&tx_intent_id.0);
         Self {

@@ -4,11 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+db = { path = "db" }
 tx = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
-primitives = { workspace = true }
-rocksdb = { version = "0.24" }
-directories = "6"

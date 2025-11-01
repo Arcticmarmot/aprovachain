@@ -1,6 +1,5 @@
 mod handler;
 mod error;
-mod db;
 
 use axum::{
     routing::post,
@@ -9,11 +8,12 @@ use axum::{
 use anyhow::Result;
 use std::net::SocketAddr;
 use tokio::signal;
-use crate::db::db_init;
+use db::init::db_init;
 use crate::handler::submit_tx;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // 初始化数据库
     db_init();
     let node = Router::new().route("/api/submit-tx", post(submit_tx));
     let addr: SocketAddr = "0.0.0.0:8888".parse()?;
