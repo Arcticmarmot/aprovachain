@@ -1,5 +1,6 @@
 mod handler;
 mod error;
+mod db;
 
 use axum::{
     routing::post,
@@ -8,10 +9,12 @@ use axum::{
 use anyhow::Result;
 use std::net::SocketAddr;
 use tokio::signal;
+use crate::db::db_init;
 use crate::handler::submit_tx;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    db_init();
     let node = Router::new().route("/api/submit-tx", post(submit_tx));
     let addr: SocketAddr = "0.0.0.0:8888".parse()?;
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8888").await?;
