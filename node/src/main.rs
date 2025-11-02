@@ -8,12 +8,12 @@ use axum::{
 use anyhow::Result;
 use std::net::SocketAddr;
 use tokio::signal;
-use db::init::{db_init};
+use db::init::{db_init, close_db, DBMode};
 use crate::handler::submit_tx;
 #[tokio::main]
 async fn main() -> Result<()> {
     // 初始化数据库
-    db_init();
+    db_init(DBMode::Ephemeral);
     let node = Router::new().route("/api/submit-tx", post(submit_tx));
     let addr: SocketAddr = "0.0.0.0:8888".parse()?;
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8888").await?;
@@ -26,5 +26,6 @@ async fn main() -> Result<()> {
 
 async fn shutdown_signal() {
     let _ = signal::ctrl_c().await;
+    let _ = close_db();
     eprintln!("shutting down");
 }

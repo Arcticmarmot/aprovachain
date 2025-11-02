@@ -23,6 +23,8 @@ static REGISTRY_MAP: Lazy<HashMap<ChainId, Arc<ChainSpec>>> = Lazy::new(|| {
     }
     map
 });
+// RwLock 的“毒化（poison）”在 panic 展开时可能导致后续 read()/write() 抛错（现在用 expect 直接 panic）
+// 这是健壮性问题，不是资源副作用；如果介意，改用 parking_lot::RwLock（无毒化）
 static CUSTOM_MAP: Lazy<RwLock<HashMap<ChainId, Arc<ChainSpec>>>> = Lazy::new(|| RwLock::new(HashMap::new()));
 
 pub fn get_or_insert_custom(id: ChainId, name: &'static str) -> Arc<ChainSpec> {

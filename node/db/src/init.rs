@@ -1,48 +1,56 @@
 use rocksdb::{DB, Options};
-use std::{fs};
-use std::fmt::Debug;
-use std::ops::DerefMut;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc};
 use directories::ProjectDirs;
-use once_cell::sync::Lazy;
 use tempfile::TempDir;
 use crate::controller::{kv_get, kv_put};
 use crate::error::{DBError, Result};
+use arc_swap::{ArcSwap, ArcSwapOption};
+use once_cell::sync::OnceCell;
 
 /// TODO: TEMP DB 测试需要
 /// 交易：b"tx|" || tx_id(32) → BCS(TxPayload::Exec{...})
 /// 代码：b"cd|" || code_hash(32) → source（或 meta + payload）
-pub static TEMP_DIR: Lazy<TempDir> = Lazy::new(|| {
+pub enum DBMode {
+    Ephemeral,
+    Persistent
+}
+pub static TEMP_DIR: OnceCell<ArcSwapOption<TempDir>> = OnceCell::new();
+pub static DB_PATH: OnceCell<PathBuf> = OnceCell::new();
+pub static DBH: OnceCell<ArcSwapOption<DB>> = OnceCell::new();
+
+pub fn db_init(mode: DBMode) -> Result<()> {
+    let (path, temp_dir_opt): (PathBuf, Option<TempDir>) = match mode {
+        DBMode::Ephemeral => {
+            let db_dir = temp_db_dir();
+            (PathBuf::from(db_dir.path()), Some(db_dir))
+        },
+        DBMode::Persistent => {
+            let db_dir = fixed_db_dir();
+            (db_dir, None)
+        }
+    };
+    let mut opts = Options::default();
+    opts.create_if_missing(true);
+    let db = DB::open(&opts, &path).expect("db set failed");
+    DBH.set(ArcSwapOption::new(Some(Arc::new(db)))).expect("DBH set failed");
+    DB_PATH.set(path).expect("db path set failed");
+    if let Some(opt) = temp_dir_opt {
+        TEMP_DIR.set(ArcSwapOption::new(Some(Arc::new(opt)))).expect("temp dir set failed");
+    }
+    kv_put(b"hello", b"world");
+    println!("{:?}", kv_get(b"hello"));
+    Ok(())
+}
+
+
+
+fn temp_db_dir() -> TempDir {
+    // 创建数据库文件目录
     tempfile::Builder::new()
         .prefix("rocksdb")
         .tempdir_in("/tmp")
         .expect("create temp dir")
-});
-pub static DBH: Lazy<DB> = Lazy::new(|| open_db().expect("open rocksdb"));
-
-pub fn db_init() {
-    kv_put(b"test", b"1").unwrap();
-    println!("{:?}", kv_get(b"test"));
-    kv_put(b"test", b"2").unwrap();
-    println!("{:?}", kv_get(b"test"));
-    let result = DBH.set_options(&[
-        ("write_buffer_size", "262144"),                 // 256 KB
-        ("level0_file_num_compaction_trigger", "2"),     // 更容易触发压实
-    ]);
-    println!("{:?}", result);
-    match DBH.flush() {
-        Ok(()) => eprintln!("flush OK（这说明你的目录其实还存在，或没按值传 TempDir）"),
-        Err(e) => eprintln!("flush 失败（如预期，目录已被 unlink）：{e}"),
-    }
-
-}
-
-fn temp_db_dir() -> impl AsRef<Path> + Debug {
-    let db_dir = tempfile::Builder::new()
-        .prefix("rocksdb")
-        .tempdir_in("/tmp")
-        .expect("create temp dir");
-    db_dir
 }
 
 fn fixed_db_dir() -> PathBuf {
@@ -56,17 +64,33 @@ fn fixed_db_dir() -> PathBuf {
     db_dir
 }
 
-pub fn open_db() -> Result<DB>{
-    // 创建数据库文件目录
-    let db_dir = temp_db_dir();
-    println!("{:?}", db_dir);
-    // 创建数据库配置参数
-    let mut opts = Options::default();
-    opts.create_if_missing(true);
-    DB::open(&opts, db_dir).map_err(DBError::DBOpen)
-}
-
 pub fn close_db() -> Result<()> {
-    let _ = DB::destroy(&Options::default(), temp_db_dir());
+    let db = DBH.get().unwrap().load_full().unwrap();
+    db.flush().expect("TODO: panic message");
+    db.flush_wal(true).expect("TODO: panic message");
+    db.cancel_all_background_work(true);
+    drop(db);
+    DBH.get().unwrap().swap(None);
+    // DB::destroy(&Options::default(), DB_PATH.get().unwrap()).unwrap();
+    if let Some(temp_dir) = TEMP_DIR.get().unwrap().swap(None) {
+        drop(temp_dir)
+    }
     Ok(())
 }
+
+// pub fn db_init() {
+//     kv_put(b"test", b"1").unwrap();
+//     println!("{:?}", kv_get(b"test"));
+//     kv_put(b"test", b"2").unwrap();
+//     println!("{:?}", kv_get(b"test"));
+//     let db = DBH.load_full().take().unwrap();
+//     let result = db.set_options(&[
+//         ("write_buffer_size", "262144"),                 // 256 KB
+//         ("level0_file_num_compaction_trigger", "2"),     // 更容易触发压实
+//     ]);
+//     println!("{:?}", result);
+//     match db.flush() {
+//         Ok(()) => eprintln!("flush OK（这说明你的目录其实还存在，或没按值传 TempDir）"),
+//         Err(e) => eprintln!("flush 失败（如预期，目录已被 unlink）：{e}"),
+//     }
+// }

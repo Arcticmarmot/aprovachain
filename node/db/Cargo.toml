@@ -9,3 +9,4 @@ rocksdb = { version = "0.24"}
 thiserror = { workspace = true }
 once_cell = { workspace = true }
 tempfile = { version = "3"}
+arc-swap = "1.7.1"
