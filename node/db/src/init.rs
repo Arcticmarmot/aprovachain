@@ -2,8 +2,9 @@ use rocksdb::{DB, Options};
 use std::{fs};
 use std::path::{PathBuf};
 use directories::ProjectDirs;
+use once_cell::sync::Lazy;
 use crate::controller::{kv_get, kv_put};
-use crate::error::DBError;
+use crate::error::{DBError, Result};
 
 /// TODO: 全局单例 DB
 /// static DBH: Lazy<DB> = Lazy::new(|| open_db_inner().expect("open rocksdb"));
@@ -25,22 +26,14 @@ use crate::error::DBError;
 /// }
 /// 交易：b"tx|" || tx_id(32) → BCS(TxPayload::Exec{...})
 /// 代码：b"cd|" || code_hash(32) → source（或 meta + payload）
-
-type Result<T> = std::result::Result<T, DBError>;
+pub static DBH: Lazy<DB> = Lazy::new(|| open_db().expect("open rocksdb"));
 
 pub fn db_init() {
-    create_db_dir();
-    let _ = kv_put(b"image_id", b"123").unwrap();
-    let value = kv_get(b"image_id");
-    println!("{:?}", value);
+    kv_put(b"test", b"1").unwrap();
+    println!("{:?}", kv_get(b"test"));
 }
 
-fn create_db_dir() {
-    let db_dir = db_dir_fixed();
-    fs::create_dir_all(&db_dir).expect("create db dir failed");
-}
-
-fn db_dir_fixed() -> PathBuf {
+fn fixed_db_dir() -> PathBuf {
     // 数据库目录生成
     // linux: ~/.local/share/aprova/rocksdb (遵循 XDG 规范，忽略 qualifier 和 organization)
     // windows: C:\Users\<you>\AppData\Roaming\com\aprova\aprova
@@ -52,8 +45,11 @@ fn db_dir_fixed() -> PathBuf {
 }
 
 pub fn open_db() -> Result<DB>{
+    // 创建数据库文件目录
+    let db_dir = fixed_db_dir();
+    fs::create_dir_all(&db_dir).map_err(DBError::DBDirCreate)?;
+    // 创建数据库配置参数
     let mut opts = Options::default();
     opts.create_if_missing(true);
-    let db = DB::open(&opts, db_dir_fixed()).map_err(DBError::DBOpen)?;
-    Ok(db)
+    DB::open(&opts, fixed_db_dir()).map_err(DBError::DBOpen)
 }

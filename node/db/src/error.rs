@@ -2,8 +2,8 @@ use thiserror::Error;
 use rocksdb::Error as RocksDBError;
 #[derive(Debug, Error)]
 pub enum DBError {
-    #[error("DB dir init failed")]
-    DBDirInit,
+    #[error("DB dir create failed")]
+    DBDirCreate(#[source] std::io::Error),
     #[error("DB open failed")]
     DBOpen(#[source] RocksDBError),
     #[error("DB put failed")]

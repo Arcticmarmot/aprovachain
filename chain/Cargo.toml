@@ -6,4 +6,4 @@ edition = "2024"
 [dependencies]
 bech32 = { workspace = true }
 thiserror = { workspace = true }
-once_cell = { version = "1" }
+once_cell = { workspace = true }

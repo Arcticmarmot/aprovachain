@@ -486,6 +486,7 @@ name = "db"
 version = "0.1.0"
 dependencies = [
  "directories",
+ "once_cell",
  "rocksdb",
  "thiserror 2.0.17",
 ]
