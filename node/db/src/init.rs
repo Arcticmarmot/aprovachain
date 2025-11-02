@@ -1,36 +1,48 @@
 use rocksdb::{DB, Options};
 use std::{fs};
-use std::path::{PathBuf};
+use std::fmt::Debug;
+use std::ops::DerefMut;
+use std::path::{Path, PathBuf};
 use directories::ProjectDirs;
 use once_cell::sync::Lazy;
+use tempfile::TempDir;
 use crate::controller::{kv_get, kv_put};
 use crate::error::{DBError, Result};
 
-/// TODO: 全局单例 DB
-/// static DBH: Lazy<DB> = Lazy::new(|| open_db_inner().expect("open rocksdb"));
-/// fn open_db_inner() -> Result<DB> {
-///     let path = fixed_db_path();
-///     fs::create_dir_all(&path).map_err(DBError::CreateDir)?;
-///     let mut opts = Options::default();
-///     // 仅做“能跑”的最小配置：首次无库时自动创建
-///     opts.create_if_missing(true);
-///     DB::open(&opts, path).map_err(DBError::Open)
-/// }
-///
 /// TODO: TEMP DB 测试需要
-/// fn open_temp_db() -> DB {
-///     let dir = TempDir::new().expect("tmp dir");
-///     let mut opts = Options::default();
-///     opts.create_if_missing(true);
-///     DB::open(&opts, dir.path()).expect("open temp db")
-/// }
 /// 交易：b"tx|" || tx_id(32) → BCS(TxPayload::Exec{...})
 /// 代码：b"cd|" || code_hash(32) → source（或 meta + payload）
+pub static TEMP_DIR: Lazy<TempDir> = Lazy::new(|| {
+    tempfile::Builder::new()
+        .prefix("rocksdb")
+        .tempdir_in("/tmp")
+        .expect("create temp dir")
+});
 pub static DBH: Lazy<DB> = Lazy::new(|| open_db().expect("open rocksdb"));
 
 pub fn db_init() {
     kv_put(b"test", b"1").unwrap();
     println!("{:?}", kv_get(b"test"));
+    kv_put(b"test", b"2").unwrap();
+    println!("{:?}", kv_get(b"test"));
+    let result = DBH.set_options(&[
+        ("write_buffer_size", "262144"),                 // 256 KB
+        ("level0_file_num_compaction_trigger", "2"),     // 更容易触发压实
+    ]);
+    println!("{:?}", result);
+    match DBH.flush() {
+        Ok(()) => eprintln!("flush OK（这说明你的目录其实还存在，或没按值传 TempDir）"),
+        Err(e) => eprintln!("flush 失败（如预期，目录已被 unlink）：{e}"),
+    }
+
+}
+
+fn temp_db_dir() -> impl AsRef<Path> + Debug {
+    let db_dir = tempfile::Builder::new()
+        .prefix("rocksdb")
+        .tempdir_in("/tmp")
+        .expect("create temp dir");
+    db_dir
 }
 
 fn fixed_db_dir() -> PathBuf {
@@ -46,10 +58,15 @@ fn fixed_db_dir() -> PathBuf {
 
 pub fn open_db() -> Result<DB>{
     // 创建数据库文件目录
-    let db_dir = fixed_db_dir();
-    fs::create_dir_all(&db_dir).map_err(DBError::DBDirCreate)?;
+    let db_dir = temp_db_dir();
+    println!("{:?}", db_dir);
     // 创建数据库配置参数
     let mut opts = Options::default();
     opts.create_if_missing(true);
-    DB::open(&opts, fixed_db_dir()).map_err(DBError::DBOpen)
+    DB::open(&opts, db_dir).map_err(DBError::DBOpen)
+}
+
+pub fn close_db() -> Result<()> {
+    let _ = DB::destroy(&Options::default(), temp_db_dir());
+    Ok(())
 }

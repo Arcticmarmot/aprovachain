@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 db = { path = "db" }
+account = { workspace = true }
 tx = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }

@@ -488,6 +488,7 @@ dependencies = [
  "directories",
  "once_cell",
  "rocksdb",
+ "tempfile",
  "thiserror 2.0.17",
 ]
 
@@ -1288,6 +1289,7 @@ dependencies = [
 name = "node"
 version = "0.1.0"
 dependencies = [
+ "account",
  "anyhow",
  "axum",
  "db",

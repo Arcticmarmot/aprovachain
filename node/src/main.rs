@@ -8,9 +8,8 @@ use axum::{
 use anyhow::Result;
 use std::net::SocketAddr;
 use tokio::signal;
-use db::init::db_init;
+use db::init::{db_init};
 use crate::handler::submit_tx;
-
 #[tokio::main]
 async fn main() -> Result<()> {
     // 初始化数据库

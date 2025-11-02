@@ -54,7 +54,7 @@ impl AccountVerifyingKey {
         self.0.to_bytes()
     }
 
-    pub fn verify(&self, msg: &[u8], sig: &Signature) -> Result<()> {
+    pub fn verify(&self, msg: &[u8], sig: &AccountSignature) -> Result<()> {
         self.0.verify(msg, sig).map_err(AccountError::SignatureVerify)?;
         Ok(())
     }
