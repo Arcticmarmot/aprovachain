@@ -9,8 +9,9 @@ use tempfile::TempDir;
 use crate::error::{DBError, Result};
 use arc_swap::{ArcSwapOption};
 use once_cell::sync::{Lazy, OnceCell};
+use clap::ValueEnum;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, ValueEnum)]
 pub enum DBFileMode {
     Ephemeral,
     Persistent
