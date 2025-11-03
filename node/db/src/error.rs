@@ -2,6 +2,8 @@ use thiserror::Error;
 use rocksdb::Error as RocksDBError;
 #[derive(Debug, Error)]
 pub enum DBError {
+    #[error("DB not init")]
+    DBNotInit,
     #[error("fixed dir create failed")]
     DBFixedDirCreate,
     #[error("DB dir create failed")]

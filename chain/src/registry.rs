@@ -1,6 +1,7 @@
 use crate::spec::*;
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc};
+use parking_lot::{RwLock, RwLockUpgradableReadGuard};
 use bech32::Hrp;
 use once_cell::sync::Lazy;
 
@@ -23,23 +24,27 @@ static REGISTRY_MAP: Lazy<HashMap<ChainId, Arc<ChainSpec>>> = Lazy::new(|| {
     }
     map
 });
-// RwLock 的“毒化（poison）”在 panic 展开时可能导致后续 read()/write() 抛错（现在用 expect 直接 panic）
-// 这是健壮性问题，不是资源副作用；如果介意，改用 parking_lot::RwLock（无毒化）
+
+/// parking_lot::RwLock 无毒化 没有PoisonError干扰，需要保证 无半成品更新
+/// 先构造后插入模式：所有可能失败/会分配/会解析的步骤在锁外完成；进入临界区只做 insert/swap/replace
 static CUSTOM_MAP: Lazy<RwLock<HashMap<ChainId, Arc<ChainSpec>>>> = Lazy::new(|| RwLock::new(HashMap::new()));
 
 pub fn get_or_insert_custom(id: ChainId, name: &'static str) -> Arc<ChainSpec> {
-    // 读路径
-    if let Some(hit) = CUSTOM_MAP.read().expect("access read lock").get(&id).cloned() {
+    // 获取可升级的读锁
+    let upg = CUSTOM_MAP.upgradable_read();
+    if let Some(hit) = upg.get(&id).cloned() {
         return hit;
     }
-    let mut w = CUSTOM_MAP.write().expect("access write lock");
+    // 在升级前把可能 panic 的工作做完，避免持锁期间出错
+    let spec = Arc::new(ChainSpec::create(id, name).expect("invalid ChainSpec"));
+    // 从读锁升级到写锁
+    let mut w = RwLockUpgradableReadGuard::upgrade(upg);
     // 双重检查
-    w.entry(id).or_insert_with(|| Arc::new(ChainSpec::create(id, name)
-        .expect("invalid ChainSpec"))).clone()
+    w.entry(id).or_insert_with(|| spec).clone()
 }
 
 pub fn get_custom(id: ChainId) -> Option<Arc<ChainSpec>> {
-    CUSTOM_MAP.read().expect("access read lock").get(&id).cloned()
+    CUSTOM_MAP.read().get(&id).cloned()
 }
 
 

@@ -46,6 +46,10 @@ pub fn init_db(mode: DBMode) -> Result<()> {
     Ok(())
 }
 
+#[inline]
+pub fn dbh() -> Result<Arc<DB>> {
+    DBH.load_full().ok_or(DBError::DBNotInit)
+}
 
 pub fn close_db(mode: DBMode) -> Result<()> {
     if let Some(db) = DBH.swap(None) {

@@ -8,12 +8,13 @@ use axum::{
 use anyhow::Result;
 use std::net::SocketAddr;
 use tokio::signal;
-use db::init::{init_db, close_db, DBMode};
+use db::runtime::{init_db, close_db, DBMode};
 use crate::handler::submit_tx;
 #[tokio::main]
 async fn main() -> Result<()> {
     // 初始化数据库
     let _ = init_db(DBMode::Persistent)?;
+    println!("rocksdb init success");
     let node = Router::new().route("/api/submit-tx", post(submit_tx));
     let addr: SocketAddr = "0.0.0.0:8888".parse()?;
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8888").await?;
