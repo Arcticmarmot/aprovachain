@@ -11,7 +11,7 @@ use arc_swap::{ArcSwapOption};
 use once_cell::sync::{Lazy, OnceCell};
 
 #[derive(Debug, Copy, Clone)]
-pub enum DBMode {
+pub enum DBFileMode {
     Ephemeral,
     Persistent
 }
@@ -24,13 +24,13 @@ pub static TEMP_DIR: Lazy<ArcSwapOption<TempDir>> = Lazy::new(|| ArcSwapOption::
 /// DBH 句柄对象
 pub static DBH: Lazy<ArcSwapOption<DB>> = Lazy::new(|| ArcSwapOption::from(None));
 
-pub fn init_db(mode: DBMode) -> Result<()> {
+pub fn init_db(mode: DBFileMode) -> Result<()> {
     let (path, temp_dir_wrap): (PathBuf, Option<Arc<TempDir>>) = match mode {
-        DBMode::Ephemeral => {
+        DBFileMode::Ephemeral => {
             let db_dir = temp_db_dir()?;
             (PathBuf::from(db_dir.path()), Some(Arc::new(db_dir)))
         },
-        DBMode::Persistent => {
+        DBFileMode::Persistent => {
             let db_dir = fixed_db_dir()?;
             (db_dir, None)
         }
@@ -51,7 +51,7 @@ pub fn dbh() -> Result<Arc<DB>> {
     DBH.load_full().ok_or(DBError::DBNotInit)
 }
 
-pub fn close_db(mode: DBMode) -> Result<()> {
+pub fn close_db(mode: DBFileMode) -> Result<()> {
     if let Some(db) = DBH.swap(None) {
         db.flush().expect("DB flush failed");
         db.flush_wal(true).expect("DB flush wal failed");
@@ -60,7 +60,7 @@ pub fn close_db(mode: DBMode) -> Result<()> {
     }
 
     match mode {
-        DBMode::Ephemeral => {
+        DBFileMode::Ephemeral => {
             let path = DB_PATH.get().unwrap();
             DB::destroy(&Options::default(), path).expect("DB destroy failed");
         },

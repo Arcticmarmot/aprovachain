@@ -1309,9 +1309,13 @@ dependencies = [
  "account",
  "anyhow",
  "axum",
+ "clap",
  "db",
+ "dotenvy",
  "thiserror 2.0.17",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
  "tx",
 ]
 

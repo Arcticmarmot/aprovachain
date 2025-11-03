@@ -3,12 +3,9 @@ use clap::Parser;
 use anyhow::{bail, Result};
 use account::address::*;
 use account::keypair::{AccountSigningKey, AccountVerifyingKey};
-use ed25519_dalek::Signature;
-use serde::{Deserialize, Serialize};
 use tx::tx_envelope::{TxEnvelope, TxEnvelopeWire};
 use tx::tx_intent::{TxIntent};
-use chain::spec::{ChainId, ChainSpec};
-use tx::tx_envelope;
+use chain::spec::{ChainId};
 use reqwest::Client;
 
 #[derive(Parser, Debug)]
