@@ -5,7 +5,7 @@ use account::address::{AddressBytes, ChainAddress};
 use account::keypair::{AccountVerifyingKey, AccountVerifyingKeyBytes};
 use chain::spec::{ChainId};
 use primitives::rand::random_u128;
-use primitives::clock::unix_time_secs;
+use primitives::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32};
 use crate::error::TxError;
 
@@ -43,7 +43,7 @@ pub struct TxIntent {
     pub nonce: u128,
     pub address: ChainAddress,
     pub verifying_key: AccountVerifyingKey,
-    pub timestamp: u64,
+    pub timestamp: u128,
     pub payload: TxPayload,
 }
 
@@ -69,7 +69,7 @@ impl TryFrom<TxIntentWire> for TxIntent {
 impl TxIntent {
     pub fn create(chain_id: ChainId, addr: ChainAddress, vk: AccountVerifyingKey, payload: TxPayload) -> Result<Self> {
         let nonce = random_u128()?;
-        let timestamp = unix_time_secs()?;
+        let timestamp = unix_time_millis()?;
         Ok(Self {
             chain_id,
             nonce,
@@ -96,7 +96,7 @@ pub struct TxIntentWire {
     pub nonce: u128,
     pub address: AddressBytes,
     pub verifying_key: AccountVerifyingKeyBytes,
-    pub timestamp: u64,
+    pub timestamp: u128,
     pub payload: TxPayload
 }
 

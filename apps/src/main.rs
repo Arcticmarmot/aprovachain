@@ -4,10 +4,10 @@ use anyhow::{bail, Result};
 use account::address::*;
 use account::keypair::{AccountSigningKey, AccountVerifyingKey};
 use tx::tx_envelope::{TxEnvelope, TxEnvelopeWire};
-use tx::tx_intent::{TxIntent};
+use tx::tx_intent::{TxIntent, TxPayload};
 use chain::spec::{ChainId};
 use reqwest::Client;
-
+use primitives::file::read_bin_file;
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
 struct TxArgs {
@@ -45,10 +45,14 @@ fn parse_tx_args(args: TxArgs) -> Result<TxEnvelopeWire> {
     hex::decode_to_slice(args.signing_key, &mut sk_bytes)?;
     let sk = AccountSigningKey::from_bytes(&sk_bytes);
 
+    // TODO: 读入 ELF 文件
     // read the payload file
     // build payload from payload file
-    let bytes = fs::read(args.payload_path)?;
-    let payload = serde_json::from_slice(&bytes)?;
+    // let bytes = fs::read(args.payload_path)?;
+    // let payload = serde_json::from_slice(&bytes)?;
+    let bin = read_bin_file("/home/woolf/aprova/aprova/apps/bin_sample/aprova-guest.bin").unwrap();
+    let payload = TxPayload::Deploy { source: bin };
+    println!("{:?}", payload);
 
     // build tx_intend
     let tx_intent = TxIntent::create(chain_id, addr, vk, payload)?;

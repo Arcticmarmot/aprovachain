@@ -27,6 +27,7 @@ async fn main() -> Result<()> {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
     tracing::debug!("tracing subscriber init success...");
+    
     match dotenvy::dotenv() {
         Ok(path) => tracing::debug!("Loaded environment variables from {:?}", path),
         Err(e) if e.not_found() => tracing::error!("No .env found"),
