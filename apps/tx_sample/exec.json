@@ -1,6 +1,0 @@
-{
-  "Exec": {
-    "image_id": "test_image_id",
-    "input": [100, 97, 116, 97]
-  }
-}

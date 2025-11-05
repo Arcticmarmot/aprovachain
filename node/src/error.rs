@@ -3,12 +3,16 @@ use axum::response::{IntoResponse, Response};
 use thiserror::Error;
 use tx::error::TxError;
 use account::error::AccountError;
+use db::error::DBError;
+
 #[derive(Debug, Error)]
 pub enum NodeError {
     #[error(transparent)]
     Tx(#[from] TxError),
     #[error(transparent)]
     Account(#[from] AccountError),
+    #[error(transparent)]
+    DB(#[from] DBError)
 }
 
 impl IntoResponse for NodeError {

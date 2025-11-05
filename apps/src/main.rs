@@ -7,7 +7,10 @@ use tx::tx_envelope::{TxEnvelope, TxEnvelopeWire};
 use tx::tx_intent::{TxIntent, TxPayload};
 use chain::spec::{ChainId};
 use reqwest::Client;
-use primitives::file::read_bin_file;
+use contracts::UAV_ELF;
+use contracts::UAV_ID;
+
+
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
 struct TxArgs {
@@ -48,11 +51,20 @@ fn parse_tx_args(args: TxArgs) -> Result<TxEnvelopeWire> {
     // TODO: 读入 ELF 文件
     // read the payload file
     // build payload from payload file
-    // let bytes = fs::read(args.payload_path)?;
-    // let payload = serde_json::from_slice(&bytes)?;
-    let bin = read_bin_file("/home/woolf/aprova/aprova/apps/bin_sample/aprova-guest.bin").unwrap();
-    let payload = TxPayload::Deploy { source: bin };
-    println!("{:?}", payload);
+    let bytes = fs::read(args.payload_path)?;
+    let payload: TxPayload = serde_json::from_slice(&bytes)?;
+
+
+    let elf_file = UAV_ELF;
+    let elf_id = UAV_ID;
+    println!("{:?}", elf_id);
+    println!("LEN: {}", elf_file.len());
+    // let payload = TxPayload::Deploy { source: Vec::from(elf_file) };
+
+
+    // let bin = read_bin_file("/home/woolf/aprova/aprova/apps/ELF/aprova-guest.bin").unwrap();
+    // let payload = TxPayload::Deploy { source: bin };
+    // println!("{:?}", payload);
 
     // build tx_intend
     let tx_intent = TxIntent::create(chain_id, addr, vk, payload)?;

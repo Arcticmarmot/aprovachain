@@ -6,8 +6,7 @@ authors = ["marmot"]
 
 [workspace]
 members = [
-    "account",
-    "apps", "chain", "keygen", "node", "primitives", "tx",
+    "account", "apps", "chain", "contracts", "contracts/uav", "keygen", "node", "primitives", "tx",
 ]
 
 [dependencies]
@@ -24,6 +23,7 @@ account = { path="account" }
 tx = { path="tx" }
 primitives = { path="primitives" }
 chain = { path = "chain" }
+contracts = { path = "contracts" }
 
 tracing = { version="0.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
@@ -43,3 +43,6 @@ tokio = { version = "1.0", features = ["signal", "net", "io-util", "io-std", "ma
 bcs = { version = "0.1" }
 axum = { version = "0.8" }
 once_cell = { version = "1" }
+risc0-zkvm = { version = "3" }
+risc0-core = { version = "3" }
+risc0-build = { version = "3" }

@@ -33,7 +33,7 @@ impl FromStr for TxIntentId {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TxPayload {
-    Exec { image_id: String, input:Vec<u8> },
+    Exec { image_id: Vec<u8>, input:Vec<u8> },
     Deploy { source: Vec<u8> },
 }
 
