@@ -12,6 +12,7 @@ chain = { workspace = true }
 reqwest = { version = "0.12" }
 clap = { workspace = true }
 tracing = { workspace = true }
+tracing-appender = { workspace = true }
 tracing-subscriber = { workspace = true }
 dotenvy = { workspace = true }
 anyhow = { workspace = true }

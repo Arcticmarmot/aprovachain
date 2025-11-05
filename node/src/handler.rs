@@ -32,7 +32,7 @@ pub fn tx_handler(intent: &TxIntent) -> Result<()> {
     match payload {
         TxPayload::Deploy{ source } => {
             let image_id = sha256(source);
-            println!("{:?}", image_id);
+            tracing::info!("Deploy ImageId: {:?}", image_id);
             kv_put(&image_id, source)?;
         },
         TxPayload::Exec { image_id, input} => {
@@ -48,15 +48,10 @@ pub fn tx_handler(intent: &TxIntent) -> Result<()> {
                 None => return Ok(())
             };
 
-            println!("LEN: {}", elf_file.len());
+            tracing::info!("LEN: {}", elf_file.len());
             let proof = prover.prove(env, &elf_file);
-            println!("PROOF: {:?}", proof);
+            tracing::info!("PROOF: {:?}", proof);
         }
     }
     Ok(())
 }
-///rocksdb init success...
-// node listening on http(s)://0.0.0.0:8888 ...
-// [87, 180, 127, 63, 32, 217, 242, 144, 114, 72, 91, 191, 217, 216, 167, 155, 210, 124, 178, 39, 99, 157, 18, 116, 116, 46, 160, 36, 59, 49, 142, 224]
-// LEN: 336824
-// PROOF: Ok(ProveInfo { receipt: Receipt { inner: Composite(CompositeReceipt { segments: 1 segments, assumption_receipts: 0 assumptions, verifier_parameters: Digest(4bce006e0858edf3a3726987c0b1b6258224c000971e451bc9c05cfec086a84b) }), journal: Journal { bytes: 20 bytes }, metadata: ReceiptMetadata { verifier_parameters: Digest(4bce006e0858edf3a3726987c0b1b6258224c000971e451bc9c05cfec086a84b) } }, stats: SessionStats { segments: 1, total_cycles: 32768, user_cycles: 4599, paging_cycles: 17874, reserved_cycles: 10295 }, work_receipt: None })

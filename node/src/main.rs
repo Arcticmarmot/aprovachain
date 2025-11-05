@@ -1,15 +1,17 @@
 mod handler;
 mod error;
+mod bootstrap;
 
 use axum::{
     routing::post,
     Router
 };
-use anyhow::{bail, Result};
+use anyhow::Result;
 use std::net::SocketAddr;
 use clap::{arg, Parser};
 use tokio::signal;
 use db::runtime::{init_db, close_db, DBFileMode};
+use crate::bootstrap::{init_env, init_logging};
 use crate::handler::submit_tx;
 
 #[derive(Parser, Debug)]
@@ -23,16 +25,9 @@ struct NodeArgs {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
-    tracing::debug!("tracing subscriber init success...");
-    
-    match dotenvy::dotenv() {
-        Ok(path) => tracing::debug!("Loaded environment variables from {:?}", path),
-        Err(e) if e.not_found() => tracing::error!("No .env found"),
-        Err(e) => bail!("failed to load .env file: {}", e),
-    }
+    init_logging()?;
+
+    init_env()?;
 
     let args = NodeArgs::parse();
 
@@ -40,11 +35,11 @@ async fn main() -> Result<()> {
 
     // 初始化数据库
     let _ = init_db(db_file_mode)?;
-    println!("rocksdb init success...");
+    tracing::info!("rocksdb init success...");
     let node = Router::new().route("/api/submit-tx", post(submit_tx));
     let addr: SocketAddr = "0.0.0.0:8888".parse()?;
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8888").await?;
-    println!("node listening on http(s)://{addr} ...");
+    tracing::info!("node listening on http(s)://{addr} ...");
     axum::serve(listener, node)
         .with_graceful_shutdown(shutdown_signal(db_file_mode))
         .await?;
