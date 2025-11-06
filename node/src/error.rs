@@ -12,7 +12,17 @@ pub enum NodeError {
     #[error(transparent)]
     Account(#[from] AccountError),
     #[error(transparent)]
-    DB(#[from] DBError)
+    DB(#[from] DBError),
+    #[error("risc0 zkvm compute image_id failed")]
+    ImageIdCompute(#[source] anyhow::Error),
+    #[error("executor env build failed")]
+    ExecutorEnvBuild(#[source] anyhow::Error),
+    #[error("image_id mismatched")]
+    ImageIdMismatch,
+    #[error("elf_hash mismatched")]
+    ElfHashMismatch,
+    #[error("elf file not found")]
+    ElfFileNotFound,
 }
 
 impl IntoResponse for NodeError {

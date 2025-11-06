@@ -1,7 +1,3 @@
-mod handler;
-mod error;
-mod bootstrap;
-
 use axum::{
     routing::post,
     Router
@@ -11,8 +7,8 @@ use std::net::SocketAddr;
 use clap::{arg, Parser};
 use tokio::signal;
 use db::runtime::{init_db, close_db, DBFileMode};
-use crate::bootstrap::{init_env, init_logging};
-use crate::handler::submit_tx;
+use node::bootstrap::{init_env, init_logging};
+use node::handler::submit_tx;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
@@ -22,20 +18,27 @@ struct NodeArgs {
     db_file_mode: DBFileMode,
 }
 
-
 #[tokio::main]
 async fn main() -> Result<()> {
+    // 初始化日志
     init_logging()?;
 
+    // 初始化环境变量
     init_env()?;
 
+    // 解析 NodeArgs
     let args = NodeArgs::parse();
 
-    let db_file_mode = args.db_file_mode;
-
     // 初始化数据库
+    let db_file_mode = args.db_file_mode;
     let _ = init_db(db_file_mode)?;
-    tracing::info!("rocksdb init success...");
+    tracing::info!("Node init success...");
+    
+    let _ = init_server(db_file_mode).await?;
+    Ok(())
+}
+
+async fn init_server(db_file_mode: DBFileMode) -> Result<()> {
     let node = Router::new().route("/api/submit-tx", post(submit_tx));
     let addr: SocketAddr = "0.0.0.0:8888".parse()?;
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8888").await?;

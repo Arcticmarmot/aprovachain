@@ -5,19 +5,26 @@ use apps::handler::{build_envelope_wire, parse_tx_args, send_envelope, TxArgs};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // 初始化日志
     init_logging()?;
 
+    // 初始化环境变量
     init_env()?;
+    
     tracing::info!("Aprova app init succeeded ...");
 
+    // 解析 TxArgs
     let args = TxArgs::parse();
     tracing::info!("TxArgs: {:?}", args);
 
+    // 通过 TxArgs 构建 TxBuildSpec
     let tx_build_spec = parse_tx_args(&args)?;
 
+    // 通过 TxBuildSpec 构建 TxEnvelopeWire
     let tx_envelope_wire = build_envelope_wire(tx_build_spec)?;
 
-    let response =send_envelope(tx_envelope_wire).await?;
+    // 构建客户端发送请求
+    let response = send_envelope(tx_envelope_wire).await?;
     tracing::info!("Response: {:?}", response);
 
     Ok(())

@@ -34,16 +34,16 @@ pub struct TxArgs {
     #[clap(long, env, next_help_heading = "The Account SigningKey of the User")]
     signing_key: String,
 
-    #[clap(long, env, next_help_heading = "The body of the Request")]
+    #[clap(long, env, next_help_heading = "The payload type of TxPayload")]
     payload_type: String,
 
-    #[clap(long, env, next_help_heading = "The body of the Request")]
+    #[clap(long, env, next_help_heading = "The deploy json of TxPayload")]
     deploy_json: Option<PathBuf>,
 
-    #[clap(long, env, next_help_heading = "The body of the Request")]
+    #[clap(long, env, next_help_heading = "The deploy elf of TxPayload")]
     deploy_elf: Option<PathBuf>,
 
-    #[clap(long, env, next_help_heading = "The body of the Request")]
+    #[clap(long, env, next_help_heading = "The exec json of TxPayload")]
     exec_json: Option<PathBuf>,
 }
 
@@ -92,12 +92,12 @@ pub fn build_envelope_wire(spec: TxBuildSpec) -> anyhow::Result<TxEnvelopeWire> 
     Ok(tx_envelope_wire)
 }
 
-pub async fn send_envelope(envelope_wire: TxEnvelopeWire) -> anyhow::Result<Response> {
+pub async fn send_envelope(wire: TxEnvelopeWire) -> anyhow::Result<Response> {
     let client = Client::new();
     let response = client
         .post("http://localhost:8888/api/submit-tx")
         .header("content-type", "application/octet-stream")
-        .body(envelope_wire.to_bcs_bytes())
+        .body(wire.to_bcs_bytes())
         .send()
         .await?;
     tracing::info!("{:?}", response);
@@ -106,10 +106,10 @@ pub async fn send_envelope(envelope_wire: TxEnvelopeWire) -> anyhow::Result<Resp
 
 fn generate_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
     match args.payload_type.as_str() {
-        "deploy" => {
+        "Deploy" => {
             generate_deploy_payload(args)
         },
-        "exec" => {
+        "Exec" => {
             generate_exec_payload(args)
         },
         _ => bail!("payload type mismatched")

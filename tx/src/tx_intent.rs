@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use bytes::Bytes;
 use risc0_zkvm::Digest;
 use serde::{Deserialize, Serialize};
 use account::address::{AddressBytes, ChainAddress};
@@ -35,8 +34,15 @@ impl FromStr for TxIntentId {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TxPayload {
-    Exec { image_id: Digest, input: Vec<u8> },
-    Deploy { image_id: Digest, elf: Vec<u8>, elf_hash: Hash32 },
+    Exec {
+        image_id: Digest,
+        input: Vec<u8>
+    },
+    Deploy {
+        image_id: Digest,
+        elf: Vec<u8>,
+        elf_hash: Hash32
+    },
 }
 
 #[derive(Debug)]
