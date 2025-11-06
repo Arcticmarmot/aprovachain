@@ -39,15 +39,15 @@ pub fn init_logging() -> anyhow::Result<()> {
 pub fn init_env() -> anyhow::Result<()> {
     match dotenv() {
         Ok(path) => {
-            tracing::debug!("Loaded environment variables from {:?}", path);
+            tracing::debug!("Loaded environment variables from {:?} for node", path);
             Ok(())
         },
         Err(e) if e.not_found() => {
-            tracing::warn!("No .env found");
+            tracing::warn!("No .env found for node");
             Ok(())
         },
         Err(e) => {
-            tracing::error!("Failed to load .env file: {}", e);
+            tracing::error!("Failed to load .env file for node: {}", e);
             Err(e).context("load .env file")
         }
     }

@@ -1,12 +1,12 @@
 use std::fs;
 use std::path::PathBuf;
-use anyhow::{bail, Context};
+use anyhow::{bail};
 use clap::{Parser};
 use reqwest::Client;
 use account::address::ChainAddress;
 use account::keypair::{AccountSigningKey, AccountVerifyingKey};
 use chain::spec::ChainId;
-use contracts::{UAV_ELF, UAV_ID};
+use primitives::hash::sha256;
 use tx::tx_envelope::{TxEnvelope, TxEnvelopeWire};
 use tx::tx_intent::{TxIntent, TxPayload};
 
@@ -41,6 +41,14 @@ pub struct TxArgs {
 
 /// 从命令行参数解析出 TxEnvelopeWire
 pub fn parse_tx_args(args: &TxArgs) -> anyhow::Result<TxEnvelopeWire> {
+    parse_tx_args_with(args, generate_payload)
+}
+
+/// 自定义Payload，并从命令行参数解析出 TxEnvelopeWire
+pub fn parse_tx_args_with<F>(args: &TxArgs, build_payload: F) -> anyhow::Result<TxEnvelopeWire>
+where
+    F: FnOnce(&TxArgs) -> anyhow::Result<TxPayload>
+{
     // build chain id from Args
     let chain_id = ChainId(args.chain_id);
 
@@ -57,8 +65,9 @@ pub fn parse_tx_args(args: &TxArgs) -> anyhow::Result<TxEnvelopeWire> {
     hex::decode_to_slice(&args.signing_key, &mut sk_bytes)?;
     let sk = AccountSigningKey::from_bytes(&sk_bytes);
 
-    let payload = generate_tx_payload(&args)?;
-    tracing::info!("{:?}", payload);
+    // build payload from Args
+    let payload = build_payload(args)?;
+
     // build tx_intend
     let tx_intent = TxIntent::create(chain_id, addr, vk, payload)?;
 
@@ -81,29 +90,41 @@ pub async fn send_envelope(envelope_wire: TxEnvelopeWire) -> anyhow::Result<()> 
     Ok(())
 }
 
-fn generate_tx_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
+fn generate_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
     match args.payload_type.as_str() {
         "deploy" => {
-            if let Some(json) = &args.deploy_json {
-                let bytes = fs::read(json)?;
-                let payload = serde_json::from_slice(&bytes)?;
-                return Ok(payload)
-            }
-            if let Some(elf_path) = &args.deploy_elf {
-                let bytes = fs::read(elf_path)?;
-                let payload = TxPayload::Deploy { source: bytes };
-                return Ok(payload)
-            }
-            bail!("deploy need at least one input")
+            generate_deploy_payload(args)
         },
         "exec" => {
-            if let Some(json) = &args.exec_json {
-                let bytes = fs::read(json)?;
-                let payload = serde_json::from_slice(&bytes)?;
-                return Ok(payload)
-            }
-            bail!("deploy need at least one input")
+            generate_exec_payload(args)
         },
         _ => bail!("payload type mismatched")
     }
+}
+
+fn generate_deploy_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
+    if let Some(json) = &args.deploy_json {
+        let json_bytes = fs::read(json)?;
+        let payload = serde_json::from_slice(&json_bytes)?;
+        return Ok(payload)
+    }
+    if let Some(elf_path) = &args.deploy_elf {
+        let elf_bytes = fs::read(elf_path)?;
+        let elf_hash = sha256(&elf_bytes);
+        tracing::info!("{:?}", elf_hash);
+        let image_id = risc0_zkvm::compute_image_id(&elf_bytes)?;
+        tracing::info!("{:?}", image_id);
+        let payload = TxPayload::Deploy { source: elf_bytes };
+        return Ok(payload)
+    }
+    bail!("deploy need at least one input")
+}
+
+fn generate_exec_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
+    if let Some(json) = &args.exec_json {
+    let bytes = fs::read(json)?;
+    let payload = serde_json::from_slice(&bytes)?;
+    return Ok(payload)
+    }
+    bail!("deploy need at least one input")
 }
