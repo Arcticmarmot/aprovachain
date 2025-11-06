@@ -27,7 +27,10 @@ async fn deploy_by_json() {
     ]).expect("parse args");
     tracing::info!("TxArgs:{:?}", args);
 
-    let tx_envelope = parse_tx_args(&args).unwrap();
-    tracing::info!("TxEnvelopeWire: {:?}", tx_envelope);
-    send_envelope(tx_envelope).await.unwrap();
+    let tx_build_spec = parse_tx_args(&args).unwrap();
+
+    let tx_envelope_wire = build_envelope_wire(tx_build_spec).unwrap();
+
+    let response =send_envelope(tx_envelope_wire).await.unwrap();
+    tracing::info!("Response: {:?}", response);
 }

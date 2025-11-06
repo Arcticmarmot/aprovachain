@@ -30,10 +30,11 @@ pub fn verify_tx_sig(envelope: &TxEnvelope) -> Result<()> {
 pub fn tx_handler(intent: &TxIntent) -> Result<()> {
     let payload = &intent.payload;
     match payload {
-        TxPayload::Deploy{ source } => {
-            let image_id = sha256(source);
+        TxPayload::Deploy{ image_id, elf, elf_hash } => {
+            let image_id = risc0_zkvm::compute_image_id(elf);
+            let elf_hash = sha256(elf);
             tracing::info!("Deploy ImageId: {:?}", image_id);
-            kv_put(&image_id, source)?;
+            kv_put(&elf_hash, elf)?;
         },
         TxPayload::Exec { image_id, input} => {
             let env = ExecutorEnv::builder()
@@ -43,7 +44,7 @@ pub fn tx_handler(intent: &TxIntent) -> Result<()> {
                 .unwrap();
 
             let prover = default_prover();
-            let elf_file = match kv_get(image_id)?{
+            let elf_file = match kv_get(b"test")?{
                 Some(elf) => elf,
                 None => return Ok(())
             };

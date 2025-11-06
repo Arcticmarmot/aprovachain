@@ -115,6 +115,7 @@ version = "0.1.0"
 dependencies = [
  "account",
  "anyhow",
+ "bytes",
  "chain",
  "clap",
  "contracts",
@@ -3909,10 +3910,12 @@ version = "0.1.0"
 dependencies = [
  "account",
  "bcs",
+ "bytes",
  "chain",
  "hex",
  "primitives",
  "rand_core 0.9.3",
+ "risc0-zkvm",
  "serde",
  "serde_with",
  "thiserror 2.0.17",

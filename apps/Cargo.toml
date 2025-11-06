@@ -23,3 +23,4 @@ serde_json = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
 risc0-zkvm = { workspace = true }
+bytes = { version = "1.10"}

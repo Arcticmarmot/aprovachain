@@ -2,13 +2,22 @@ use std::fs;
 use std::path::PathBuf;
 use anyhow::{bail};
 use clap::{Parser};
-use reqwest::Client;
+use reqwest::{Client, Response};
 use account::address::ChainAddress;
 use account::keypair::{AccountSigningKey, AccountVerifyingKey};
 use chain::spec::ChainId;
 use primitives::hash::sha256;
 use tx::tx_envelope::{TxEnvelope, TxEnvelopeWire};
 use tx::tx_intent::{TxIntent, TxPayload};
+
+#[derive(Debug)]
+pub struct TxBuildSpec {
+    chain_id: ChainId,
+    addr: ChainAddress,
+    vk: AccountVerifyingKey,
+    sk: AccountSigningKey,
+    payload: TxPayload
+}
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
@@ -39,12 +48,12 @@ pub struct TxArgs {
 }
 
 /// 从命令行参数解析出 TxEnvelopeWire
-pub fn parse_tx_args(args: &TxArgs) -> anyhow::Result<TxEnvelopeWire> {
+pub fn parse_tx_args(args: &TxArgs) -> anyhow::Result<TxBuildSpec> {
     parse_tx_args_with(args, generate_payload)
 }
 
 /// 自定义Payload，并从命令行参数解析出 TxEnvelopeWire
-pub fn parse_tx_args_with<F>(args: &TxArgs, build_payload: F) -> anyhow::Result<TxEnvelopeWire>
+pub fn parse_tx_args_with<F>(args: &TxArgs, build_payload: F) -> anyhow::Result<TxBuildSpec>
 where
     F: FnOnce(&TxArgs) -> anyhow::Result<TxPayload>
 {
@@ -67,16 +76,23 @@ where
     // build payload from Args
     let payload = build_payload(args)?;
 
-    // build tx_intend
-    let tx_intent = TxIntent::create(chain_id, addr, vk, payload)?;
+    Ok(TxBuildSpec {
+        chain_id,
+        addr,
+        vk,
+        sk,
+        payload
+    })
+}
 
-    // build tx_envelope
-    let tx_envelope = TxEnvelope::create(tx_intent, sk);
+pub fn build_envelope_wire(spec: TxBuildSpec) -> anyhow::Result<TxEnvelopeWire> {
+    let tx_intent = TxIntent::create(spec.chain_id, spec.addr, spec.vk, spec.payload)?;
+    let tx_envelope = TxEnvelope::create(tx_intent, spec.sk);
     let tx_envelope_wire = TxEnvelopeWire::from(&tx_envelope);
     Ok(tx_envelope_wire)
 }
 
-pub async fn send_envelope(envelope_wire: TxEnvelopeWire) -> anyhow::Result<()> {
+pub async fn send_envelope(envelope_wire: TxEnvelopeWire) -> anyhow::Result<Response> {
     let client = Client::new();
     let response = client
         .post("http://localhost:8888/api/submit-tx")
@@ -85,8 +101,7 @@ pub async fn send_envelope(envelope_wire: TxEnvelopeWire) -> anyhow::Result<()> 
         .send()
         .await?;
     tracing::info!("{:?}", response);
-    tracing::info!("{}", response.text().await?);
-    Ok(())
+    Ok(response)
 }
 
 fn generate_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
@@ -103,17 +118,21 @@ fn generate_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
 
 fn generate_deploy_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
     if let Some(json) = &args.deploy_json {
-        let json_bytes = fs::read(json)?;
-        let payload = serde_json::from_slice(&json_bytes)?;
+        let payload_bytes = fs::read(json)?;
+        let payload = serde_json::from_slice(&payload_bytes)?;
         return Ok(payload)
     }
     if let Some(elf_path) = &args.deploy_elf {
         let elf_bytes = fs::read(elf_path)?;
-        let elf_hash = sha256(&elf_bytes);
-        tracing::info!("{:?}", elf_hash);
         let image_id = risc0_zkvm::compute_image_id(&elf_bytes)?;
         tracing::info!("{:?}", image_id);
-        let payload = TxPayload::Deploy { source: elf_bytes };
+        let elf_hash = sha256(&elf_bytes);
+        tracing::info!("{:?}", elf_hash);
+        let payload = TxPayload::Deploy {
+            image_id,
+            elf: elf_bytes,
+            elf_hash
+        };
         return Ok(payload)
     }
     bail!("deploy need at least one input")
@@ -121,9 +140,9 @@ fn generate_deploy_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
 
 fn generate_exec_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
     if let Some(json) = &args.exec_json {
-    let bytes = fs::read(json)?;
-    let payload = serde_json::from_slice(&bytes)?;
-    return Ok(payload)
+        let exec_bytes = fs::read(json)?;
+        let payload = serde_json::from_slice(&exec_bytes)?;
+        return Ok(payload)
     }
     bail!("deploy need at least one input")
 }
