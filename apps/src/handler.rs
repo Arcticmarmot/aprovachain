@@ -10,7 +10,6 @@ use primitives::hash::sha256;
 use tx::tx_envelope::{TxEnvelope, TxEnvelopeWire};
 use tx::tx_intent::{TxIntent, TxPayload};
 
-
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
 pub struct TxArgs {
