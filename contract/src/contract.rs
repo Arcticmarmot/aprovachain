@@ -1,9 +1,9 @@
 use risc0_zkvm::Digest;
-use account::address::ChainAddress;
+use account::address::UserAddress;
 use primitives::hash::Hash32;
 
 pub struct Contract {
-    addr: ChainAddress,
+    addr: UserAddress,
     elf_key: Hash32,
     image_id: Digest,
 }

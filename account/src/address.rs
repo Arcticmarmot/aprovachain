@@ -1,11 +1,12 @@
 //! Address protocol implementation
 use chain::registry;
-use bech32::{Bech32};
+use bech32::{Bech32m};
 use crate::error::AccountError;
 use crate::keypair::AccountVerifyingKey;
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use chain::spec::ChainId;
-use primitives::hash::sha256;
+use primitives::hash::{sha256, sha256_concat};
 
 pub type Result<T> = std::result::Result<T, AccountError>;
 
@@ -13,12 +14,6 @@ pub type AddressBytes = [u8; 20];
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Address(AddressBytes);
-
-#[derive(Debug)]
-pub struct ChainAddress {
-    pub chain_id: ChainId,
-    pub addr: Address,
-}
 
 impl Address {
     pub fn into_bytes(self) -> AddressBytes {
@@ -56,7 +51,13 @@ impl From<&AccountVerifyingKey> for Address {
     }
 }
 
-impl ChainAddress {
+#[derive(Debug)]
+pub struct UserAddress {
+    pub chain_id: ChainId,
+    pub addr: Address,
+}
+
+impl UserAddress {
     pub fn create(chain_id: ChainId, addr: Address) -> Self {
         Self {
             chain_id,
@@ -78,9 +79,9 @@ impl ChainAddress {
         }
     }
 
-    pub fn to_bech32(&self) -> Result<String> {
+    pub fn to_bech32m(&self) -> Result<String> {
         let hrp = registry::hrp_by_id(self.chain_id).ok_or(AccountError::HrpNotInRegistry)?;
-        let addr_str = bech32::encode::<Bech32>(hrp, self.addr.as_ref())
+        let addr_str = bech32::encode::<Bech32m>(hrp, self.addr.as_ref())
             .map_err(AccountError::Bech32Encode)?;
         Ok(addr_str)
     }
@@ -93,7 +94,7 @@ impl ChainAddress {
         }
         let mut bytes: AddressBytes = [0u8; 20];
         bytes.copy_from_slice(&data);
-        Ok(ChainAddress {
+        Ok(UserAddress {
             chain_id,
             addr: Address::from(bytes)
         })
@@ -103,6 +104,30 @@ impl ChainAddress {
         self.addr.to_bytes()
     }
 }
+
+#[derive(Debug)]
+pub struct ContractAddress {
+    pub chain_id: ChainId,
+    pub addr: Address,
+}
+
+impl ContractAddress {
+    pub fn create(chain_id: ChainId, vk: &AccountVerifyingKey, nonce: u128) -> Self {
+        let mut addr_bytes: AddressBytes = [0u8; 20];
+        let chain_id_bytes = chain_id.0.to_be_bytes();
+        let vk_bytes = vk.to_bytes();
+        let nonce_bytes = nonce.to_be_bytes();
+        let mut buf = Vec::with_capacity(
+            chain_id_bytes.len() + vk_bytes.len() + nonce_bytes.len()
+        );
+        addr_bytes.copy_from_slice(&sha256(&buf)[..20]);
+        Self {
+            chain_id,
+            addr: Address::from(addr_bytes)
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -115,11 +140,11 @@ mod tests {
         let pk = keypair.verifying_key;
         let addr = Address::from(&pk);
         let chain_id = ChainId(1000);
-        let chain_addr = ChainAddress {
+        let chain_addr = UserAddress {
             chain_id,
             addr,
         };
-        let addr_bech32 = chain_addr.to_bech32().unwrap();
+        let addr_bech32 = chain_addr.to_bech32m().unwrap();
         println!("{}", addr_bech32);
     }
 }

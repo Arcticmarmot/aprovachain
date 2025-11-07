@@ -51,7 +51,11 @@ pub fn get_custom(id: ChainId) -> Option<Arc<ChainSpec>> {
 pub fn by_id(id: ChainId) -> Option<Arc<ChainSpec>> {
     REGISTRY_MAP.get(&id).cloned().or_else(|| get_custom(id))
 }
-/// TODO: change to bech32m
+
 pub fn hrp_by_id(id: ChainId) -> Option<Hrp> {
     by_id(id).map(|spec| spec.hrp)
+}
+
+pub fn ctr_hrp_by_id(id: ChainId) -> Option<Hrp> {
+    by_id(id).map(|spec| spec.ctr_hrp)
 }

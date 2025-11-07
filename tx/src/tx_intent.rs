@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use risc0_zkvm::Digest;
 use serde::{Deserialize, Serialize};
-use account::address::{AddressBytes, ChainAddress};
+use account::address::{AddressBytes, UserAddress};
 use account::keypair::{AccountVerifyingKey, AccountVerifyingKeyBytes};
 use chain::spec::{ChainId};
 use primitives::rand::random_u128;
@@ -49,7 +49,7 @@ pub enum TxPayload {
 pub struct TxIntent {
     pub chain_id: ChainId,
     pub nonce: u128,
-    pub address: ChainAddress,
+    pub address: UserAddress,
     pub verifying_key: AccountVerifyingKey,
     pub timestamp: u128,
     pub payload: TxPayload,
@@ -60,7 +60,7 @@ impl TryFrom<TxIntentWire> for TxIntent {
 
     fn try_from(wire: TxIntentWire) -> Result<Self> {
         let chain_id = ChainId(wire.chain_id);
-        let address = ChainAddress::create_from_bytes(chain_id, wire.address);
+        let address = UserAddress::create_from_bytes(chain_id, wire.address);
         let verifying_key = AccountVerifyingKey::from_bytes(&wire.verifying_key)?;
         Ok(Self {
             chain_id,
@@ -75,7 +75,7 @@ impl TryFrom<TxIntentWire> for TxIntent {
 
 
 impl TxIntent {
-    pub fn create(chain_id: ChainId, addr: ChainAddress, vk: AccountVerifyingKey, payload: TxPayload) -> Result<Self> {
+    pub fn create(chain_id: ChainId, addr: UserAddress, vk: AccountVerifyingKey, payload: TxPayload) -> Result<Self> {
         let nonce = random_u128()?;
         let timestamp = unix_time_millis()?;
         Ok(Self {

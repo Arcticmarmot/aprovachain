@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use anyhow::{bail};
 use clap::{Parser};
 use reqwest::{Client, Response};
-use account::address::ChainAddress;
+use account::address::UserAddress;
 use account::keypair::{AccountSigningKey, AccountVerifyingKey};
 use chain::spec::ChainId;
 use primitives::hash::sha256;
@@ -13,7 +13,7 @@ use tx::tx_intent::{TxIntent, TxPayload};
 #[derive(Debug)]
 pub struct TxBuildSpec {
     chain_id: ChainId,
-    addr: ChainAddress,
+    addr: UserAddress,
     vk: AccountVerifyingKey,
     sk: AccountSigningKey,
     payload: TxPayload
@@ -66,7 +66,7 @@ where
     let vk = AccountVerifyingKey::from_bytes(&vk_bytes)?;
 
     // build addr from chain_id and vk
-    let addr = ChainAddress::create_from_vk(chain_id, &vk);
+    let addr = UserAddress::create_from_vk(chain_id, &vk);
 
     // build sk from Args
     let mut sk_bytes = [0u8; 32];

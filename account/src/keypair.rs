@@ -6,7 +6,7 @@ use ed25519_dalek::ed25519::SignatureBytes;
 use ed25519_dalek::PUBLIC_KEY_LENGTH;
 use rand_core::OsRng;
 use chain::spec::ChainId;
-use crate::address::{ChainAddress};
+use crate::address::{UserAddress};
 use crate::error::AccountError;
 
 pub type Result<T> = std::result::Result<T, AccountError>;
@@ -83,10 +83,10 @@ impl Keypair {
     }
 
     pub fn save_address(&self, dir: &Path, filename: &str, chain_id: u64) -> Result<()> {
-        let addr = ChainAddress::create_from_vk(ChainId(chain_id), &self.verifying_key);
+        let addr = UserAddress::create_from_vk(ChainId(chain_id), &self.verifying_key);
         fs::create_dir_all(dir).map_err(AccountError::CreateDir)?;
         let pathname = dir.join(format!("{filename}"));
-        let addr_bech = addr.to_bech32()?;
+        let addr_bech = addr.to_bech32m()?;
         fs::write(&pathname, addr_bech).map_err(AccountError::WriteHex)?;
         Ok(())
     }
