@@ -6,11 +6,12 @@ pub fn sha256(data: impl AsRef<[u8]>) -> Hash32 {
 }
 
 
-/// TODO: 完成sha256_concat
-pub fn sha256_concat(chunks: Vec<impl AsRef<[u8]>>) -> Hash32 {
-    let mut hasher = Sha256::new();
-    for c in chunks {
-        hasher.update(c.as_ref());
-    }
-    hasher.finalize().into()
+/// 定义多段字节哈希宏
+#[macro_export]
+macro_rules! sha256_join {
+    ($($x:expr),+$(,)?) => {{
+        let mut hasher = Sha256::new();
+        $( hasher.update($x.as_ref()); )+
+        hasher.finalize().into()
+    }};
 }

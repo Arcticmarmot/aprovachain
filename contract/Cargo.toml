@@ -7,3 +7,6 @@ edition = "2024"
 account = { workspace = true }
 primitives = { workspace = true }
 risc0-zkvm = { workspace = true }
+bcs = { workspace = true }
+chain = { workspace = true }
+serde = { version = "1.0.226", features = ["derive"] }

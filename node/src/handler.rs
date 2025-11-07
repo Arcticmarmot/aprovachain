@@ -9,6 +9,7 @@ use tx::tx_intent::{TxIntent, TxPayload};
 use crate::error::{ApiResult, NodeError, Result};
 use primitives::hash::{sha256, Hash32};
 use serde::{Deserialize, Serialize};
+use contract::contract::Contract;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -49,7 +50,13 @@ pub fn handle_intent(intent: &TxIntent) -> Result<SubmitTxResponse> {
             }
             tracing::info!("Deploy ImageId: {:?}", image_id.as_words());
             tracing::info!("Deploy ElfHash: {:?}", elf_hash);
-            let _ = kv_put(image_id.as_ref(), elf);
+            let ctr = Contract::create(intent.chain_id, computed_elf_hash, computed_image_id,
+                                       &intent.verifying_key, intent.nonce);
+            tracing::info!("{:?}", ctr);
+            tracing::info!("{}", ctr.addr.to_bech32m()?);
+            let ctr_addr_str =  ctr.addr.to_bech32m()?;
+            let _ = kv_put(ctr_addr_str.as_bytes(), &ctr.to_canonical_bytes());
+            let _ = kv_put(&ctr.elf_hash, elf);
             Ok(SubmitTxResponse::Deploy {
                 image_id: computed_image_id,
                 elf_hash: computed_elf_hash

@@ -1,4 +1,4 @@
-//! Address protocol implementation
+use sha2::Digest;
 use chain::registry;
 use bech32::{Bech32m};
 use crate::error::AccountError;
@@ -6,7 +6,8 @@ use crate::keypair::AccountVerifyingKey;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use chain::spec::ChainId;
-use primitives::hash::{sha256, sha256_concat};
+use primitives::hash::{sha256, Hash32};
+use primitives::sha256_join;
 
 pub type Result<T> = std::result::Result<T, AccountError>;
 
@@ -117,14 +118,23 @@ impl ContractAddress {
         let chain_id_bytes = chain_id.0.to_be_bytes();
         let vk_bytes = vk.to_bytes();
         let nonce_bytes = nonce.to_be_bytes();
-        let mut buf = Vec::with_capacity(
-            chain_id_bytes.len() + vk_bytes.len() + nonce_bytes.len()
-        );
-        addr_bytes.copy_from_slice(&sha256(&buf)[..20]);
+        let addr_hash: Hash32 = sha256_join!(chain_id_bytes, vk_bytes, nonce_bytes);
+        addr_bytes.copy_from_slice(&addr_hash[..20]);
         Self {
             chain_id,
             addr: Address::from(addr_bytes)
         }
+    }
+
+    pub fn to_bech32m(&self) -> Result<String> {
+        let hrp = registry::ctr_hrp_by_id(self.chain_id).ok_or(AccountError::HrpNotInRegistry)?;
+        let addr_str = bech32::encode::<Bech32m>(hrp, self.addr.as_ref())
+            .map_err(AccountError::Bech32Encode)?;
+        Ok(addr_str)
+    }
+
+    pub fn to_bytes(&self) -> [u8; 20]  {
+        self.addr.to_bytes()
     }
 }
 

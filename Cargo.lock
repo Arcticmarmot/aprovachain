@@ -794,8 +794,11 @@ name = "contract"
 version = "0.1.0"
 dependencies = [
  "account",
+ "bcs",
+ "chain",
  "primitives",
  "risc0-zkvm",
+ "serde",
 ]
 
 [[package]]
@@ -2126,6 +2129,7 @@ dependencies = [
  "anyhow",
  "axum",
  "clap",
+ "contract",
  "db",
  "dotenvy",
  "primitives",
