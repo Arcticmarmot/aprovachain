@@ -6,7 +6,7 @@ authors = ["marmot"]
 
 [workspace]
 members = [
-    "account", "apps", "chain", "contracts", "contracts/uav", "keygen", "node", "primitives", "tx",
+    "account", "apps", "chain", "methods", "methods/uav", "keygen", "node", "primitives", "tx", "contract",
 ]
 
 [dependencies]
@@ -23,7 +23,9 @@ account = { path="account" }
 tx = { path="tx" }
 primitives = { path="primitives" }
 chain = { path = "chain" }
-contracts = { path = "contracts" }
+methods = { path = "methods" }
+node = { path = "node" }
+contract = { path = "contract" }
 
 directories = { version = "6" }
 tracing = { version="0.1" }

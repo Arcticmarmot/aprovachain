@@ -1,5 +1,5 @@
 [package]
-name = "contracts"
+name = "methods"
 version = "0.1.0"
 edition = "2024"
 
@@ -10,3 +10,4 @@ risc0-build = { workspace = true }
 
 [package.metadata.risc0]
 methods = ["uav"]
+account = { workspace = true }

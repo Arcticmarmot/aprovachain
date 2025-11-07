@@ -1,0 +1,9 @@
+[package]
+name = "contract"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+account = { workspace = true }
+primitives = { workspace = true }
+risc0-zkvm = { workspace = true }
