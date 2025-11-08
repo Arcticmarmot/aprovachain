@@ -9,9 +9,9 @@ use tx::tx_intent::{TxIntent, TxPayload};
 use crate::error::{ApiResult, NodeError, Result};
 use primitives::hash::{sha256, Hash32};
 use serde::{Deserialize, Serialize};
-use contract::contract::Contract;
+use contract::contract::{Contract, ContractWire};
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SubmitTxResponse {
     Deploy {
@@ -19,7 +19,7 @@ pub enum SubmitTxResponse {
         elf_hash: Hash32
     },
     Exec {
-        image_id: Digest,
+        ctr_addr: String,
     }
 }
 
@@ -40,44 +40,59 @@ pub fn handle_intent(intent: &TxIntent) -> Result<SubmitTxResponse> {
     let payload = &intent.payload;
     match payload {
         TxPayload::Deploy{ image_id, elf, elf_hash } => {
-            let computed_image_id = risc0_zkvm::compute_image_id(elf).map_err(NodeError::ImageIdCompute)?;
-            if &computed_image_id != image_id {
-                return Err(NodeError::ImageIdMismatch)
-            }
+            // 验证 ELF 文件哈希是否对应
             let computed_elf_hash = sha256(elf);
             if &computed_elf_hash != elf_hash {
                 return Err(NodeError::ElfHashMismatch)
             }
+            // 验证 image_id 是否对应
+            let computed_image_id = risc0_zkvm::compute_image_id(elf).map_err(NodeError::ImageIdCompute)?;
+            if &computed_image_id != image_id {
+                return Err(NodeError::ImageIdMismatch)
+            }
             tracing::info!("Deploy ImageId: {:?}", image_id.as_words());
             tracing::info!("Deploy ElfHash: {:?}", elf_hash);
+
+            // 创建合约
             let ctr = Contract::create(intent.chain_id, computed_elf_hash, computed_image_id,
                                        &intent.verifying_key, intent.nonce);
-            tracing::info!("{:?}", ctr);
-            tracing::info!("{}", ctr.addr.to_bech32m()?);
-            let ctr_addr_str =  ctr.addr.to_bech32m()?;
-            let _ = kv_put(ctr_addr_str.as_bytes(), &ctr.to_canonical_bytes());
+            // 获取合约Bech32m编码
+            let ctr_addr =  ctr.addr.to_bech32m()?;
+            tracing::info!("{}", ctr_addr);
+
+            // 合约的Bech32m编码为键，BCS编码为值
+            let _ = kv_put(ctr_addr.as_bytes(), &ctr.to_canonical_bytes());
+            // ELF文件哈希为键，ELF文件字节为值
             let _ = kv_put(&ctr.elf_hash, elf);
             Ok(SubmitTxResponse::Deploy {
                 image_id: computed_image_id,
                 elf_hash: computed_elf_hash
             })
         },
-        TxPayload::Exec { image_id, input} => {
+        TxPayload::Exec { ctr_addr, input} => {
             let env = ExecutorEnv::builder()
                 .write(&input)
                 .unwrap()
                 .build().map_err(NodeError::ExecutorEnvBuild)?;
 
             let prover = default_prover();
-            let elf = match kv_get(image_id.as_ref())? {
-                Some(elf) => elf,
+
+
+            let elf = match kv_get(ctr_addr.as_bytes())? {
+                Some(bytes) => {
+                    let wire = ContractWire::from_bcs_bytes(&bytes);
+                    // TODO: 这里是否要转换成 wire
+                    // let ctr = Contract::try_from(wire)?;
+                    let ctr = wire;
+                    ctr.elf_hash
+                },
                 None => return Err(NodeError::ElfFileNotFound)
             };
             tracing::info!("Elf file len: {}", elf.len());
             let proof = prover.prove(env, &elf);
             tracing::info!("PROOF: {:?}", proof);
             Ok(SubmitTxResponse::Exec {
-                image_id: image_id.clone(),
+                ctr_addr: "TODO".to_string()
             })
         }
     }

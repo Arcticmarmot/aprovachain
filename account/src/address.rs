@@ -126,6 +126,13 @@ impl ContractAddress {
         }
     }
 
+    pub fn create_from_bytes(chain_id: ChainId, addr_bytes: AddressBytes) -> Self {
+        Self {
+            chain_id,
+            addr: Address::from(addr_bytes)
+        }
+    }
+
     pub fn to_bech32m(&self) -> Result<String> {
         let hrp = registry::ctr_hrp_by_id(self.chain_id).ok_or(AccountError::HrpNotInRegistry)?;
         let addr_str = bech32::encode::<Bech32m>(hrp, self.addr.as_ref())

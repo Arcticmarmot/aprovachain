@@ -6,7 +6,8 @@ authors = ["marmot"]
 
 [workspace]
 members = [
-    "account", "apps", "chain", "methods", "methods/uav", "keygen", "node", "primitives", "tx", "contract",
+    "account", "apps", "chain", "methods", "methods/uav", "keygen", "node",
+    "primitives", "tx", "contract", "network",
 ]
 
 [dependencies]
@@ -50,3 +51,5 @@ once_cell = { version = "1" }
 risc0-zkvm = { version = "3" }
 risc0-core = { version = "3" }
 risc0-build = { version = "3" }
+libp2p = { version = "0.56" }
+

@@ -35,7 +35,7 @@ impl FromStr for TxIntentId {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TxPayload {
     Exec {
-        image_id: Digest,
+        ctr_addr: String,
         input: Vec<u8>
     },
     Deploy {
