@@ -14,7 +14,7 @@ pub struct TxId(pub Hash32);
 
 impl Display for TxId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "0x{}", hex::encode(&self.0))
+        write!(f, "0x{}", hex::encode(&self.0))
     }
 }
 
@@ -23,9 +23,9 @@ impl FromStr for TxId {
 
     fn from_str(s: &str) -> crate::tx_intent::Result<Self> {
         let s = s.strip_prefix("0x").ok_or(TxError::TxIdPrefix)?;
-        let mut out = [0u8; 32];
-        hex::decode_to_slice(s, &mut out)?;
-        Ok(TxId(out))
+        let mut buf: Hash32 = [0u8; 32];
+        hex::decode_to_slice(s, &mut buf)?;
+        Ok(TxId(buf))
     }
 }
 
@@ -44,15 +44,11 @@ pub struct TxEnvelopeWire {
 }
 
 impl TxEnvelopeWire {
-    pub fn to_bcs_bytes(&self) -> Vec<u8> {
+    pub fn encode_bcs(&self) -> Vec<u8> {
         bcs::to_bytes(self).expect("BCS should be infallible by design")
     }
 
-    pub fn from_bcs_bytes(b: &[u8]) -> Self {
-        bcs::from_bytes(b).expect("BCS should be infallible by design")
-    }
-
-    pub fn try_from_bcs_bytes(b: &[u8]) -> Result<Self> {
+    pub fn try_decode_bcs(b: &[u8]) -> Result<Self> {
         Ok(bcs::from_bytes(b)?)
     }
 }
@@ -80,8 +76,7 @@ impl TxEnvelope {
     }
 
     pub fn to_canonical_bytes(&self) -> Vec<u8> {
-        let envelop_wire = TxEnvelopeWire::from(self);
-        bcs::to_bytes(&envelop_wire).expect("BCS should be infallible by design")
+        TxEnvelopeWire::from(self).encode_bcs()
     }
 
     pub fn tx_id(&self) -> TxId {

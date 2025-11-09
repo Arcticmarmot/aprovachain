@@ -1,5 +1,5 @@
 use risc0_zkvm::Digest;
-use account::address::{Address, AddressBytes, ContractAddress};
+use account::address::{ChainAddrBytes, ContractAddress};
 use primitives::hash::Hash32;
 use serde::{Deserialize, Serialize};
 use account::keypair::AccountVerifyingKey;
@@ -25,8 +25,7 @@ impl Contract {
     }
 
     pub fn to_canonical_bytes(&self) -> Vec<u8> {
-        let contract_wire = ContractWire::from(self);
-        bcs::to_bytes(&contract_wire).expect("BCS should be infallible by design")
+        ContractWire::from(self).decode_bcs()
     }
 }
 
@@ -34,8 +33,7 @@ impl TryFrom<ContractWire> for Contract {
     type Error = ContractError;
 
     fn try_from(wire: ContractWire) -> Result<Self> {
-        let chain_id = ChainId(wire.chain_id);
-        let ctr_addr = ContractAddress::create_from_bytes(chain_id, wire.addr);
+        let ctr_addr = ContractAddress::from_bytes(wire.addr);
         Ok(Self {
             addr: ctr_addr,
             elf_hash: wire.elf_hash,
@@ -48,27 +46,25 @@ impl TryFrom<ContractWire> for Contract {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ContractWire {
-    pub chain_id: u64,
-    pub addr: AddressBytes,
+    pub addr: ChainAddrBytes,
     pub elf_hash: Hash32,
     pub image_id: Digest,
     pub salt: u128
 }
 
 impl ContractWire {
-    pub fn to_bcs_bytes(&self) -> Vec<u8> {
+    pub fn decode_bcs(&self) -> Vec<u8> {
         bcs::to_bytes(self).expect("BCS should be infallible by design")
     }
 
-    pub fn from_bcs_bytes(b: &[u8]) -> Self {
-        bcs::from_bytes(b).expect("BCS should be infallible by design")
+    pub fn try_encode_bcs(b: &[u8]) -> Result<Self> {
+        Ok(bcs::from_bytes(b)?)
     }
 }
 
 impl From<&Contract> for ContractWire {
     fn from(ctr: &Contract) -> Self {
         Self {
-            chain_id: ctr.addr.chain_id.0,
             addr: ctr.addr.to_bytes(),
             elf_hash: ctr.elf_hash,
             image_id: ctr.image_id,

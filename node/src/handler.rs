@@ -9,6 +9,7 @@ use tx::tx_intent::{TxIntent, TxPayload};
 use crate::error::{ApiResult, NodeError, Result};
 use primitives::hash::{sha256, Hash32};
 use serde::{Deserialize, Serialize};
+use account::address::ChainAddrBytes;
 use contract::contract::{Contract, ContractWire};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,14 +20,14 @@ pub enum SubmitTxResponse {
         elf_hash: Hash32
     },
     Exec {
-        ctr_addr: String,
+        ctr_addr: ChainAddrBytes,
     }
 }
 
 /// 交易提交处理函数
 pub async fn submit_tx(tx_bytes: Bytes) -> ApiResult<SubmitTxResponse> {
     // 从字节数组构造 TxEnvelope
-    let tx_envelope_wire: TxEnvelopeWire = TxEnvelopeWire::try_from_bcs_bytes(tx_bytes.as_ref())?;
+    let tx_envelope_wire: TxEnvelopeWire = TxEnvelopeWire::try_decode_bcs(tx_bytes.as_ref())?;
     let tx_envelope = TxEnvelope::try_from(tx_envelope_wire)?;
     // tracing::debug!("{:?}", tx_envelope);
     // 验证交易签名是否有效
@@ -59,11 +60,15 @@ pub fn handle_intent(intent: &TxIntent) -> Result<SubmitTxResponse> {
             // 获取合约Bech32m编码
             let ctr_addr =  ctr.addr.to_bech32m()?;
             tracing::info!("{}", ctr_addr);
+            tracing::info!("{:?}", ctr.addr.to_bytes());
 
-            // 合约的Bech32m编码为键，BCS编码为值
-            let _ = kv_put(ctr_addr.as_bytes(), &ctr.to_canonical_bytes());
-            // ELF文件哈希为键，ELF文件字节为值
+            // key: 合约的 addr 字节数组
+            // value: 合约的BCS编码
+            let _ = kv_put(&ctr.addr.to_bytes(), &ctr.to_canonical_bytes());
+            // key: ELF文件哈希
+            // value: ELF文件字节数组
             let _ = kv_put(&ctr.elf_hash, elf);
+
             Ok(SubmitTxResponse::Deploy {
                 image_id: computed_image_id,
                 elf_hash: computed_elf_hash
@@ -77,22 +82,26 @@ pub fn handle_intent(intent: &TxIntent) -> Result<SubmitTxResponse> {
 
             let prover = default_prover();
 
-
-            let elf = match kv_get(ctr_addr.as_bytes())? {
-                Some(bytes) => {
-                    let wire = ContractWire::from_bcs_bytes(&bytes);
-                    // TODO: 这里是否要转换成 wire
-                    // let ctr = Contract::try_from(wire)?;
-                    let ctr = wire;
+            let elf_hash = match kv_get(ctr_addr)? {
+                Some(ctr_bytes) => {
+                    let wire = ContractWire::try_encode_bcs(&ctr_bytes)?;
+                    let ctr = Contract::try_from(wire)?;
                     ctr.elf_hash
                 },
+                None => return Err(NodeError::ElfFileNotFound)
+            };
+            tracing::info!("elf_hash: {:?}", elf_hash);
+
+            let elf = match kv_get(&elf_hash)? {
+                Some(elf) => elf,
                 None => return Err(NodeError::ElfFileNotFound)
             };
             tracing::info!("Elf file len: {}", elf.len());
             let proof = prover.prove(env, &elf);
             tracing::info!("PROOF: {:?}", proof);
+            // TODO: 返回有效 Response
             Ok(SubmitTxResponse::Exec {
-                ctr_addr: "TODO".to_string()
+                ctr_addr: ctr_addr.clone()
             })
         }
     }

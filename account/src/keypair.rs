@@ -83,7 +83,7 @@ impl Keypair {
     }
 
     pub fn save_address(&self, dir: &Path, filename: &str, chain_id: u64) -> Result<()> {
-        let addr = UserAddress::create_from_vk(ChainId(chain_id), &self.verifying_key);
+        let addr = UserAddress::from_vk(ChainId(chain_id), &self.verifying_key);
         fs::create_dir_all(dir).map_err(AccountError::CreateDir)?;
         let pathname = dir.join(format!("{filename}"));
         let addr_bech = addr.to_bech32m()?;

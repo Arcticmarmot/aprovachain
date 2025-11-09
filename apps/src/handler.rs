@@ -66,7 +66,7 @@ where
     let vk = AccountVerifyingKey::from_bytes(&vk_bytes)?;
 
     // build addr from chain_id and vk
-    let addr = UserAddress::create_from_vk(chain_id, &vk);
+    let addr = UserAddress::from_vk(chain_id, &vk);
 
     // build sk from Args
     let mut sk_bytes = [0u8; 32];
@@ -97,7 +97,7 @@ pub async fn send_envelope(wire: TxEnvelopeWire) -> anyhow::Result<Response> {
     let response = client
         .post("http://localhost:8888/api/submit-tx")
         .header("content-type", "application/octet-stream")
-        .body(wire.to_bcs_bytes())
+        .body(wire.encode_bcs())
         .send()
         .await?;
     tracing::info!("{:?}", response);

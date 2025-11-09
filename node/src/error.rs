@@ -4,6 +4,7 @@ use axum::response::{IntoResponse, Response};
 use thiserror::Error;
 use tx::error::TxError;
 use account::error::AccountError;
+use contract::error::ContractError;
 use db::error::DBError;
 
 #[derive(Debug, Error)]
@@ -14,6 +15,8 @@ pub enum NodeError {
     Account(#[from] AccountError),
     #[error(transparent)]
     DB(#[from] DBError),
+    #[error(transparent)]
+    Contract(#[from] ContractError),
     #[error("risc0 zkvm compute image_id failed")]
     ImageIdCompute(#[source] anyhow::Error),
     #[error("executor env build failed")]

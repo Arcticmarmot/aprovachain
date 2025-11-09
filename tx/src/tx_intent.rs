@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use risc0_zkvm::Digest;
 use serde::{Deserialize, Serialize};
-use account::address::{AddressBytes, UserAddress};
+use account::address::{ChainAddrBytes, UserAddress};
 use account::keypair::{AccountVerifyingKey, AccountVerifyingKeyBytes};
 use chain::spec::{ChainId};
 use primitives::rand::random_u128;
@@ -17,7 +17,7 @@ pub struct TxIntentId(pub Hash32);
 
 impl Display for TxIntentId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "0x{}", hex::encode(&self.0))
+        write!(f, "0x{}", hex::encode(&self.0))
     }
 }
 
@@ -26,16 +26,16 @@ impl FromStr for TxIntentId {
 
     fn from_str(s: &str) -> Result<Self> {
         let s = s.strip_prefix("0x").ok_or(TxError::TxIntentIdPrefix)?;
-        let mut out = [0u8; 32];
-        hex::decode_to_slice(s, &mut out)?;
-        Ok(TxIntentId(out))
+        let mut buf: Hash32 = [0u8; 32];
+        hex::decode_to_slice(s, &mut buf)?;
+        Ok(TxIntentId(buf))
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TxPayload {
     Exec {
-        ctr_addr: String,
+        ctr_addr: ChainAddrBytes,
         input: Vec<u8>
     },
     Deploy {
@@ -60,7 +60,7 @@ impl TryFrom<TxIntentWire> for TxIntent {
 
     fn try_from(wire: TxIntentWire) -> Result<Self> {
         let chain_id = ChainId(wire.chain_id);
-        let address = UserAddress::create_from_bytes(chain_id, wire.address);
+        let address = UserAddress::from_bytes(wire.address);
         let verifying_key = AccountVerifyingKey::from_bytes(&wire.verifying_key)?;
         Ok(Self {
             chain_id,
@@ -89,8 +89,7 @@ impl TxIntent {
     }
 
     pub fn to_canonical_bytes(&self) -> Vec<u8> {
-        let intent_wire = TxIntentWire::from(self);
-        bcs::to_bytes(&intent_wire).expect("BCS should be infallible by design")
+        TxIntentWire::from(self).encode_bcs()
     }
 
     pub fn tx_intent_id(&self) -> TxIntentId {
@@ -102,7 +101,7 @@ impl TxIntent {
 pub struct TxIntentWire {
     pub chain_id: u64,
     pub nonce: u128,
-    pub address: AddressBytes,
+    pub address: ChainAddrBytes,
     pub verifying_key: AccountVerifyingKeyBytes,
     pub timestamp: u128,
     pub payload: TxPayload
@@ -110,15 +109,12 @@ pub struct TxIntentWire {
 
 
 impl TxIntentWire {
-    pub fn to_bcs_bytes(&self) -> Vec<u8> {
+    pub fn encode_bcs(&self) -> Vec<u8> {
         bcs::to_bytes(self).expect("BCS should be infallible by design")
     }
 
-    pub fn from_bcs_bytes(b: &[u8]) -> Self {
-        bcs::from_bytes(b).expect("BCS should be infallible by design")
-    }
-
-    pub fn try_from_bcs_bytes(b: &[u8]) -> Result<Self> {
+    /// NOTE: 输入为不可信的 BCS 编码字节切片；仅尝试解码
+    pub fn try_decode_bcs(b: &[u8]) -> Result<Self> {
         Ok(bcs::from_bytes(b)?)
     }
 }
