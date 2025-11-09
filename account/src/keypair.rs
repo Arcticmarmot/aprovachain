@@ -5,7 +5,7 @@ use ed25519_dalek::{SigningKey, VerifyingKey, Signature};
 use ed25519_dalek::ed25519::SignatureBytes;
 use ed25519_dalek::PUBLIC_KEY_LENGTH;
 use rand_core::OsRng;
-use chain::spec::ChainId;
+use spec::chain::ChainId;
 use crate::address::{UserAddress};
 use crate::error::AccountError;
 

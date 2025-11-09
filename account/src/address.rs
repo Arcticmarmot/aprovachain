@@ -1,11 +1,11 @@
 use sha2::Digest;
-use chain::registry;
+use spec::registry;
 use bech32::{Bech32m};
 use crate::error::AccountError;
 use crate::keypair::AccountVerifyingKey;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
-use chain::spec::ChainId;
+use spec::chain::ChainId;
 use primitives::hash::{sha256, Hash32};
 use primitives::sha256_join;
 

@@ -5,7 +5,7 @@ use node::handler::SubmitTxResponse;
 use tx::tx_intent::TxPayload;
 
 #[tokio::test]
-pub async fn exec_by_json() {
+pub async fn exec_then_deploy() {
     // Init
     init_logging().unwrap();
     init_env().unwrap();

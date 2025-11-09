@@ -4,7 +4,7 @@ use risc0_zkvm::Digest;
 use serde::{Deserialize, Serialize};
 use account::address::{ChainAddrBytes, UserAddress};
 use account::keypair::{AccountVerifyingKey, AccountVerifyingKeyBytes};
-use chain::spec::{ChainId};
+use spec::chain::{ChainId};
 use primitives::rand::random_u128;
 use primitives::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32};

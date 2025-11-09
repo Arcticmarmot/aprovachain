@@ -6,8 +6,8 @@ authors = ["marmot"]
 
 [workspace]
 members = [
-    "account", "apps", "chain", "methods", "methods/uav", "keygen", "node",
-    "primitives", "tx", "contract", "network",
+    "account", "apps", "spec", "methods", "methods/uav", "keygen", "node",
+    "primitives", "tx", "contract", "network", "chain",
 ]
 
 [dependencies]
@@ -23,10 +23,11 @@ log = "0.4"
 account = { path="account" }
 tx = { path="tx" }
 primitives = { path="primitives" }
-chain = { path = "chain" }
+spec = { path = "spec" }
 methods = { path = "methods" }
 node = { path = "node" }
 contract = { path = "contract" }
+chain = { path = "chain" }
 
 directories = { version = "6" }
 tracing = { version="0.1" }

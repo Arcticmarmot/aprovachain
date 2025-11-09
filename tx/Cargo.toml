@@ -12,6 +12,5 @@ thiserror = { workspace = true }
 bcs = { workspace = true }
 serde_with = { workspace = true }
 hex = { workspace = true }
-chain = { workspace = true }
+spec = { workspace = true }
 risc0-zkvm = { workspace = true }
-bytes = { version = "1.10"}

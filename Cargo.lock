@@ -7,13 +7,13 @@ name = "account"
 version = "0.1.0"
 dependencies = [
  "bech32",
- "chain",
  "ed25519-dalek",
  "hex",
  "primitives",
  "rand_core 0.6.4",
  "serde",
  "sha2",
+ "spec",
  "thiserror 2.0.17",
 ]
 
@@ -116,7 +116,6 @@ dependencies = [
  "account",
  "anyhow",
  "bytes",
- "chain",
  "clap",
  "dotenvy",
  "ed25519-dalek",
@@ -128,6 +127,7 @@ dependencies = [
  "risc0-zkvm",
  "serde",
  "serde_json",
+ "spec",
  "tokio",
  "tracing",
  "tracing-appender",
@@ -728,10 +728,15 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 name = "chain"
 version = "0.1.0"
 dependencies = [
- "bech32",
- "once_cell",
- "parking_lot",
+ "account",
+ "bcs",
+ "hex",
+ "primitives",
+ "serde",
+ "serde_with",
+ "spec",
  "thiserror 2.0.17",
+ "tx",
 ]
 
 [[package]]
@@ -832,10 +837,10 @@ version = "0.1.0"
 dependencies = [
  "account",
  "bcs",
- "chain",
  "primitives",
  "risc0-zkvm",
  "serde",
+ "spec",
  "thiserror 2.0.17",
 ]
 
@@ -3769,6 +3774,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "spec"
+version = "0.1.0"
+dependencies = [
+ "bech32",
+ "once_cell",
+ "parking_lot",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4305,14 +4320,13 @@ version = "0.1.0"
 dependencies = [
  "account",
  "bcs",
- "bytes",
- "chain",
  "hex",
  "primitives",
  "rand_core 0.9.3",
  "risc0-zkvm",
  "serde",
  "serde_with",
+ "spec",
  "thiserror 2.0.17",
 ]
 

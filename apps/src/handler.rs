@@ -5,7 +5,7 @@ use clap::{Parser};
 use reqwest::{Client, Response};
 use account::address::UserAddress;
 use account::keypair::{AccountSigningKey, AccountVerifyingKey};
-use chain::spec::ChainId;
+use spec::chain::ChainId;
 use primitives::hash::sha256;
 use tx::tx_envelope::{TxEnvelope, TxEnvelopeWire};
 use tx::tx_intent::{TxIntent, TxPayload};

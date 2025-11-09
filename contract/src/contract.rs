@@ -3,7 +3,7 @@ use account::address::{ChainAddrBytes, ContractAddress};
 use primitives::hash::Hash32;
 use serde::{Deserialize, Serialize};
 use account::keypair::AccountVerifyingKey;
-use chain::spec::ChainId;
+use spec::chain::ChainId;
 use crate::error::{ContractError,Result};
 #[derive(Debug)]
 pub struct Contract {

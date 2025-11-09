@@ -1,7 +1,6 @@
 use bech32::Hrp;
-use crate::error::ChainError;
+use crate::error::Result;
 
-type Result<T> = std::result::Result<T, ChainError>;
 pub static CTR_PREFIX: &'static str = "ctr";
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
