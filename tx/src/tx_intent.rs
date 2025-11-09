@@ -43,6 +43,13 @@ pub enum TxPayload {
         elf: Vec<u8>,
         elf_hash: Hash32
     },
+    // TODO: 更新合约
+    // Update {
+    //     ctr_addr: ChainAddrBytes,
+    //     image_id: Digest,
+    //     elf: Vec<u8>,
+    //     elf_hash: Hash32
+    // }
 }
 
 #[derive(Debug)]

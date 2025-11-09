@@ -131,7 +131,8 @@ pub fn handle_exec_tx(intent: &TxIntent, ctr_addr: &ChainAddrBytes, input: &Vec<
     let proof = prover.prove(env, &elf).map_err(NodeError::ProofGenerate)?;
     tracing::info!("PROOF: {:?}", proof);
     let receipt = proof.receipt;
-
+    let output: Vec<u8> = receipt.journal.decode().unwrap();
+    tracing::info!("output: {:?}", output);
     Ok(SubmitTxResponse::Exec {
         ctr_addr: ctr_addr.clone(),
         image_id,

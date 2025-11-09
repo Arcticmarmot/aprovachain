@@ -4,5 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-libp2p = { workspace = true }
+libp2p = { version = "0.56", features = ["noise", "ping", "tcp", "tokio", "yamux"] }
 tokio = { workspace = true }
+futures = "0.3.30"
+tracing-subscriber = { workspace = true }

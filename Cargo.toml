@@ -50,7 +50,5 @@ bcs = { version = "0.1" }
 axum = { version = "0.8" }
 once_cell = { version = "1" }
 risc0-zkvm = { version = "3" }
-risc0-core = { version = "3" }
 risc0-build = { version = "3" }
-libp2p = { version = "0.56" }
 
