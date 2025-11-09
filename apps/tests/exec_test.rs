@@ -4,7 +4,7 @@ use clap::Parser;
 use node::handler::SubmitTxResponse;
 
 #[tokio::test]
-async fn exec_by_json() {
+pub async fn exec_by_json() {
     init_logging().unwrap();
     init_env().unwrap();
     unsafe { std::env::remove_var("DEPLOY_ELF"); }
