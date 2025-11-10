@@ -34,6 +34,7 @@ pub async fn submit_tx(tx_bytes: Bytes) -> ApiResult<SubmitTxResponse> {
     let tx_envelope = TxEnvelope::try_from(tx_envelope_wire)?;
     // tracing::debug!("{:?}", tx_envelope);
     // 验证交易签名是否有效
+    // TODO: 重放交易攻击，拒绝重复的 nonce
     let _ = verify_tx_sig(&tx_envelope)?;
     // 执行交易
     let intent = handle_intent(&tx_envelope.intent)?;
