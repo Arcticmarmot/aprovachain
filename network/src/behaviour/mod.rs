@@ -1,2 +1,3 @@
 pub mod discovery;
-mod gossip;
+pub mod gossip;
+pub mod peer_set;

@@ -6,6 +6,7 @@ use libp2p::swarm::{SwarmEvent};
 use network::bootstrap::{init_env, init_logging};
 use network::behaviour::discovery::{DiscoveryBehaviour, DiscoveryEvent};
 
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let _ = init_logging();

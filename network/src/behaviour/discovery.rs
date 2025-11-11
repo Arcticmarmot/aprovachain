@@ -1,5 +1,6 @@
 use std::time::Duration;
 use libp2p::{identify, ping, tcp, mdns, Multiaddr, PeerId, identity};
+use libp2p::mdns::Config;
 use libp2p::swarm::{SwarmEvent, NetworkBehaviour};
 
 #[derive(NetworkBehaviour)]
@@ -84,10 +85,11 @@ impl DiscoveryBehaviour {
             identify::Config::new("/aprova/v0.1".into(), public.clone())
         );
 
-        let mdns_cfg = mdns::Config::default();
-        tracing::info!("query_interval: {:?}", mdns_cfg.query_interval);
+        let mut mdns_cfg = mdns::Config::default();
+        mdns_cfg.query_interval = Duration::from_secs(1);
+        tracing::info!(target:"network", ?mdns_cfg);
         let mdns = mdns::tokio::Behaviour::new(
-            mdns::Config::default(), PeerId::from(public))
+            mdns_cfg, PeerId::from(public))
             .expect("mdns create failed");
         Self {
             ping,
