@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     swarm.listen_on("/ip4/0.0.0.0/tcp/33333".parse()?)?;
 
     let mut peer_set = PeerSet::new(local_id);
-    peer_set.add_bootnode("12D3KooWAuNqc1Y5HkLzXt3n2RoM4ryHoYJeMwg1CmRdWQGzLzYC".parse()?,
+    peer_set.add_bootnodes("12D3KooWAuNqc1Y5HkLzXt3n2RoM4ryHoYJeMwg1CmRdWQGzLzYC".parse()?,
                           "/ip4/100.107.181.54/tcp/33333".parse()?);
     peer_set.refresh(&mut swarm);
     while let Some(event) = swarm.next().await{
@@ -49,12 +49,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 peer_set.refresh(&mut swarm);
             },
             SwarmEvent::Behaviour(DiscoveryEvent::PeerDown(peer_id)) => {
-                tracing::warn!(target:"net::disc", peer=%peer_id, "peer down");
+                tracing::info!(target:"net::disc", peer=%peer_id, "peer down");
                 peer_set.on_peer_down(peer_id);
                 peer_set.refresh(&mut swarm);
             },
             SwarmEvent::Behaviour(DiscoveryEvent::FoundPeers(peers)) => {
-                tracing::debug!(target:"net::disc", known_peers=peers.len(), "mdns discovered candidates");
+                tracing::info!(target:"net::disc", known_peers=peers.len(), "mdns discovered candidates");
                 peer_set.on_found_peers(peers);
                 peer_set.refresh(&mut swarm);
             },

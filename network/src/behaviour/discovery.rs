@@ -87,7 +87,7 @@ impl DiscoveryBehaviour {
         let public = local_key.public();
 
         let ping = ping::Behaviour::new(
-            ping::Config::new().with_interval(Duration::from_secs(5))
+            ping::Config::new().with_interval(Duration::from_secs(30))
         );
 
         let identify = identify::Behaviour::new(
