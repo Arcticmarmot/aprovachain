@@ -1,7 +1,6 @@
 use std::time::Duration;
-use libp2p::{identify, ping, tcp, mdns, Multiaddr, PeerId, identity};
-use libp2p::mdns::Config;
-use libp2p::swarm::{SwarmEvent, NetworkBehaviour};
+use libp2p::{identify, ping, mdns, Multiaddr, PeerId, identity};
+use libp2p::swarm::{NetworkBehaviour};
 
 #[derive(NetworkBehaviour)]
 #[behaviour(to_swarm = "DiscoveryEvent")]
@@ -13,7 +12,7 @@ pub struct DiscoveryBehaviour {
 
 #[derive(Debug)]
 pub enum DiscoveryEvent {
-    PeerUp(PeerId),
+    PeerUp(PeerId, Option<Vec<Multiaddr>>),
     PeerDown(PeerId),
     FoundPeers(Vec<(PeerId, Multiaddr)>),
     Ignore
@@ -22,14 +21,12 @@ pub enum DiscoveryEvent {
 impl From<ping::Event> for DiscoveryEvent {
     fn from(event: ping::Event) -> Self {
         match &event.result {
-            Ok(duration) => {
-                tracing::info!("Ping success: {:?}", event);
-                tracing::info!("Duration is {:?}", duration);
-                DiscoveryEvent::PeerUp(event.peer)
+            Ok(rtt) => {
+                tracing::debug!(target:"net::ping", peer=%event.peer, ?rtt, "ping ok");
+                DiscoveryEvent::PeerUp(event.peer, None)
             },
             Err(err) => {
-                tracing::info!("Ping failure: {:?}", event);
-                tracing::error!("Error is {:?}", err);
+                tracing::warn!(target:"net::ping", peer=%event.peer, ?err, "ping failed");
                 DiscoveryEvent::PeerDown(event.peer)
             }
         }
@@ -40,17 +37,28 @@ impl From<identify::Event> for DiscoveryEvent {
     fn from(event: identify::Event) -> Self {
         match event {
             identify::Event::Received {peer_id, info, ..} => {
-                tracing::info!("Identify received: {:?}", peer_id);
-                tracing::info!("Protocol version is: {}", info.protocol_version);
-                DiscoveryEvent::PeerUp(peer_id)
+                tracing::info!(target:"net::identify", %peer_id, "identify received");
+                tracing::debug!(target:"net::identify",
+                    %peer_id, agent=%info.agent_version, listen_addrs=?info.listen_addrs, protocols=?info.protocols, observed_addr=%info.observed_addr,
+                    "identify details");
+                // 传递对端自报的地址
+                let addrs = info.listen_addrs;
+                DiscoveryEvent::PeerUp(peer_id, Some(addrs))
             },
-            identify::Event::Pushed {peer_id, ..} => {
-                DiscoveryEvent::PeerUp(peer_id)
+            identify::Event::Pushed {peer_id, info, ..} => {
+                tracing::info!(target:"net::identify", %peer_id, "identify received");
+                tracing::debug!(target:"net::identify",
+                    %peer_id, agent=%info.agent_version, listen_addrs=?info.listen_addrs, protocols=?info.protocols, observed_addr=%info.observed_addr,
+                    "identify details");
+                let addrs = info.listen_addrs;
+                // 传递对端自报的地址
+                DiscoveryEvent::PeerUp(peer_id, Some(addrs))
             },
-            identify::Event::Sent {peer_id, ..} => {
+            identify::Event::Sent { .. } => {
                 DiscoveryEvent::Ignore
             },
             identify::Event::Error {peer_id, error, ..} => {
+                tracing::warn!(target:"net::identify", %peer_id, ?error, "identify error");
                 DiscoveryEvent::PeerDown(peer_id)
             },
         }
@@ -60,12 +68,14 @@ impl From<identify::Event> for DiscoveryEvent {
 impl From<mdns::Event> for DiscoveryEvent {
     fn from(event: mdns::Event) -> Self {
         match event {
-            mdns::Event::Discovered(list) => {
-                tracing::info!("{list:?}");
-                DiscoveryEvent::FoundPeers(list.into_iter().collect())
+            mdns::Event::Discovered(peers) => {
+                tracing::info!(target:"network::mdns", count=peers.len(), "mdns discovered peers");
+                tracing::debug!(target:"network::mdns", ?peers, "mdns discovered details");
+                DiscoveryEvent::FoundPeers(peers.into_iter().collect())
             },
-            mdns::Event::Expired(list) => {
-                tracing::info!("{list:?}");
+            mdns::Event::Expired(peers) => {
+                tracing::debug!(target:"network::mdns", count=peers.len(), "mdns expired peers");
+                tracing::trace!(target:"network::mdns", ?peers, "mdns expired details");
                 DiscoveryEvent::FoundPeers(Vec::new())
             }
         }
@@ -76,7 +86,6 @@ impl DiscoveryBehaviour {
     pub fn new(local_key: &identity::Keypair) -> Self {
         let public = local_key.public();
 
-        // 生效的 ping 配置
         let ping = ping::Behaviour::new(
             ping::Config::new().with_interval(Duration::from_secs(5))
         );
@@ -85,9 +94,7 @@ impl DiscoveryBehaviour {
             identify::Config::new("/aprova/v0.1".into(), public.clone())
         );
 
-        let mut mdns_cfg = mdns::Config::default();
-        mdns_cfg.query_interval = Duration::from_secs(1);
-        tracing::info!(target:"network", ?mdns_cfg);
+        let mdns_cfg = mdns::Config::default();
         let mdns = mdns::tokio::Behaviour::new(
             mdns_cfg, PeerId::from(public))
             .expect("mdns create failed");

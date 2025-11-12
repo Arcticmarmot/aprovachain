@@ -1,66 +1,59 @@
 use std::error::Error;
 use std::time::Duration;
 use futures::StreamExt;
-use libp2p::{noise, ping, tcp, mdns, yamux, Multiaddr, PeerId, identity};
+use libp2p::{noise, tcp, yamux, Multiaddr, PeerId, identity};
 use libp2p::swarm::{SwarmEvent};
 use network::bootstrap::{init_env, init_logging};
 use network::behaviour::discovery::{DiscoveryBehaviour, DiscoveryEvent};
-
+use network::behaviour::peer_set::PeerSet;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let _ = init_logging();
     let _ = init_env();
 
-    let key = identity::Keypair::generate_ed25519();
-    let peer_id = PeerId::from(key.public());
-    tracing::info!("node started: {:?}", peer_id);
+    let local_key = identity::Keypair::generate_ed25519();
+    let local_id = PeerId::from(local_key.public());
+    tracing::info!(target:"net::node", peer=%local_id, "node started");
 
-    let disc_behaviour = DiscoveryBehaviour::new(&key);
+    let disc_behaviour = DiscoveryBehaviour::new(&local_key);
 
-    let mut swarm = libp2p::SwarmBuilder::with_existing_identity(key)
+    let mut swarm = libp2p::SwarmBuilder::with_existing_identity(local_key)
         .with_tokio()
-        .with_tcp(
-            tcp::Config::default(),
-            noise::Config::new,
-            yamux::Config::default
-        )?
-        // It only cares about what messages and to whom to sent on the network.
+        .with_tcp(tcp::Config::default(), noise::Config::new, yamux::Config::default)?
         .with_behaviour(|_| disc_behaviour)?
-        .with_swarm_config(|cfg| {
-            cfg.with_idle_connection_timeout(Duration::from_secs(u64::MAX))
-        })
+        .with_swarm_config(|cfg| { cfg.with_idle_connection_timeout(Duration::from_secs(u64::MAX)) })
         .build();
 
     swarm.listen_on("/ip4/0.0.0.0/tcp/0".parse()?)?;
 
+    let mut peer_set = PeerSet::new();
     while let Some(event) = swarm.next().await{
         match event{
             SwarmEvent::NewListenAddr {address, ..} => {
-                tracing::info!("Listening on {address:?}")
-            },
+                tracing::info!(target:"net::listen", addr=%address, "listening");
+            }
+            SwarmEvent::ConnectionEstablished { peer_id, .. } => {
+                tracing::info!(target:"net::conn", peer=%peer_id, "connection established");
+            }
             SwarmEvent::ConnectionClosed {peer_id, ..} => {
-                tracing::info!("Peer down: {peer_id:?}")
-            },
-            SwarmEvent::Behaviour(DiscoveryEvent::PeerUp(peer_id)) => {
-                tracing::info!("Peer up: {peer_id:?}")
+                tracing::info!(target:"net::conn", peer=%peer_id, "connection closed");
+            }
+            // DiscoveryEvent 事件处理
+            SwarmEvent::Behaviour(DiscoveryEvent::PeerUp(peer_id, addrs_opt)) => {
+                tracing::info!(target:"net::disc", peer=%peer_id, addrs=?addrs_opt, "peer up");
+                peer_set.on_peer_up(peer_id, addrs_opt);
             },
             SwarmEvent::Behaviour(DiscoveryEvent::PeerDown(peer_id)) => {
-                tracing::info!("Peer down: {peer_id:?}")
+                tracing::warn!(target:"net::disc", peer=%peer_id, "peer down");
+                peer_set.on_peer_down(peer_id);
             },
-            SwarmEvent::Behaviour(DiscoveryEvent::FoundPeers(v)) => {
-                for (peer_id, addr) in v {
-                    if peer_id == *swarm.local_peer_id() { continue; } // 别拨自己
-                    tracing::info!("Mdns discovered: {peer_id:?}, {addr:?}");
-                    // 尝试拨过去（可能失败，忽略错误并继续）
-                    if let Err(e) = swarm.dial(addr.clone()) {
-                        tracing::debug!("dial {addr:?} failed: {e}");
-                    }
-                }
+            SwarmEvent::Behaviour(DiscoveryEvent::FoundPeers(peers)) => {
+                tracing::debug!(target:"net::disc", known_peers=peers.len(), "mdns discovered candidates");
+                peer_set.on_found_peers(peers);
             },
             _ => {}
         }
     }
-
     Ok(())
 }
