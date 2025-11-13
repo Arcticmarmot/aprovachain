@@ -1,5 +1,6 @@
 use std::time::Duration;
 use libp2p::{identify, ping, mdns, Multiaddr, PeerId, identity};
+use libp2p::kad;
 use libp2p::swarm::{NetworkBehaviour};
 
 #[derive(NetworkBehaviour)]
@@ -7,7 +8,8 @@ use libp2p::swarm::{NetworkBehaviour};
 pub struct DiscoveryBehaviour {
     ping: ping::Behaviour,
     identify: identify::Behaviour,
-    mdns: mdns::tokio::Behaviour
+    mdns: mdns::tokio::Behaviour,
+    // kademlia: kad::Behaviour<kad::store::MemoryStore>
 }
 
 #[derive(Debug)]

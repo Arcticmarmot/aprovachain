@@ -1,9 +1,23 @@
+use std::cmp::{min};
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
 use libp2p::{Multiaddr, PeerId, Swarm};
+use libp2p::swarm::NetworkBehaviour;
+use crate::error::{PeerError, Result};
+use rand::rng;
+use rand::seq::IteratorRandom;
 
 const BACKOFF: u64 = 5;
 const PURGE: u64 = 20;
+/// 每次最大 dial 地址数量
+const MAX_ADDR_DIAL: usize = 3;
+
+const BOOTNODE_ADDRS: &[&'static str] = &[
+    "/ip4/100.64.250.18/tcp/33333",
+    "/ip4/100.107.181.54/tcp/33333",
+];
+
+const BOOTNODE_IDS: &[PeerId] = &[ ];
 
 #[derive(Debug)]
 pub struct PeerSet {
@@ -18,6 +32,35 @@ pub struct PeerInfo {
     pub addrs: HashSet<Multiaddr>,
     pub last_dial: Option<Instant>,
     pub last_seen: Option<Instant>,
+}
+
+
+pub fn dial<B>(peer_id: &PeerId, addrs: &HashSet<Multiaddr>, swarm: &mut Swarm<B>) -> Result<()>
+where B: NetworkBehaviour
+{
+    match swarm.dial(*peer_id) {
+        Ok(_) => {
+            tracing::info!(target: "network::dial", %peer_id, "dial by peer id ok");
+            return Ok(())
+        },
+        Err(err) => tracing::error!(target: "network::dial", ?err)
+    }
+    // 随机选取 MAX_ADDR_DIAL 个地址
+    let mut rng = rng();
+    let dial_addrs = addrs.iter().choose_multiple(&mut rng, min(MAX_ADDR_DIAL, addrs.len()));
+    let mut flag = false;
+    for addr in dial_addrs {
+        match swarm.dial(addr.clone()) {
+            Ok(_) => {
+                tracing::info!(target: "network::dial", %peer_id, %addr, "dial by addr ok");
+                flag = true
+            }
+            Err(err) => {
+                tracing::info!(target: "network::dial", %peer_id, %addr, ?err, "dial by addr failed");
+            }
+        }
+    }
+    if flag { Ok(()) } else { Err(PeerError::DialPeer) }
 }
 
 impl PeerSet {
@@ -39,19 +82,27 @@ impl PeerSet {
         }
     }
 
-    pub fn add_bootnodes(&mut self, peer_id: PeerId, addr: Multiaddr) {
+    pub fn init<B>(&mut self, swarm: &mut Swarm<B>) -> Result<()> where B: NetworkBehaviour {
+        for str_addr in BOOTNODE_ADDRS {
+            self.add_bootnode(None, str_addr);
+        }
+        self.refresh(swarm);
+        Ok(())
+    }
+
+    pub fn add_bootnode(&mut self, peer_id: Option<PeerId>, addr_str: &'static str) {
+        let peer_id = peer_id.unwrap_or(PeerId::random());
+        let mut addrs = HashSet::new();
+        addrs.insert(addr_str.parse::<Multiaddr>().expect("invalid address"));
         self.map.insert(peer_id, PeerInfo {
-            addrs: HashSet::from([addr]),
+            addrs,
             last_dial: None,
-            last_seen: None
+            last_seen: None,
         });
     }
 
-    pub fn refresh<B>(&mut self, swarm: &mut Swarm<B>)
-        where B: libp2p::swarm::NetworkBehaviour
-    {
+    pub fn refresh<B>(&mut self, swarm: &mut Swarm<B>) where B: NetworkBehaviour {
         let now = Instant::now();
-
         // 清理没动静的节点
         self.map.retain(|id, info| {
             if id == &self.local_id { return false }
@@ -61,33 +112,27 @@ impl PeerSet {
                 (None, None) => true
             }
         });
-
+        // 对所有节点
         for (id, info) in self.map.iter_mut() {
             if id == &self.local_id { continue; }
-
-            match info.last_dial {
-                Some(dial) => {
-                    let pass = now.saturating_duration_since(dial);
-                    if pass < self.backoff { continue; }
-                    if let Some(seen) = info.last_seen {
-                        let pass = now.saturating_duration_since(seen);
-                        if pass < self.backoff { continue; }
-                    }
+            if info.last_dial.is_none() {
+                match dial::<B>(id, &info.addrs, swarm) {
+                    Ok(()) => { info.last_dial = Some(Instant::now()) }
+                    _ => { }
                 }
-                None => {
-                    tracing::info!("OK LET'S START REFRESH");
-                    for addr in &info.addrs {
-                        tracing::info!(target: "net::dial", %addr, "dial addr");
-                        match swarm.dial(addr.clone()) {
-                            Ok(()) => {
-                                info.last_dial = Some(Instant::now());
-                            },
-                            Err(err) => {
-                                tracing::warn!(target: "net::dial", ?err, "dial failed")
-                            }
-                        };
-                    }
-                }
+                continue;
+            }
+            if let Some(dial) = info.last_dial {
+                let pass = now.saturating_duration_since(dial);
+                if pass < self.backoff { continue; }
+            }
+            if let Some(seen) = info.last_seen {
+                let pass = now.saturating_duration_since(seen);
+                if pass < self.backoff { continue; }
+            }
+            match dial::<B>(id, &info.addrs, swarm) {
+                Ok(()) => { info.last_dial = Some(Instant::now()) }
+                _ => { }
             }
         }
         tracing::info!(target: "network::peer-set", len=?self.map.len());

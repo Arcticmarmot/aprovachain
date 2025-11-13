@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::time::Duration;
 use futures::StreamExt;
-use libp2p::{noise, tcp, yamux, Multiaddr, PeerId, identity};
+use libp2p::{noise, tcp, yamux, PeerId, identity};
 use libp2p::swarm::{SwarmEvent};
 use network::bootstrap::{init_env, init_logging};
 use network::behaviour::discovery::{DiscoveryBehaviour, DiscoveryEvent};
@@ -28,9 +28,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     swarm.listen_on("/ip4/0.0.0.0/tcp/33333".parse()?)?;
 
     let mut peer_set = PeerSet::new(local_id);
-    peer_set.add_bootnodes("12D3KooWAuNqc1Y5HkLzXt3n2RoM4ryHoYJeMwg1CmRdWQGzLzYC".parse()?,
-                          "/ip4/100.107.181.54/tcp/33333".parse()?);
-    peer_set.refresh(&mut swarm);
+    let _ = peer_set.init(&mut swarm);
     while let Some(event) = swarm.next().await{
         match event{
             SwarmEvent::NewListenAddr {address, ..} => {
