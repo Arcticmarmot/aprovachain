@@ -1,6 +1,5 @@
 use std::time::Duration;
 use libp2p::{identify, ping, mdns, Multiaddr, PeerId, identity};
-use libp2p::kad;
 use libp2p::swarm::{NetworkBehaviour};
 
 #[derive(NetworkBehaviour)]

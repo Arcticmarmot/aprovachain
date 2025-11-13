@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     swarm.listen_on("/ip4/0.0.0.0/tcp/33333".parse()?)?;
 
     let mut peer_set = PeerSet::new(local_id);
-    let _ = peer_set.init(&mut swarm);
+    let _ = PeerSet::init(&mut swarm);
 
     while let Some(event) = swarm.next().await{
         match event{

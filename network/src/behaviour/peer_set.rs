@@ -1,22 +1,18 @@
-use std::cmp::{min};
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
 use libp2p::{Multiaddr, PeerId, Swarm};
 use libp2p::swarm::dial_opts::{DialOpts, PeerCondition};
-use libp2p::swarm::{DialError, NetworkBehaviour};
+use libp2p::swarm::{NetworkBehaviour};
 use crate::error::{PeerError, Result};
-use rand::rng;
-use rand::seq::IteratorRandom;
 
 const BACKOFF: u64 = 5;
 const PURGE: u64 = 20;
-/// 每次最大 dial 地址数量
-const MAX_ADDR_DIAL: usize = 3;
 const BOOTNODE_ADDRS: &[&'static str] = &[
     "/ip4/100.64.250.18/tcp/33333",
     "/ip4/100.107.181.54/tcp/33333",
 ];
-const BOOTNODE_IDS: &[PeerId] = &[ ];
+// 指定 PEER_ID 的静态 BOOTNODES
+// const BOOTNODE_IDS: &[PeerId] = &[ ];
 
 #[derive(Debug)]
 pub struct PeerSet {
@@ -31,48 +27,6 @@ pub struct PeerInfo {
     pub addrs: HashSet<Multiaddr>,
     pub last_dial: Option<Instant>,
     pub last_seen: Option<Instant>,
-}
-
-
-pub fn dial<B>(peer_id: &PeerId, addrs: &HashSet<Multiaddr>, swarm: &mut Swarm<B>) -> Result<()>
-where B: NetworkBehaviour
-{
-    let peer_dial_opts = DialOpts::peer_id(*peer_id).condition(PeerCondition::Disconnected).build();
-    match swarm.dial(peer_dial_opts) {
-        Ok(_) => {
-            tracing::info!(target: "network::dial", %peer_id, "dial by peer id ok");
-            return Ok(())
-        },
-        Err(err)if matches!(err, DialError::DialPeerConditionFalse(_))  => {
-            tracing::error!(target: "network::dial", %peer_id, ?err);
-            return Err(PeerError::DialPeer)
-        },
-        Err(err)if matches!(err, DialError::NoAddresses)  => {
-            tracing::error!(target: "network::dial", %peer_id, ?err);
-            return Err(PeerError::DialPeer)
-        },
-        Err(err) => {
-            tracing::error!(target: "network::dial", %peer_id, ?err);
-        }
-    }
-    // 随机选取 MAX_ADDR_DIAL 个地址
-    let mut rng = rng();
-    tracing::info!(target: "network::dial", addrs_len=%addrs.len(), "dial addrs len");
-    let dial_addrs = addrs.iter().choose_multiple(&mut rng, min(MAX_ADDR_DIAL, addrs.len()));
-    let mut flag = false;
-    for addr in dial_addrs {
-        let addr_dial_opts = DialOpts::unknown_peer_id().address(addr.clone()).build();
-        match swarm.dial(addr.clone()) {
-            Ok(_) => {
-                tracing::info!(target: "network::dial", %peer_id, %addr, "dial by addr ok");
-                flag = true
-            }
-            Err(err) => {
-                tracing::error!(target: "network::dial", %peer_id, %addr, ?err, "dial by addr failed");
-            }
-        }
-    }
-    if flag { Ok(()) } else { Err(PeerError::DialPeer) }
 }
 
 impl PeerSet {
@@ -94,25 +48,6 @@ impl PeerSet {
         }
     }
 
-    pub fn init<B>(&mut self, swarm: &mut Swarm<B>) -> Result<()> where B: NetworkBehaviour {
-        for str_addr in BOOTNODE_ADDRS {
-            self.add_bootnode(None, str_addr);
-        }
-        self.refresh(swarm);
-        Ok(())
-    }
-
-    pub fn add_bootnode(&mut self, peer_id: Option<PeerId>, addr_str: &'static str) {
-        let peer_id = peer_id.unwrap_or(PeerId::random());
-        let mut addrs = HashSet::new();
-        addrs.insert(addr_str.parse::<Multiaddr>().expect("invalid address"));
-        self.map.insert(peer_id, PeerInfo {
-            addrs,
-            last_dial: None,
-            last_seen: None,
-        });
-    }
-
     pub fn refresh<B>(&mut self, swarm: &mut Swarm<B>) where B: NetworkBehaviour {
         let now = Instant::now();
         // 清理没动静的节点
@@ -128,8 +63,8 @@ impl PeerSet {
         for (id, info) in self.map.iter_mut() {
             if id == &self.local_id { continue; }
             if info.last_dial.is_none() {
-                tracing::info!("OK LET'S START");
-                match dial::<B>(id, &info.addrs, swarm) {
+                tracing::info!(target: "network::dial", "start dial");
+                match Self::dial(id, swarm) {
                     Ok(()) => { info.last_dial = Some(Instant::now()) }
                     _ => { }
                 }
@@ -141,13 +76,51 @@ impl PeerSet {
             if let Some(seen) = info.last_seen {
                 if Self::is_in_backoff(now, seen, self.backoff) { continue; }
             }
-            tracing::info!("OK LET'S START");
-            match dial::<B>(id, &info.addrs, swarm) {
+            tracing::info!(target: "network::dial", "start dial");
+            match Self::dial(id, swarm) {
                 Ok(()) => { info.last_dial = Some(Instant::now()) }
                 _ => { }
             }
         }
-        tracing::info!(target: "network::peer-set", len=?self.map.len());
+        tracing::info!(target: "network::peer-set", map_len=?self.map.len());
+    }
+
+    pub fn dial<B>(peer_id: &PeerId, swarm: &mut Swarm<B>) -> Result<()> where B: NetworkBehaviour {
+        let peer_dial_opts = DialOpts::peer_id(*peer_id).condition(PeerCondition::Disconnected).build();
+        match swarm.dial(peer_dial_opts) {
+            Ok(_) => {
+                tracing::info!(target: "network::dial", %peer_id, "dial by peer id ok");
+                Ok(())
+            },
+            Err(err) => {
+                tracing::error!(target: "network::dial", %peer_id, ?err);
+                Err(PeerError::DialPeer)
+            }
+        }
+    }
+
+    pub fn init<B>(swarm: &mut Swarm<B>) -> Result<()> where B: NetworkBehaviour {
+        for addr_str in BOOTNODE_ADDRS {
+            let addr = addr_str.parse::<Multiaddr>().expect("invalid address");
+            let addr_dial_opts = DialOpts::unknown_peer_id().address(addr.clone()).build();
+            match swarm.dial(addr_dial_opts) {
+                Ok(_) => {
+                    tracing::info!(target: "network::dial", %addr, "dial by bootnode addr ok");
+                }
+                Err(err) => {
+                    tracing::error!(target: "network::dial", %addr, ?err, "dial by bootnode addr failed");
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn is_in_backoff(now: Instant, moment: Instant, backoff: Duration) -> bool {
+        now.saturating_duration_since(moment) < backoff
+    }
+
+    pub fn is_in_purge(now: Instant, moment: Instant, purge: Duration) -> bool {
+        now.saturating_duration_since(moment) < purge
     }
 
     pub fn on_peer_up(&mut self, peer_id: PeerId, addrs_opt: Option<Vec<Multiaddr>>) {
@@ -160,9 +133,7 @@ impl PeerSet {
         }
     }
 
-    pub fn on_peer_down(&mut self, peer_id: PeerId) {
-        // let ele = self.map.entry(peer_id).or_default();
-    }
+    pub fn on_peer_down(&mut self, peer_id: PeerId) { }
 
     pub fn on_found_peers(&mut self, peers: Vec<(PeerId, Multiaddr)>) {
         for (peer_id, addr) in peers {
@@ -170,13 +141,5 @@ impl PeerSet {
             ele.last_seen = Some(Instant::now());
             ele.addrs.insert(addr);
         }
-    }
-
-    pub fn is_in_backoff(now: Instant, moment: Instant, backoff: Duration) -> bool {
-        now.saturating_duration_since(moment) < backoff
-    }
-
-    pub fn is_in_purge(now: Instant, moment: Instant, purge: Duration) -> bool {
-        now.saturating_duration_since(moment) < purge
     }
 }
