@@ -24,11 +24,11 @@ impl From<ping::Event> for DiscoveryEvent {
     fn from(event: ping::Event) -> Self {
         match &event.result {
             Ok(rtt) => {
-                tracing::debug!(target:"net::ping", peer=%event.peer, ?rtt, "ping ok");
+                tracing::info!(target:"net::ping", peer=%event.peer, ?rtt, "ping ok");
                 DiscoveryEvent::PeerUp(event.peer, None)
             },
             Err(err) => {
-                tracing::warn!(target:"net::ping", peer=%event.peer, ?err, "ping failed");
+                tracing::info!(target:"net::ping", peer=%event.peer, ?err, "ping failed");
                 DiscoveryEvent::PeerDown(event.peer)
             }
         }
@@ -78,7 +78,7 @@ impl From<mdns::Event> for DiscoveryEvent {
             mdns::Event::Expired(peers) => {
                 tracing::debug!(target:"network::mdns", count=peers.len(), "mdns expired peers");
                 tracing::trace!(target:"network::mdns", ?peers, "mdns expired details");
-                DiscoveryEvent::FoundPeers(Vec::new())
+                DiscoveryEvent::Ignore
             }
         }
     }
@@ -89,7 +89,7 @@ impl DiscoveryBehaviour {
         let public = local_key.public();
 
         let ping = ping::Behaviour::new(
-            ping::Config::new().with_interval(Duration::from_secs(30))
+            ping::Config::new().with_interval(Duration::from_secs(20))
         );
 
         let identify = identify::Behaviour::new(

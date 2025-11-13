@@ -29,16 +29,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let mut peer_set = PeerSet::new(local_id);
     let _ = peer_set.init(&mut swarm);
+
     while let Some(event) = swarm.next().await{
         match event{
             SwarmEvent::NewListenAddr {address, ..} => {
                 tracing::info!(target:"net::listen", addr=%address, "listening");
             }
-            SwarmEvent::ConnectionEstablished { peer_id, .. } => {
-                tracing::info!(target:"net::conn", peer=%peer_id, "connection established");
+            SwarmEvent::ConnectionEstablished { peer_id,endpoint ,.. } => {
+                tracing::info!(target:"net::conn", peer=%peer_id, endpoint=?endpoint, "connection established");
             }
-            SwarmEvent::ConnectionClosed {peer_id, ..} => {
-                tracing::info!(target:"net::conn", peer=%peer_id, "connection closed");
+            SwarmEvent::ConnectionClosed {peer_id,endpoint, ..} => {
+                tracing::info!(target:"net::conn", peer=%peer_id, endpoint=?endpoint, "connection closed");
             }
             // DiscoveryEvent 事件处理
             SwarmEvent::Behaviour(DiscoveryEvent::PeerUp(peer_id, addrs_opt)) => {
