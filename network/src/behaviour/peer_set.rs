@@ -11,8 +11,6 @@ const BOOTNODE_ADDRS: &[&'static str] = &[
     "/ip4/100.64.250.18/tcp/33333",
     "/ip4/100.107.181.54/tcp/33333",
 ];
-// 指定 PEER_ID 的静态 BOOTNODES
-// const BOOTNODE_IDS: &[PeerId] = &[ ];
 
 #[derive(Debug)]
 pub struct PeerSet {
@@ -48,45 +46,45 @@ impl PeerSet {
         }
     }
 
-    pub fn refresh<B>(&mut self, swarm: &mut Swarm<B>) where B: NetworkBehaviour {
+    pub fn clear(&mut self) {
         let now = Instant::now();
         // 清理没动静的节点
         self.map.retain(|id, info| {
             if id == &self.local_id { return false }
             match (info.last_seen, info.last_dial) {
-                (Some(seen), _) => Self::is_in_purge(now, seen, self.purge),
-                (None, Some(dial)) => Self::is_in_purge(now, dial, self.purge),
+                (Some(seen), _) => Self::in_duration(now, seen, self.purge),
+                (None, Some(dial)) => Self::in_duration(now, dial, self.purge),
                 (None, None) => true
             }
         });
-        // 对所有节点
+    }
+
+    pub fn refresh<B>(&mut self, swarm: &mut Swarm<B>) where B: NetworkBehaviour {
+        self.clear();
+        let now = Instant::now();
         for (id, info) in self.map.iter_mut() {
             if id == &self.local_id { continue; }
-            if info.last_dial.is_none() {
-                tracing::info!(target: "network::dial", "start dial");
-                match Self::dial(id, swarm) {
-                    Ok(()) => { info.last_dial = Some(Instant::now()) }
-                    _ => { }
-                }
-                continue;
-            }
-            if let Some(dial) = info.last_dial {
-                if Self::is_in_backoff(now, dial, self.backoff) { continue; }
-            }
             if let Some(seen) = info.last_seen {
-                if Self::is_in_backoff(now, seen, self.backoff) { continue; }
+                if Self::in_duration(now, seen, self.backoff) { continue; }
+            }
+            match info.last_dial {
+                Some(dial) => {
+                    if Self::in_duration(now, dial, self.backoff) { continue }
+                }
+                None => { }
             }
             tracing::info!(target: "network::dial", "start dial");
-            match Self::dial(id, swarm) {
+            match Self::dial(id, &info.addrs, swarm) {
                 Ok(()) => { info.last_dial = Some(Instant::now()) }
                 _ => { }
             }
         }
-        tracing::info!(target: "network::peer-set", map_len=?self.map.len());
+        tracing::info!(target: "network::peer-set", map=?self.map, map_len=?self.map.len());
     }
 
-    pub fn dial<B>(peer_id: &PeerId, swarm: &mut Swarm<B>) -> Result<()> where B: NetworkBehaviour {
-        let peer_dial_opts = DialOpts::peer_id(*peer_id).condition(PeerCondition::Disconnected).build();
+    pub fn dial<B>(peer_id: &PeerId, addrs: &HashSet<Multiaddr>, swarm: &mut Swarm<B>) -> Result<()> where B: NetworkBehaviour {
+        let addrs = addrs.iter().map(|addr| addr.clone()).collect::<Vec<Multiaddr>>();
+        let peer_dial_opts = DialOpts::peer_id(*peer_id).addresses(addrs).condition(PeerCondition::Disconnected).build();
         match swarm.dial(peer_dial_opts) {
             Ok(_) => {
                 tracing::info!(target: "network::dial", %peer_id, "dial by peer id ok");
@@ -115,12 +113,17 @@ impl PeerSet {
         Ok(())
     }
 
-    pub fn is_in_backoff(now: Instant, moment: Instant, backoff: Duration) -> bool {
-        now.saturating_duration_since(moment) < backoff
+    pub fn in_duration(now: Instant, moment: Instant, duration: Duration) -> bool {
+        now.saturating_duration_since(moment) < duration
     }
 
-    pub fn is_in_purge(now: Instant, moment: Instant, purge: Duration) -> bool {
-        now.saturating_duration_since(moment) < purge
+    /// 排除本机回环地址 127.0.0.1 和 Docker专用地址 172.17.*.*
+    pub fn insert_addr(addrs: &mut HashSet<Multiaddr>, addr: Multiaddr) {
+        tracing::info!("{:?}", addr.to_vec());
+        let addr_vec = addr.to_vec();
+        if addr_vec[1] == 127 { return; }
+        if addr_vec[1] == 172 && addr_vec[2] == 17 { return; }
+        addrs.insert(addr);
     }
 
     pub fn on_peer_up(&mut self, peer_id: PeerId, addrs_opt: Option<Vec<Multiaddr>>) {
@@ -128,7 +131,7 @@ impl PeerSet {
         ele.last_seen = Some(Instant::now());
         if let Some(addrs) = addrs_opt {
             for addr in addrs {
-                ele.addrs.insert(addr);
+                Self::insert_addr(&mut ele.addrs, addr);
             }
         }
     }
@@ -139,7 +142,7 @@ impl PeerSet {
         for (peer_id, addr) in peers {
             let ele = self.map.entry(peer_id).or_default();
             ele.last_seen = Some(Instant::now());
-            ele.addrs.insert(addr);
+            Self::insert_addr(&mut ele.addrs, addr);
         }
     }
 }
