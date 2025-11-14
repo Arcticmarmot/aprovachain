@@ -117,12 +117,11 @@ impl PeerSet {
         now.saturating_duration_since(moment) < duration
     }
 
-    /// 排除本机回环地址 127.0.0.1 和 Docker专用地址 172.17.*.*
+    /// 排除 IPv4 本机回环地址 127.0.0.1 和 Docker专用地址 172.17.*.*
     pub fn insert_addr(addrs: &mut HashSet<Multiaddr>, addr: Multiaddr) {
-        tracing::info!("{:?}", addr.to_vec());
         let addr_vec = addr.to_vec();
-        if addr_vec[1] == 127 { return; }
-        if addr_vec[1] == 172 && addr_vec[2] == 17 { return; }
+        if addr_vec.len() >= 5 && addr_vec[0] == 4 && addr_vec[1] == 127 { return; }
+        if addr_vec.len() >= 5 && addr_vec[0] == 4 && addr_vec[1] == 172 && addr_vec[2] == 17 { return; }
         addrs.insert(addr);
     }
 
