@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter, Write};
 use bech32::Hrp;
 use crate::error::Result;
 
@@ -5,6 +6,12 @@ pub static CTR_PREFIX: &'static str = "ctr";
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 pub struct ChainId(pub u64);
+
+impl Display for ChainId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub struct ChainSpec {

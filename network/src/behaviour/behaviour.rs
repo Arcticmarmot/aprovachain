@@ -3,12 +3,15 @@ use libp2p::{identify, ping, mdns, Multiaddr, PeerId, identity, kad, gossipsub, 
 use libp2p::gossipsub::{MessageAuthenticity};
 use libp2p::kad::store::MemoryStore;
 use libp2p::swarm::{NetworkBehaviour};
+use tx::tx_envelope::{TxEnvelope, TxEnvelopeWire};
+use crate::behaviour::gossip::GossipTopic;
+use crate::error::Result;
 
 const APROVA_KAD_PROTO: &'static str = "/aprova/kad/1.0.0";
 
 #[derive(NetworkBehaviour)]
-#[behaviour(to_swarm = "DiscoveryEvent")]
-pub struct DiscoveryBehaviour {
+#[behaviour(to_swarm = "PeerEvent")]
+pub struct PeerBehaviour {
     pub ping: ping::Behaviour,
     pub identify: identify::Behaviour,
     pub mdns: mdns::tokio::Behaviour,
@@ -17,7 +20,7 @@ pub struct DiscoveryBehaviour {
 }
 
 #[derive(Debug)]
-pub enum DiscoveryEvent {
+pub enum PeerEvent {
     PeerUp(PeerId, Option<Vec<Multiaddr>>),
     PeerDown(PeerId),
     FoundPeers(Vec<(PeerId, Multiaddr)>),
@@ -26,22 +29,22 @@ pub enum DiscoveryEvent {
     Ignore
 }
 
-impl From<ping::Event> for DiscoveryEvent {
+impl From<ping::Event> for PeerEvent {
     fn from(event: ping::Event) -> Self {
         match &event.result {
             Ok(rtt) => {
                 tracing::info!(target:"net::ping", peer=%event.peer, ?rtt, "ping ok");
-                DiscoveryEvent::PeerUp(event.peer, None)
+                PeerEvent::PeerUp(event.peer, None)
             },
             Err(err) => {
                 tracing::info!(target:"net::ping", peer=%event.peer, ?err, "ping failed");
-                DiscoveryEvent::PeerDown(event.peer)
+                PeerEvent::PeerDown(event.peer)
             }
         }
     }
 }
 
-impl From<identify::Event> for DiscoveryEvent {
+impl From<identify::Event> for PeerEvent {
     fn from(event: identify::Event) -> Self {
         match event {
             identify::Event::Received {peer_id, info, ..} => {
@@ -49,9 +52,8 @@ impl From<identify::Event> for DiscoveryEvent {
                 tracing::debug!(target:"net::identify",
                     %peer_id, agent=%info.agent_version, listen_addrs=?info.listen_addrs, protocols=?info.protocols, observed_addr=%info.observed_addr,
                     "identify details");
-                // 传递对端自报的地址
                 let addrs = info.listen_addrs;
-                DiscoveryEvent::PeerUp(peer_id, Some(addrs))
+                PeerEvent::PeerUp(peer_id, Some(addrs)) // 传递对端自报的地址
             },
             identify::Event::Pushed {peer_id, info, ..} => {
                 tracing::info!(target:"net::identify", %peer_id, "identify received");
@@ -59,88 +61,87 @@ impl From<identify::Event> for DiscoveryEvent {
                     %peer_id, agent=%info.agent_version, listen_addrs=?info.listen_addrs, protocols=?info.protocols, observed_addr=%info.observed_addr,
                     "identify details");
                 let addrs = info.listen_addrs;
-                // 传递对端自报的地址
-                DiscoveryEvent::PeerUp(peer_id, Some(addrs))
+                PeerEvent::PeerUp(peer_id, Some(addrs)) // 传递对端自报的地址
             },
             identify::Event::Sent { .. } => {
-                DiscoveryEvent::Ignore
+                PeerEvent::Ignore
             },
             identify::Event::Error {peer_id, error, ..} => {
                 tracing::warn!(target:"net::identify", %peer_id, ?error, "identify error");
-                DiscoveryEvent::PeerDown(peer_id)
+                PeerEvent::PeerDown(peer_id)
             },
         }
     }
 }
 
-impl From<mdns::Event> for DiscoveryEvent {
+impl From<mdns::Event> for PeerEvent {
     fn from(event: mdns::Event) -> Self {
         match event {
             mdns::Event::Discovered(peers) => {
                 tracing::info!(target:"network::mdns", count=peers.len(), "mdns discovered peers");
                 tracing::debug!(target:"network::mdns", ?peers, "mdns discovered details");
-                DiscoveryEvent::FoundPeers(peers.into_iter().collect())
+                PeerEvent::FoundPeers(peers.into_iter().collect())
             },
             mdns::Event::Expired(peers) => {
                 tracing::info!(target:"network::mdns", count=peers.len(), "mdns expired peers");
                 tracing::trace!(target:"network::mdns", ?peers, "mdns expired details");
-                DiscoveryEvent::Ignore
+                PeerEvent::Ignore
             }
         }
     }
 }
 
-impl From<kad::Event> for DiscoveryEvent {
+impl From<kad::Event> for PeerEvent {
     fn from(event: kad::Event) -> Self {
         use kad::Event::*;
         match event {
             RoutablePeer { peer, address } => {
                 tracing::info!(target:"network::kad", peer=%peer, addr=%address, "kad routable peer");
-                DiscoveryEvent::FoundPeers(vec![(peer, address)])
+                PeerEvent::FoundPeers(vec![(peer, address)])
             },
             PendingRoutablePeer { peer, address } => {
                 tracing::info!(target:"network::kad", peer=%peer, addr=%address, "kad pending routable peer");
-                DiscoveryEvent::FoundPeers(vec![(peer, address)])
+                PeerEvent::FoundPeers(vec![(peer, address)])
             },
             UnroutablePeer { peer } => {
                 tracing::info!(target:"network::kad", peer=%peer, "kad unroutable peer");
-                DiscoveryEvent::PeerDown(peer)
+                PeerEvent::PeerDown(peer)
             },
             InboundRequest { request } => {
-                tracing::info!(target:"network::kad", ?request, "kad request");
-                DiscoveryEvent::Ignore
+                tracing::debug!(target:"network::kad", ?request, "kad request");
+                PeerEvent::Ignore
             },
             OutboundQueryProgressed {id, result, stats, step} => {
-                tracing::info!(target: "network::kad", %id, ?result, ?stats, ?step);
-                DiscoveryEvent::Ignore
+                tracing::debug!(target: "network::kad", %id, ?result, ?stats, ?step);
+                PeerEvent::Ignore
             }
             ModeChanged { new_mode } => {
-                tracing::info!(target:"network::kad", %new_mode, "kad mode changed");
-                DiscoveryEvent::Ignore
+                tracing::debug!(target:"network::kad", %new_mode, "kad mode changed");
+                PeerEvent::Ignore
             }
             RoutingUpdated {peer, is_new_peer, addresses, .. } => {
-                tracing::info!(target:"network::kad", %peer, %is_new_peer, ?addresses, "kad mode changed");
-                DiscoveryEvent::Ignore
+                tracing::debug!(target:"network::kad", %peer, %is_new_peer, ?addresses, "kad routing update");
+                PeerEvent::Ignore
             }
         }
 
     }
 }
 
-impl From<gossipsub::Event> for DiscoveryEvent {
+impl From<gossipsub::Event> for PeerEvent {
     fn from(event: gossipsub::Event) -> Self {
         use gossipsub::Event::*;
         match event {
             Message { message, message_id, propagation_source } => {
                 tracing::info!(target:"network::gossip", message=?message, message_id=%message_id, "message comes");
-                DiscoveryEvent::TxReceived
+                PeerEvent::TxReceived
             }
-            _ => { DiscoveryEvent::Ignore }
+            _ => { PeerEvent::Ignore }
         }
     }
 }
 
-impl DiscoveryBehaviour {
+impl PeerBehaviour {
     pub fn new(local_key: &identity::Keypair) -> Self {
         let public = local_key.public();
         let local_peer_id = PeerId::from(public.clone());
@@ -167,8 +168,8 @@ impl DiscoveryBehaviour {
             gossipsub_cfg
         ).expect("gossipsub build");
 
-        let _ = gossipsub.subscribe(&gossipsub::IdentTopic::new("/aprova/tx"));
-        let _ = gossipsub.subscribe(&gossipsub::IdentTopic::new("/aprova/block"));
+        gossipsub.subscribe(&GossipTopic::Tx.ident()).expect("subscribe tx");
+        gossipsub.subscribe(&GossipTopic::Block.ident()).expect("subscribe block");
 
         Self {
             ping,
@@ -179,9 +180,13 @@ impl DiscoveryBehaviour {
         }
     }
 
-    pub fn publish_tx(&mut self) {
-        let topic = gossipsub::IdentTopic::new("/aprova/tx");
-        let _ = self.gossipsub.publish(topic, b"hello");
+    pub fn publish_tx(&mut self, tx_bytes: Vec<u8>) -> Result<()> {
+        let topic = GossipTopic::Tx.ident();
+        let tx_envelope_wire: TxEnvelopeWire = TxEnvelopeWire::try_decode_bcs(tx_bytes.as_ref())?;
+        let tx_envelope = TxEnvelope::try_from(tx_envelope_wire)?;
+        tracing::info!("{tx_envelope:?}");
+        let _ = self.gossipsub.publish(topic, tx_bytes);
+        Ok(())
     }
 
     pub fn kad_mut(&mut self) -> &mut kad::Behaviour<MemoryStore> {

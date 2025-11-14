@@ -28,7 +28,7 @@ methods = { path = "methods" }
 node = { path = "node" }
 contract = { path = "contract" }
 chain = { path = "chain" }
-network = { workspace = true }
+network = { path = "network" }
 
 directories = { version = "6" }
 tracing = { version="0.1" }

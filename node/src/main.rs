@@ -1,12 +1,10 @@
-use axum::{
-    routing::post,
-    Router
-};
+use axum::{routing::post, Router};
 use anyhow::Result;
 use std::net::SocketAddr;
 use clap::{arg, Parser};
-use tokio::signal;
+use tokio::{signal, spawn};
 use db::runtime::{init_db, close_db, DBFileMode};
+use network::swarm::{init_p2p, start_p2p};
 use node::bootstrap::{init_env, init_logging};
 use node::handler::submit_tx;
 
@@ -33,7 +31,12 @@ async fn main() -> Result<()> {
     let db_file_mode = args.db_file_mode;
     let _ = init_db(db_file_mode)?;
     tracing::info!("Node init success...");
-    
+
+    let (mut peer_set, mut swarm) = init_p2p()?;
+    tracing::info!("p2p init success...");
+    spawn(async move {
+        let _ = start_p2p(&mut peer_set, &mut swarm).await;
+    });
     let _ = init_server(db_file_mode).await?;
     Ok(())
 }

@@ -3286,7 +3286,6 @@ dependencies = [
  "futures",
  "libp2p",
  "primitives",
- "rand 0.9.2",
  "serde",
  "serde_json",
  "spec",
@@ -3295,6 +3294,7 @@ dependencies = [
  "tracing",
  "tracing-appender",
  "tracing-subscriber 0.3.20",
+ "tx",
 ]
 
 [[package]]
@@ -3325,6 +3325,7 @@ dependencies = [
  "contract",
  "db",
  "dotenvy",
+ "network",
  "primitives",
  "risc0-zkvm",
  "serde",

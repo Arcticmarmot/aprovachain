@@ -1,4 +1,5 @@
 use libp2p::gossipsub::IdentTopic;
+use spec::chain::ChainId;
 
 pub enum GossipTopic {
     Tx,
@@ -6,14 +7,14 @@ pub enum GossipTopic {
 }
 
 impl GossipTopic {
-    fn name(&self) -> String {
+    pub fn name(&self) -> String {
         match self {
             GossipTopic::Tx => "/aprova/tx".to_string(),
-            GossipTopic::Block => "/aprova/block".to_string()
+            GossipTopic::Block => "/aprova/block".to_string(),
         }
     }
 
-    fn ident(&self) -> IdentTopic {
+    pub fn ident(&self) -> IdentTopic {
         IdentTopic::new(self.name())
     }
 }
