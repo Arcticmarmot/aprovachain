@@ -50,6 +50,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 swarm.behaviour_mut().kad_peer_up(&peer_id, addrs_opt.clone());
                 peer_set.on_peer_up(peer_id, addrs_opt);
                 peer_set.refresh(&mut swarm);
+                swarm.behaviour_mut().publish_tx();
+
             },
             SwarmEvent::Behaviour(DiscoveryEvent::PeerDown(peer_id)) => {
                 tracing::info!(target:"net::disc", peer=%peer_id, "peer down");
@@ -61,6 +63,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 swarm.behaviour_mut().kad_found_peers(&peers);
                 peer_set.on_found_peers(peers);
                 peer_set.refresh(&mut swarm);
+
+                swarm.behaviour_mut().publish_tx();
+            },
+            SwarmEvent::Behaviour(DiscoveryEvent::TxReceived) => {
+                tracing::info!(target:"net::gossip", "tx received");
             },
             _ => {}
         }

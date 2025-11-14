@@ -1,5 +1,6 @@
 use std::time::Duration;
-use libp2p::{identify, ping, mdns, Multiaddr, PeerId, identity, kad, StreamProtocol};
+use libp2p::{identify, ping, mdns, Multiaddr, PeerId, identity, kad, gossipsub, StreamProtocol};
+use libp2p::gossipsub::{MessageAuthenticity};
 use libp2p::kad::store::MemoryStore;
 use libp2p::swarm::{NetworkBehaviour};
 
@@ -11,7 +12,8 @@ pub struct DiscoveryBehaviour {
     pub ping: ping::Behaviour,
     pub identify: identify::Behaviour,
     pub mdns: mdns::tokio::Behaviour,
-    pub kademlia: kad::Behaviour<MemoryStore>
+    pub kademlia: kad::Behaviour<MemoryStore>,
+    pub gossipsub: gossipsub::Behaviour,
 }
 
 #[derive(Debug)]
@@ -19,6 +21,8 @@ pub enum DiscoveryEvent {
     PeerUp(PeerId, Option<Vec<Multiaddr>>),
     PeerDown(PeerId),
     FoundPeers(Vec<(PeerId, Multiaddr)>),
+    TxReceived,
+    BlockReceived,
     Ignore
 }
 
@@ -123,6 +127,19 @@ impl From<kad::Event> for DiscoveryEvent {
     }
 }
 
+impl From<gossipsub::Event> for DiscoveryEvent {
+    fn from(event: gossipsub::Event) -> Self {
+        use gossipsub::Event::*;
+        match event {
+            Message { message, message_id, propagation_source } => {
+                tracing::info!(target:"network::gossip", message=?message, message_id=%message_id, "message comes");
+                DiscoveryEvent::TxReceived
+            }
+            _ => { DiscoveryEvent::Ignore }
+        }
+    }
+}
+
 impl DiscoveryBehaviour {
     pub fn new(local_key: &identity::Keypair) -> Self {
         let public = local_key.public();
@@ -144,12 +161,27 @@ impl DiscoveryBehaviour {
         let mut kademlia = kad::Behaviour::with_config(local_peer_id, store, kad_cfg);
         kademlia.set_mode(Some(kad::Mode::Server));
 
+        let gossipsub_cfg = gossipsub::Config::default();
+        let mut gossipsub = gossipsub::Behaviour::new(
+            MessageAuthenticity::Signed(local_key.clone()),
+            gossipsub_cfg
+        ).expect("gossipsub build");
+
+        let _ = gossipsub.subscribe(&gossipsub::IdentTopic::new("/aprova/tx"));
+        let _ = gossipsub.subscribe(&gossipsub::IdentTopic::new("/aprova/block"));
+
         Self {
             ping,
             identify,
             mdns,
-            kademlia
+            kademlia,
+            gossipsub
         }
+    }
+
+    pub fn publish_tx(&mut self) {
+        let topic = gossipsub::IdentTopic::new("/aprova/tx");
+        let _ = self.gossipsub.publish(topic, b"hello");
     }
 
     pub fn kad_mut(&mut self) -> &mut kad::Behaviour<MemoryStore> {
