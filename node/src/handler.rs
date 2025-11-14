@@ -1,5 +1,6 @@
 use tx::tx_envelope::{TxEnvelopeWire, TxEnvelope};
 use axum::body::{Bytes};
+use axum::extract::State;
 use axum::Json;
 use risc0_zkvm::{default_prover, Digest, ExecutorEnv, Prover, Receipt};
 use db::controller::{kv_get, kv_put};
@@ -9,6 +10,7 @@ use primitives::hash::{sha256, Hash32};
 use serde::{Deserialize, Serialize};
 use account::address::ChainAddrBytes;
 use contract::contract::{Contract, ContractWire};
+use network::handle::P2pHandle;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -28,7 +30,7 @@ pub enum SubmitTxResponse {
 }
 
 /// 交易提交处理函数
-pub async fn submit_tx(tx_bytes: Bytes) -> ApiResult<SubmitTxResponse> {
+pub async fn submit_tx(State(p2p_handle) : State<P2pHandle>, tx_bytes: Bytes) -> ApiResult<SubmitTxResponse> {
     // 从字节数组构造 TxEnvelope
     let tx_envelope_wire: TxEnvelopeWire = TxEnvelopeWire::try_decode_bcs(tx_bytes.as_ref())?;
     let tx_envelope = TxEnvelope::try_from(tx_envelope_wire)?;
@@ -36,6 +38,7 @@ pub async fn submit_tx(tx_bytes: Bytes) -> ApiResult<SubmitTxResponse> {
     // 验证交易签名是否有效
     // TODO: 重放交易攻击，拒绝重复的 nonce
     let _ = verify_tx_sig(&tx_envelope)?;
+    p2p_handle.publish_tx(tx_bytes.as_ref().to_vec());
     // 执行交易
     let intent = handle_intent(&tx_envelope.intent)?;
     Ok(Json(intent))

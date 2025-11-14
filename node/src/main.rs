@@ -4,6 +4,7 @@ use std::net::SocketAddr;
 use clap::{arg, Parser};
 use tokio::{signal, spawn};
 use db::runtime::{init_db, close_db, DBFileMode};
+use network::handle::P2pHandle;
 use network::swarm::{init_p2p, start_p2p};
 use node::bootstrap::{init_env, init_logging};
 use node::handler::submit_tx;
@@ -32,17 +33,19 @@ async fn main() -> Result<()> {
     let _ = init_db(db_file_mode)?;
     tracing::info!("Node init success...");
 
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     let (mut peer_set, mut swarm) = init_p2p()?;
     tracing::info!("p2p init success...");
     spawn(async move {
-        let _ = start_p2p(&mut peer_set, &mut swarm).await;
+        let _ = start_p2p(&mut peer_set, &mut swarm, &mut rx).await;
     });
-    let _ = init_server(db_file_mode).await?;
+    let p2p_handle = P2pHandle::new(tx.clone());
+    let _ = init_server(db_file_mode, p2p_handle).await?;
     Ok(())
 }
 
-async fn init_server(db_file_mode: DBFileMode) -> Result<()> {
-    let node = Router::new().route("/api/submit-tx", post(submit_tx));
+async fn init_server(db_file_mode: DBFileMode, p2p_handle: P2pHandle) -> Result<()> {
+    let node = Router::new().route("/api/submit-tx", post(submit_tx)).with_state(p2p_handle);
     let addr: SocketAddr = "0.0.0.0:8888".parse()?;
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8888").await?;
     tracing::info!("node listening on http(s)://{addr} ...");
