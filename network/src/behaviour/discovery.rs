@@ -1,14 +1,17 @@
 use std::time::Duration;
-use libp2p::{identify, ping, mdns, Multiaddr, PeerId, identity};
+use libp2p::{identify, ping, mdns, Multiaddr, PeerId, identity, kad, StreamProtocol};
+use libp2p::kad::store::MemoryStore;
 use libp2p::swarm::{NetworkBehaviour};
+
+const APROVA_KAD_PROTO: &'static str = "/aprova/kad/1.0.0";
 
 #[derive(NetworkBehaviour)]
 #[behaviour(to_swarm = "DiscoveryEvent")]
 pub struct DiscoveryBehaviour {
-    ping: ping::Behaviour,
-    identify: identify::Behaviour,
-    mdns: mdns::tokio::Behaviour,
-    // kademlia: kad::Behaviour<kad::store::MemoryStore>
+    pub ping: ping::Behaviour,
+    pub identify: identify::Behaviour,
+    pub mdns: mdns::tokio::Behaviour,
+    pub kademlia: kad::Behaviour<MemoryStore>
 }
 
 #[derive(Debug)]
@@ -75,7 +78,7 @@ impl From<mdns::Event> for DiscoveryEvent {
                 DiscoveryEvent::FoundPeers(peers.into_iter().collect())
             },
             mdns::Event::Expired(peers) => {
-                tracing::debug!(target:"network::mdns", count=peers.len(), "mdns expired peers");
+                tracing::info!(target:"network::mdns", count=peers.len(), "mdns expired peers");
                 tracing::trace!(target:"network::mdns", ?peers, "mdns expired details");
                 DiscoveryEvent::Ignore
             }
@@ -83,26 +86,88 @@ impl From<mdns::Event> for DiscoveryEvent {
     }
 }
 
+impl From<kad::Event> for DiscoveryEvent {
+    fn from(event: kad::Event) -> Self {
+        use kad::Event::*;
+        match event {
+            RoutablePeer { peer, address } => {
+                tracing::info!(target:"network::kad", peer=%peer, addr=%address, "kad routable peer");
+                DiscoveryEvent::FoundPeers(vec![(peer, address)])
+            },
+            PendingRoutablePeer { peer, address } => {
+                tracing::info!(target:"network::kad", peer=%peer, addr=%address, "kad pending routable peer");
+                DiscoveryEvent::FoundPeers(vec![(peer, address)])
+            },
+            UnroutablePeer { peer } => {
+                tracing::info!(target:"network::kad", peer=%peer, "kad unroutable peer");
+                DiscoveryEvent::PeerDown(peer)
+            },
+            InboundRequest { request } => {
+                tracing::info!(target:"network::kad", ?request, "kad request");
+                DiscoveryEvent::Ignore
+            },
+            OutboundQueryProgressed {id, result, stats, step} => {
+                tracing::info!(target: "network::kad", %id, ?result, ?stats, ?step);
+                DiscoveryEvent::Ignore
+            }
+            ModeChanged { new_mode } => {
+                tracing::info!(target:"network::kad", %new_mode, "kad mode changed");
+                DiscoveryEvent::Ignore
+            }
+            RoutingUpdated {peer, is_new_peer, addresses, .. } => {
+                tracing::info!(target:"network::kad", %peer, %is_new_peer, ?addresses, "kad mode changed");
+                DiscoveryEvent::Ignore
+            }
+        }
+
+    }
+}
+
 impl DiscoveryBehaviour {
     pub fn new(local_key: &identity::Keypair) -> Self {
         let public = local_key.public();
+        let local_peer_id = PeerId::from(public.clone());
 
         let ping = ping::Behaviour::new(
             ping::Config::new().with_interval(Duration::from_secs(10))
         );
-
-        let identify = identify::Behaviour::new(
-            identify::Config::new("/aprova/v0.1".into(), public.clone())
-        );
+        let identify_cfg = identify::Config::new("/aprova/v0.1".into(), public.clone());
+        let identify = identify::Behaviour::new(identify_cfg);
 
         let mdns_cfg = mdns::Config::default();
         let mdns = mdns::tokio::Behaviour::new(
-            mdns_cfg, PeerId::from(public))
+            mdns_cfg, PeerId::from(&public.clone()))
             .expect("mdns create failed");
+
+        let store = MemoryStore::new(local_peer_id);
+        let kad_cfg = kad::Config::new(StreamProtocol::new(APROVA_KAD_PROTO));
+        let mut kademlia = kad::Behaviour::with_config(local_peer_id, store, kad_cfg);
+        kademlia.set_mode(Some(kad::Mode::Server));
+
         Self {
             ping,
             identify,
-            mdns
+            mdns,
+            kademlia
+        }
+    }
+
+    pub fn kad_mut(&mut self) -> &mut kad::Behaviour<MemoryStore> {
+        &mut self.kademlia
+    }
+
+    pub fn kad_peer_up(&mut self, peer_id: &PeerId, addrs: Option<Vec<Multiaddr>>) {
+        if addrs.is_none() { return; }
+        for addr in addrs.unwrap() {
+            tracing::info!(target:"network::kad", %peer_id, ?addr, "kad add addr");
+            self.kad_mut().add_address(peer_id, addr);
+        }
+    }
+
+    pub fn kad_found_peers(&mut self, peers: &Vec<(PeerId, Multiaddr)>) {
+        for (peer_id, addr) in peers {
+            tracing::info!(target:"network::kad", %peer_id, ?addr, "kad add addr");
+            self.kad_mut().add_address(peer_id, addr.clone());
         }
     }
 }

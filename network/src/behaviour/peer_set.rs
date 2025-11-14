@@ -79,7 +79,7 @@ impl PeerSet {
                 _ => { }
             }
         }
-        tracing::info!(target: "network::peer-set", map=?self.map, map_len=?self.map.len());
+        tracing::info!(target: "network::peer-set", map_len=?self.map.len());
     }
 
     pub fn dial<B>(peer_id: &PeerId, addrs: &HashSet<Multiaddr>, swarm: &mut Swarm<B>) -> Result<()> where B: NetworkBehaviour {

@@ -1,7 +1,9 @@
 use std::error::Error;
+use std::num::{NonZero, NonZeroUsize};
 use std::time::Duration;
 use futures::StreamExt;
-use libp2p::{noise, tcp, yamux, PeerId, identity};
+use libp2p::{noise, tcp, yamux, PeerId, identity, kad};
+use libp2p::kad::store::MemoryStore;
 use libp2p::swarm::{SwarmEvent};
 use network::bootstrap::{init_env, init_logging};
 use network::behaviour::discovery::{DiscoveryBehaviour, DiscoveryEvent};
@@ -27,6 +29,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     swarm.listen_on("/ip4/0.0.0.0/tcp/33333".parse()?)?;
 
+    // 创建 PeerSet 记录在线节点
     let mut peer_set = PeerSet::new(local_id);
     let _ = PeerSet::init(&mut swarm);
 
@@ -44,6 +47,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             // DiscoveryEvent 事件处理
             SwarmEvent::Behaviour(DiscoveryEvent::PeerUp(peer_id, addrs_opt)) => {
                 tracing::info!(target:"net::disc", peer=%peer_id, addrs=?addrs_opt, "peer up");
+                swarm.behaviour_mut().kad_peer_up(&peer_id, addrs_opt.clone());
                 peer_set.on_peer_up(peer_id, addrs_opt);
                 peer_set.refresh(&mut swarm);
             },
@@ -54,6 +58,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             },
             SwarmEvent::Behaviour(DiscoveryEvent::FoundPeers(peers)) => {
                 tracing::info!(target:"net::disc", known_peers=peers.len(), "mdns discovered candidates");
+                swarm.behaviour_mut().kad_found_peers(&peers);
                 peer_set.on_found_peers(peers);
                 peer_set.refresh(&mut swarm);
             },
