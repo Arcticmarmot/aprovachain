@@ -6,7 +6,8 @@ use anyhow::Result;
 use crate::behaviour::behaviour::{PeerBehaviour, PeerEvent};
 use crate::behaviour::peer_set::PeerSet;
 use tokio::sync::mpsc;
-use crate::cmd::NetworkCmd;
+use tokio::sync::mpsc::UnboundedReceiver;
+use crate::handle::{P2pCmd};
 
 pub fn init_p2p() -> Result<(PeerSet, Swarm<PeerBehaviour>)> {
     let local_key = identity::Keypair::generate_ed25519();
@@ -28,14 +29,22 @@ pub fn init_p2p() -> Result<(PeerSet, Swarm<PeerBehaviour>)> {
     Ok((peer_set, swarm))
 }
 
-pub async fn start_p2p( peer_set: &mut PeerSet,  swarm: &mut Swarm<PeerBehaviour>, cmd_rx: &mut mpsc::UnboundedReceiver<NetworkCmd>) {
+pub async fn start_p2p(
+    mut peer_set: PeerSet,  
+    mut swarm: Swarm<PeerBehaviour>,
+    mut cmd_receiver: UnboundedReceiver<P2pCmd>
+) {
+    let swarm = &mut swarm;
     let _ = PeerSet::init(swarm);
     loop {
         tokio::select! {
-            Some(cmd) = cmd_rx.recv() => {
+            Some(cmd) = cmd_receiver.recv() => {
                 match cmd {
-                    NetworkCmd::PublishTx(tx_bytes) => {
+                    P2pCmd::PublishTx(tx_bytes) => {
                         let _ = swarm.behaviour_mut().publish_tx(tx_bytes);
+                    }
+                    P2pCmd::PublishBlock(block_bytes) => {
+                        let _ = swarm.behaviour_mut().publish_block(block_bytes);
                     }
                 }
             },

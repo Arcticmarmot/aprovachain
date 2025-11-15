@@ -189,6 +189,13 @@ impl PeerBehaviour {
         Ok(())
     }
 
+    pub fn publish_block(&mut self, block_bytes: Vec<u8>) -> Result<()> {
+        let topic = GossipTopic::Block.ident();
+        // TODO: 验证 block_bytes
+        let _ = self.gossipsub.publish(topic, block_bytes);
+        Ok(())
+    }
+
     pub fn kad_mut(&mut self) -> &mut kad::Behaviour<MemoryStore> {
         &mut self.kademlia
     }
