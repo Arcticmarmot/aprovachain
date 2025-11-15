@@ -32,7 +32,7 @@ async fn main() -> Result<()> {
     // 初始化数据库
     let db_file_mode = args.db_file_mode;
     let _ = init_db(db_file_mode)?;
-    tracing::info!("Node init success...");
+    tracing::info!("rocksdb({db_file_mode:?}) init success...");
 
     let (cmd_sender, cmd_receiver) =
         mpsc::unbounded_channel::<P2pCmd>();

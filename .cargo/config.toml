@@ -1,0 +1,4 @@
+[env]
+ROCKSDB_LIB_DIR = "/home/eaglet/rocksdb/lib"
+ROCKSDB_INCLUDE_DIR = "/home/eaglet/rocksdb/include"
+LD_LIBRARY_PATH = "/home/eaglet/rocksdb/lib"

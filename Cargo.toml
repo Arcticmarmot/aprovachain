@@ -54,4 +54,3 @@ axum = { version = "0.8" }
 once_cell = { version = "1" }
 risc0-zkvm = { version = "3" }
 risc0-build = { version = "3" }
-

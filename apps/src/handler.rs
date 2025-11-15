@@ -117,11 +117,6 @@ fn generate_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
 }
 
 fn generate_deploy_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
-    if let Some(json) = &args.deploy_json {
-        let payload_bytes = fs::read(json)?;
-        let payload = serde_json::from_slice(&payload_bytes)?;
-        return Ok(payload)
-    }
     if let Some(elf_path) = &args.deploy_elf {
         let elf_bytes = fs::read(elf_path)?;
         let image_id = risc0_zkvm::compute_image_id(&elf_bytes)?;
@@ -133,6 +128,11 @@ fn generate_deploy_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
             elf: elf_bytes,
             elf_hash
         };
+        return Ok(payload)
+    }
+    if let Some(json) = &args.deploy_json {
+        let payload_bytes = fs::read(json)?;
+        let payload = serde_json::from_slice(&payload_bytes)?;
         return Ok(payload)
     }
     bail!("deploy need at least one input")

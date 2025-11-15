@@ -1,5 +1,6 @@
 use thiserror::Error;
 use tx::error::TxError;
+use crate::handle::P2pCmd;
 
 #[derive(Debug, Error)]
 pub enum PeerError {
@@ -9,6 +10,8 @@ pub enum PeerError {
     DialPeer,
     #[error("dial peer failed")]
     SwarmDial(#[from] libp2p::swarm::DialError),
+    #[error("send cmd failed")]
+    SendCmd(#[from] tokio::sync::mpsc::error::SendError<P2pCmd>)
 }
 
 pub type Result<T> = std::result::Result<T, PeerError>;

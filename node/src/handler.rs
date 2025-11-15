@@ -16,6 +16,7 @@ use network::handle::P2pHandle;
 pub struct AppState {
     pub p2p_handle: P2pHandle
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SubmitTxResponse {
