@@ -11,6 +11,8 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." &>/dev/null && pwd)"
 # 3. default prefix dir
 PREFIX="${ROOT_DIR}/vendor/rocksdb-${ROCKSDB_VERSION}-${ARCH}"
+# 4. ld.so.conf.d 里要写的配置文件
+CONF_FILE="/etc/ld.so.conf.d/rocksdb-${ROCKSDB_VERSION}-${ARCH}.conf"
 
 echo "=== librocksdb install ==="
 echo "version:   ${ROCKSDB_VERSION}"
@@ -38,6 +40,14 @@ cp -a librocksdb.so* "${PREFIX}/lib/"
 
 cp -a include/rocksdb "${PREFIX}/include/rocksdb"
 
+echo "4) create ld dir: ${PREFIX}"
+echo "${PREFIX}/lib" | sudo tee "${CONF_FILE}" >/dev/null
+sudo ldconfig
+
+
 echo "done."
 echo "ROCKSDB_LIB_DIR=${PREFIX}/lib"
 echo "ROCKSDB_INCLUDE_DIR=${PREFIX}/include"
+
+echo "RocksDB installed to: ${PREFIX}"
+echo "lib dir registered in: ${CONF_FILE}"
