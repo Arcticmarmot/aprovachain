@@ -7,9 +7,9 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 # 2. 项目根目录 = scripts 的上一层目录
 ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." &>/dev/null && pwd)"
 
-export ROCKSDB_LIB_DIR="$HOME/rocksdb/lib"
-export ROCKSDB_INCLUDE_DIR="$HOME/rocksdb/include"
-export LD_LIBRARY_PATH="$HOME/rocksdb/lib:${LD_LIBRARY_PATH:-}"
+export ROCKSDB_LIB_DIR="$ROOT_DIR/vendor/rocksdb-v10.4.2-x86_64/lib"
+export ROCKSDB_INCLUDE_DIR="$ROOT_DIR/vendor/rocksdb-v10.4.2-x86_64/include"
+export LD_LIBRARY_PATH="$ROOT_DIR/vendor/rocksdb-v10.4.2-x86_64/lib"
 
 cargo run -p node "$@"
 

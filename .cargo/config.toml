@@ -1,4 +1,4 @@
 [env]
-ROCKSDB_LIB_DIR = "/home/eaglet/rocksdb/lib"
-ROCKSDB_INCLUDE_DIR = "/home/eaglet/rocksdb/include"
-LD_LIBRARY_PATH = "/home/eaglet/rocksdb/lib"
+ROCKSDB_LIB_DIR = "/home/woolf/aprova/aprova/vendor/rocksdb-v10.4.2-x86_64/lib"
+ROCKSDB_INCLUDE_DIR = "/home/woolf/aprova/aprova/vendor/rocksdb-v10.4.2-x86_64/include"
+LD_LIBRARY_PATH = "/home/woolf/aprova/aprova/vendor/rocksdb-v10.4.2-x86_64/lib"
