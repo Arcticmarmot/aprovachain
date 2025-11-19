@@ -5,6 +5,10 @@ ROCKSDB_VERSION="${ROCKSDB_VERSION:-v10.4.2}"
 
 ARCH="$(uname -m)"
 
+# 1. found script dir
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+# 2. project root dir
+ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." &>/dev/null && pwd)"
 # 3. default prefix dir
 PREFIX="${ROOT_DIR}/vendor/rocksdb-${ROCKSDB_VERSION}-${ARCH}"
 # 4. ld.so.conf.d 里要写的配置文件
