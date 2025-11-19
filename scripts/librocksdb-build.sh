@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 # 2. project root dir
 ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." &>/dev/null && pwd)"
 # 3. default prefix dir
-PREFIX="${ROOT_DIR}/vendor/rocksdb-${ROCKSDB_VERSION}-${ARCH}"
+PREFIX="${ROOT_DIR}/vendor/rocksdb-${ROCKSDB_VERSION}"
 # 4. ld.so.conf.d 里要写的配置文件
 CONF_FILE="/etc/ld.so.conf.d/rocksdb-${ROCKSDB_VERSION}-${ARCH}.conf"
 

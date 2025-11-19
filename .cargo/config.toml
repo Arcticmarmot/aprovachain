@@ -1,3 +1,3 @@
 [env]
-ROCKSDB_INCLUDE_DIR = { value = "vendor/rocksdb-v10.4.2-x86_64/include", relative = true }
-ROCKSDB_LIB_DIR = { value = "vendor/rocksdb-v10.4.2-x86_64/lib", relative = true}
+ROCKSDB_INCLUDE_DIR = { value = "vendor/rocksdb-v10.4.2/include", relative = true }
+ROCKSDB_LIB_DIR = { value = "vendor/rocksdb-v10.4.2/lib", relative = true}
