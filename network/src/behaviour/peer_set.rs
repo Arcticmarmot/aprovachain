@@ -135,7 +135,9 @@ impl PeerSet {
         }
     }
 
-    pub fn on_peer_down(&mut self, peer_id: PeerId) { }
+    pub fn on_peer_down(&mut self, peer_id: PeerId) {
+
+    }
 
     pub fn on_found_peers(&mut self, peers: Vec<(PeerId, Multiaddr)>) {
         for (peer_id, addr) in peers {

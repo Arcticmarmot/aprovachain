@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use risc0_zkvm::Digest;
+use risc0_zkvm::{Digest, Receipt};
 use serde::{Deserialize, Serialize};
 use account::address::{ChainAddrBytes, UserAddress};
 use account::keypair::{AccountVerifyingKey, AccountVerifyingKeyBytes};
@@ -9,8 +9,7 @@ use primitives::rand::random_u128;
 use primitives::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32};
 use crate::error::TxError;
-
-pub type Result<T> = std::result::Result<T, TxError>;
+use crate::error::Result;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct TxIntentId(pub Hash32);

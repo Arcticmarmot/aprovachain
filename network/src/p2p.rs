@@ -5,7 +5,6 @@ use libp2p::swarm::{SwarmEvent, Swarm};
 use anyhow::Result;
 use crate::behaviour::behaviour::{PeerBehaviour, PeerEvent};
 use crate::behaviour::peer_set::PeerSet;
-use tokio::sync::mpsc;
 use tokio::sync::mpsc::UnboundedReceiver;
 use crate::handle::{P2pCmd};
 

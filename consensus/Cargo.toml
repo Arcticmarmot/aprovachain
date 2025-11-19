@@ -4,3 +4,20 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+chain = { workspace = true }
+network = { workspace = true }
+contract = { workspace = true }
+account = { workspace = true }
+risc0-zkvm = { workspace = true }
+tx = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
+clap = { workspace = true }
+dotenvy = { workspace = true }
+primitives = { workspace = true }
+serde = { workspace = true}

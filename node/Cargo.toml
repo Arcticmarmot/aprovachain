@@ -20,6 +20,4 @@ tracing-appender = { workspace = true }
 clap = { workspace = true }
 dotenvy = { workspace = true }
 primitives = { workspace = true }
-serde_json = { workspace = true }
-serde = { version = "1.0.226", features = ["derive"] }
-
+serde = { workspace = true }
