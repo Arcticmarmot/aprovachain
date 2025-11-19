@@ -24,7 +24,7 @@ pub async fn exec_by_json() {
 
     let tx_envelope_wire = build_envelope_wire(tx_build_spec).unwrap();
 
-    let response =send_envelope(tx_envelope_wire).await.unwrap();
+    let response = send_envelope(tx_envelope_wire).await.unwrap();
     tracing::info!("Response: {:?}", response);
     tracing::info!("{:?}", response.json::<SubmitTxResponse>().await);
 }

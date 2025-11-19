@@ -49,7 +49,7 @@ pub async fn deploy_by_elf() {
 
     let tx_envelope_wire = build_envelope_wire(tx_build_spec).unwrap();
 
-    let response =send_envelope(tx_envelope_wire).await.unwrap();
+    let response = send_envelope(tx_envelope_wire).await.unwrap();
     let json = response.json::<SubmitTxResponse>().await;
     tracing::info!("Response: {:?}", json);
 }

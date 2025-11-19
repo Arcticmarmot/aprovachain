@@ -2469,6 +2469,7 @@ name = "keygen"
 version = "0.1.0"
 dependencies = [
  "account",
+ "primitives",
 ]
 
 [[package]]
@@ -3292,20 +3293,16 @@ dependencies = [
 name = "network"
 version = "0.1.0"
 dependencies = [
+ "account",
  "anyhow",
- "clap",
- "dotenvy",
  "futures",
+ "hex",
  "libp2p",
  "primitives",
- "serde",
- "serde_json",
  "spec",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
- "tracing-appender",
- "tracing-subscriber 0.3.20",
  "tx",
 ]
 

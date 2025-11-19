@@ -11,15 +11,11 @@ libp2p = { version = "0.56", features = [
 ] }
 tokio = { workspace = true }
 futures = "0.3.30"
-tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
-tracing-appender = { workspace = true }
-clap = { workspace = true }
-dotenvy = { workspace = true }
 primitives = { workspace = true }
-serde_json = { workspace = true }
-serde = { version = "1.0.226", features = ["derive"] }
 spec = { workspace = true }
 tx = { workspace = true }
+hex = { workspace = true }
+account = { workspace = true }

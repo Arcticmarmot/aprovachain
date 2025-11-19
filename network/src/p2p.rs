@@ -1,15 +1,30 @@
+use std::fs;
 use std::time::Duration;
 use futures::StreamExt;
-use libp2p::{noise, tcp, yamux, PeerId, identity};
+use libp2p::{noise, tcp, yamux, PeerId};
 use libp2p::swarm::{SwarmEvent, Swarm};
 use anyhow::Result;
+use libp2p::identity::Keypair;
 use crate::behaviour::behaviour::{PeerBehaviour, PeerEvent};
 use crate::behaviour::peer_set::PeerSet;
 use tokio::sync::mpsc::UnboundedReceiver;
 use crate::handle::{P2pCmd};
+use account::keypair::AccountSigningKey;
+use primitives::file::aprova_proj_dir;
+
+pub fn load_identity() -> Result<Keypair> {
+    let proj = aprova_proj_dir().expect("proj dir not found");
+    let sk_path = proj.data_local_dir().join("keypair").join("node").join("signing-key.hex");
+    let sk_hex = fs::read(sk_path)?;
+    let mut sk_bytes = [0u8; 32];
+    hex::decode_to_slice(sk_hex, &mut sk_bytes)?;
+    let sk = AccountSigningKey::from_bytes(&sk_bytes);
+    let local_key = Keypair::ed25519_from_bytes(sk.to_bytes())?;
+    Ok(local_key)
+}
 
 pub fn init_p2p() -> Result<(PeerSet, Swarm<PeerBehaviour>)> {
-    let local_key = identity::Keypair::generate_ed25519();
+    let local_key = load_identity()?;
     let local_id = PeerId::from(local_key.public());
     tracing::info!(target:"net::node", peer=%local_id, "node started");
 
