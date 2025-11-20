@@ -5,9 +5,7 @@ use crate::error::TxError;
 use serde_with::{serde_as, Bytes};
 use crate::tx_intent::{TxIntent, TxIntentWire};
 use crate::error::Result;
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct TxId(pub Hash32);
+use crate::tx_id::TxEnvelopeId;
 
 #[derive(Debug)]
 pub struct TxEnvelope {
@@ -18,7 +16,7 @@ pub struct TxEnvelope {
 impl TxEnvelope {
     pub fn create(intent: TxIntent, sk: AccountSigningKey) -> Self {
         // 使用私钥对 TxIntent 计算出的 tx_intent_id 进行签名
-        let tx_intent_id = intent.tx_intent_id();
+        let tx_intent_id = intent.tx_id();
         let signature: AccountSignature = sk.sign(&tx_intent_id.0);
         Self {
             intent,
@@ -30,8 +28,8 @@ impl TxEnvelope {
         TxEnvelopeWire::from(self).encode_bcs()
     }
 
-    pub fn tx_id(&self) -> TxId {
-        TxId(sha256(self.to_canonical_bytes()))
+    pub fn tx_id(&self) -> TxEnvelopeId {
+        TxEnvelopeId::new(sha256(self.to_canonical_bytes()))
     }
 }
 

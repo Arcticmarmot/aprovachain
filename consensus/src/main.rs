@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
 
     let (cmd_sender, cmd_receiver) =
         mpsc::unbounded_channel::<P2pCmd>();
-    let (peer_set, swarm) = init_p2p()?;
+    let (sk, peer_set, swarm) = init_p2p()?;
     tracing::info!("p2p init success...");
     spawn(async move {
         let _ = start_p2p(peer_set, swarm, cmd_receiver).await;

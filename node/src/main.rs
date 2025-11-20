@@ -9,6 +9,7 @@ use network::p2p::{init_p2p, start_p2p};
 use node::bootstrap::{init_env, init_logging};
 use node::handler::{submit_tx, AppState};
 use tokio::sync::mpsc;
+use account::keypair::AccountSigningKey;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
@@ -36,18 +37,19 @@ async fn main() -> Result<()> {
 
     let (cmd_sender, cmd_receiver) =
         mpsc::unbounded_channel::<P2pCmd>();
-    let (peer_set, swarm) = init_p2p()?;
+    let (sk, peer_set, swarm) = init_p2p()?;
     tracing::info!("p2p init success...");
     spawn(async move {
         let _ = start_p2p(peer_set, swarm, cmd_receiver).await;
     });
     let p2p_handle = P2pHandle::new(cmd_sender.clone());
-    let _ = init_server(db_file_mode, p2p_handle).await?;
+    let _ = init_server(db_file_mode, sk, p2p_handle).await?;
     Ok(())
 }
 
-async fn init_server(db_file_mode: DBFileMode, p2p_handle: P2pHandle) -> Result<()> {
+async fn init_server(db_file_mode: DBFileMode, sk: AccountSigningKey, p2p_handle: P2pHandle) -> Result<()> {
     let state = AppState {
+        sk,
         p2p_handle,
     };
     let node = Router::new()

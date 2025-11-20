@@ -9,12 +9,14 @@ use crate::error::{ApiResult, NodeError, Result};
 use primitives::hash::{sha256, Hash32};
 use serde::{Deserialize, Serialize};
 use account::address::ChainAddrBytes;
+use account::keypair::{AccountSigningKey};
 use contract::contract::{Contract, ContractWire};
 use network::handle::P2pHandle;
 
 #[derive(Debug, Clone)]
 pub struct AppState {
-    pub p2p_handle: P2pHandle
+    pub p2p_handle: P2pHandle,
+    pub sk: AccountSigningKey
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,7 +41,7 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
     // 从字节数组构造 TxEnvelope
     let tx_envelope_wire: TxEnvelopeWire = TxEnvelopeWire::try_decode_bcs(tx_bytes.as_ref())?;
     let tx_envelope = TxEnvelope::try_from(tx_envelope_wire)?;
-    // tracing::debug!("{:?}", tx_envelope);
+    tracing::info!(target:"node::axum", tx_envelope_id=%tx_envelope.tx_id(), "tx envelope id");
     // 验证交易签名是否有效
     // TODO: 重放交易攻击，拒绝重复的 nonce
     let _ = verify_tx_sig(&tx_envelope)?;
@@ -65,7 +67,7 @@ pub fn handle_intent(intent: &TxIntent) -> Result<SubmitTxResponse> {
 /// 验证交易签名
 pub fn verify_tx_sig(envelope: &TxEnvelope) -> Result<()> {
     let vk = &envelope.intent.verifying_key;
-    let intent_id_hash = envelope.intent.tx_intent_id().0;
+    let intent_id_hash = envelope.intent.tx_id().0;
     vk.verify(&intent_id_hash, &envelope.signature)?;
     Ok(())
 }

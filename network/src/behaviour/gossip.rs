@@ -1,5 +1,4 @@
 use libp2p::gossipsub::IdentTopic;
-use spec::chain::ChainId;
 
 pub enum GossipTopic {
     Tx,

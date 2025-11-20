@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, Bytes};
 use account::keypair::{AccountSignature, AccountSignatureBytes, AccountSigningKey, AccountVerifyingKey, AccountVerifyingKeyBytes};
+use primitives::hash::sha256;
 use crate::error::TxError;
 use crate::tx_exec::{TxExec, TxExecWire};
+use crate::tx_id::TxExecSealId;
 
 pub struct TxExecSeal {
     pub exec: TxExec,
@@ -25,8 +27,9 @@ impl TryFrom<TxExecSealWire> for TxExecSeal {
 }
 
 impl TxExecSeal {
-    pub fn create(exec: TxExec, vk: AccountVerifyingKey, sk: AccountSigningKey) -> Self {
-        let tx_exec_id = exec.tx_exec_id();
+    pub fn create(exec: TxExec, sk: AccountSigningKey) -> Self {
+        let tx_exec_id = exec.tx_id();
+        let vk = sk.verifying_key();
         let sig = sk.sign(&tx_exec_id.0);
         Self {
             exec,
@@ -37,6 +40,10 @@ impl TxExecSeal {
 
     pub fn to_canonical_bytes(&self) -> Vec<u8> {
         TxExecSealWire::from(self).encode_bcs()
+    }
+    
+    pub fn tx_id(&self) -> TxExecSealId {
+        TxExecSealId::new(sha256(&self.to_canonical_bytes()))
     }
 }
 

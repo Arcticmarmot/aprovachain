@@ -1,12 +1,11 @@
 use risc0_zkvm::Receipt;
 use serde::{Deserialize, Serialize};
 use account::keypair::{AccountVerifyingKey};
-use primitives::hash::{sha256, Hash32};
+use primitives::hash::{sha256};
 use crate::tx_envelope::{TxEnvelope, TxEnvelopeWire};
 use crate::error::{Result, TxError};
+use crate::tx_id::TxExecId;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct TxExecId(pub Hash32);
 pub struct TxExec {
     pub envelope: TxEnvelope,
     pub receipt: Receipt,
@@ -30,15 +29,14 @@ impl TxExec {
             receipt,
         })
     }
-
-    pub fn tx_exec_id(&self) -> TxExecId {
-        TxExecId(sha256(self.to_canonical_bytes()))
-    }
-
+    
     pub fn to_canonical_bytes(&self) -> Vec<u8> {
         TxExecWire::from(self).encode_bcs()
     }
 
+    pub fn tx_id(&self) -> TxExecId {
+        TxExecId::new(sha256(self.to_canonical_bytes()))
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

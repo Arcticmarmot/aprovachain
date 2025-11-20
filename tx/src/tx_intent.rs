@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use std::marker::PhantomData;
 use std::str::FromStr;
 use risc0_zkvm::{Digest, Receipt};
 use serde::{Deserialize, Serialize};
@@ -10,26 +11,7 @@ use primitives::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32};
 use crate::error::TxError;
 use crate::error::Result;
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct TxIntentId(pub Hash32);
-
-impl Display for TxIntentId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "0x{}", hex::encode(&self.0))
-    }
-}
-
-impl FromStr for TxIntentId {
-    type Err = TxError;
-
-    fn from_str(s: &str) -> Result<Self> {
-        let s = s.strip_prefix("0x").ok_or(TxError::TxIntentIdPrefix)?;
-        let mut buf: Hash32 = [0u8; 32];
-        hex::decode_to_slice(s, &mut buf)?;
-        Ok(TxIntentId(buf))
-    }
-}
+use crate::tx_id::TxIntentId;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TxPayload {
@@ -98,8 +80,8 @@ impl TxIntent {
         TxIntentWire::from(self).encode_bcs()
     }
 
-    pub fn tx_intent_id(&self) -> TxIntentId {
-        TxIntentId(sha256(self.to_canonical_bytes()))
+    pub fn tx_id(&self) -> TxIntentId {
+        TxIntentId::new(sha256(self.to_canonical_bytes()))
     }
 }
 

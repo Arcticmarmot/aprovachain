@@ -9,23 +9,24 @@ use crate::behaviour::behaviour::{PeerBehaviour, PeerEvent};
 use crate::behaviour::peer_set::PeerSet;
 use tokio::sync::mpsc::UnboundedReceiver;
 use crate::handle::{P2pCmd};
-use account::keypair::AccountSigningKey;
-use primitives::file::aprova_proj_dir;
+use account::keypair::{AccountSigningKey, AccountSigningKeyBytes};
+use primitives::file::{load_node_sk_path};
 
-pub fn load_identity() -> Result<Keypair> {
-    let proj = aprova_proj_dir().expect("proj dir not found");
-    let sk_path = proj.data_local_dir().join("keypair").join("node").join("signing-key.hex");
+pub fn load_node_sk_bytes() -> Result<AccountSigningKeyBytes> {
+    let sk_path = load_node_sk_path();
     let sk_hex = fs::read(sk_path)?;
-    let mut sk_bytes = [0u8; 32];
+    let mut sk_bytes: AccountSigningKeyBytes = [0u8; 32];
     hex::decode_to_slice(sk_hex, &mut sk_bytes)?;
-    let sk = AccountSigningKey::from_bytes(&sk_bytes);
-    let local_key = Keypair::ed25519_from_bytes(sk.to_bytes())?;
-    Ok(local_key)
+    Ok(sk_bytes)
 }
 
-pub fn init_p2p() -> Result<(PeerSet, Swarm<PeerBehaviour>)> {
-    let local_key = load_identity()?;
+pub fn init_p2p() -> Result<(AccountSigningKey, PeerSet, Swarm<PeerBehaviour>)> {
+    // 从文件加载 sk
+    let sk_bytes = load_node_sk_bytes()?;
+    let local_key = Keypair::ed25519_from_bytes(sk_bytes)?;
     let local_id = PeerId::from(local_key.public());
+    let sk = AccountSigningKey::from_bytes(&sk_bytes);
+    
     tracing::info!(target:"net::node", peer=%local_id, "node started");
 
     let disc_behaviour = PeerBehaviour::new(&local_key);
@@ -40,7 +41,7 @@ pub fn init_p2p() -> Result<(PeerSet, Swarm<PeerBehaviour>)> {
 
     // 创建 PeerSet 记录在线节点
     let peer_set = PeerSet::new(local_id);
-    Ok((peer_set, swarm))
+    Ok((sk, peer_set, swarm))
 }
 
 pub async fn start_p2p(
