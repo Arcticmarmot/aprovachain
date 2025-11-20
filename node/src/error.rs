@@ -6,11 +6,14 @@ use tx::error::TxError;
 use account::error::AccountError;
 use contract::error::ContractError;
 use db::error::DBError;
+use network::error::PeerError;
 
 #[derive(Debug, Error)]
 pub enum NodeError {
     #[error(transparent)]
     Tx(#[from] TxError),
+    #[error(transparent)]
+    Peer(#[from] PeerError),
     #[error(transparent)]
     Account(#[from] AccountError),
     #[error(transparent)]

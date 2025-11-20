@@ -6,6 +6,8 @@ use crate::tx_envelope::{TxEnvelope, TxEnvelopeWire};
 use crate::error::{Result, TxError};
 use crate::tx_id::TxExecId;
 
+
+#[derive(Debug)]
 pub struct TxExec {
     pub envelope: TxEnvelope,
     pub receipt: Receipt,

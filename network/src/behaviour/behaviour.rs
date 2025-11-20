@@ -1,9 +1,9 @@
 use std::time::Duration;
 use libp2p::{identify, ping, mdns, Multiaddr, PeerId, identity, kad, gossipsub, StreamProtocol};
-use libp2p::gossipsub::{MessageAuthenticity};
+use libp2p::gossipsub::{MessageAuthenticity, TopicHash};
 use libp2p::kad::store::MemoryStore;
 use libp2p::swarm::{NetworkBehaviour};
-use tx::tx_envelope::{TxEnvelope, TxEnvelopeWire};
+use tx::tx_exec_seal::{TxExecSeal, TxExecSealWire};
 use crate::behaviour::gossip::GossipTopic;
 use crate::error::Result;
 
@@ -133,10 +133,25 @@ impl From<gossipsub::Event> for PeerEvent {
         use gossipsub::Event::*;
         match event {
             Message { message, message_id, propagation_source } => {
-                tracing::info!(target:"network::gossip", message=?message, message_id=%message_id, "message comes");
+                tracing::info!(target:"network::gossip", source=%propagation_source, message=?message, message_id=%message_id, "message comes");
                 PeerEvent::TxReceived
             }
-            _ => { PeerEvent::Ignore }
+            GossipsubNotSupported {peer_id} => {
+                tracing::info!(target:"network::gossip", %peer_id, "unsupported");
+                PeerEvent::Ignore
+            },
+            Subscribed {peer_id, topic} => {
+                tracing::info!(target:"network::gossip", %peer_id, %topic, "unsupported");
+                PeerEvent::Ignore
+            },
+            Unsubscribed {peer_id, topic} => {
+                tracing::info!(target:"network::gossip", %peer_id, %topic, "unsupported");
+                PeerEvent::Ignore
+            },
+            SlowPeer {peer_id, failed_messages} => {
+                tracing::info!(target:"network::gossip", %peer_id, ?failed_messages, "unsupported");
+                PeerEvent::Ignore
+            }
         }
     }
 }
@@ -182,10 +197,10 @@ impl PeerBehaviour {
 
     pub fn publish_tx(&mut self, tx_bytes: Vec<u8>) -> Result<()> {
         let topic = GossipTopic::Tx.ident();
-        let tx_envelope_wire: TxEnvelopeWire = TxEnvelopeWire::try_decode_bcs(tx_bytes.as_ref())?;
-        let tx_envelope = TxEnvelope::try_from(tx_envelope_wire)?;
-        tracing::info!("{tx_envelope:?}");
+        let tx_seal_wire: TxExecSealWire = TxExecSealWire::try_decode_bcs(tx_bytes.as_ref())?;
+        let tx_exec_seal = TxExecSeal::try_from(tx_seal_wire)?;
         let _ = self.gossipsub.publish(topic, tx_bytes);
+        tracing::info!("seal sig: {:?}", tx_exec_seal.signature);
         Ok(())
     }
 

@@ -27,8 +27,6 @@ pub fn init_p2p() -> Result<(AccountSigningKey, PeerSet, Swarm<PeerBehaviour>)> 
     let local_id = PeerId::from(local_key.public());
     let sk = AccountSigningKey::from_bytes(&sk_bytes);
     
-    tracing::info!(target:"net::node", peer=%local_id, "node started");
-
     let disc_behaviour = PeerBehaviour::new(&local_key);
 
     let mut swarm = libp2p::SwarmBuilder::with_existing_identity(local_key)

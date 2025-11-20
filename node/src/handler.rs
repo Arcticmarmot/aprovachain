@@ -12,6 +12,8 @@ use account::address::ChainAddrBytes;
 use account::keypair::{AccountSigningKey};
 use contract::contract::{Contract, ContractWire};
 use network::handle::P2pHandle;
+use tx::tx_exec::TxExec;
+use tx::tx_exec_seal::TxExecSeal;
 
 #[derive(Debug, Clone)]
 pub struct AppState {
@@ -44,11 +46,23 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
     tracing::info!(target:"node::axum", tx_envelope_id=%tx_envelope.tx_id(), "tx envelope id");
     // 验证交易签名是否有效
     // TODO: 重放交易攻击，拒绝重复的 nonce
-    let _ = verify_tx_sig(&tx_envelope)?;
+    verify_tx_sig(&tx_envelope)?;
     let p2p_handle = state.p2p_handle;
-    p2p_handle.publish_tx(tx_bytes.as_ref().to_vec());
+    let sk = state.sk;
     // 执行交易
     let intent = handle_intent(&tx_envelope.intent)?;
+    match intent.clone() {
+        SubmitTxResponse::Deploy{ ctr_addr, image_id, elf_hash } => {
+        },
+        SubmitTxResponse::Exec {ctr_addr, image_id, elf_hash, input, receipt} => {
+            let tx_exec = TxExec {
+                envelope: tx_envelope,
+                receipt,
+            };
+            let tx_seal = TxExecSeal::create(tx_exec, sk);
+            p2p_handle.publish_tx(tx_seal.to_canonical_bytes())?;
+        }
+    };
     Ok(Json(intent))
 }
 

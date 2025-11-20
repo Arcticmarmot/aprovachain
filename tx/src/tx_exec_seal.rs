@@ -6,6 +6,8 @@ use crate::error::TxError;
 use crate::tx_exec::{TxExec, TxExecWire};
 use crate::tx_id::TxExecSealId;
 
+
+#[derive(Debug)]
 pub struct TxExecSeal {
     pub exec: TxExec,
     pub verifying_key: AccountVerifyingKey,
