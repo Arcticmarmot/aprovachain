@@ -7,9 +7,10 @@ use db::runtime::{init_db, close_db, DBFileMode};
 use network::handle::{P2pCmd, P2pHandle};
 use network::p2p::{init_p2p, start_p2p};
 use node::bootstrap::{init_env, init_logging};
-use node::handler::{submit_tx, AppState};
+use node::handler::{submit_tx};
 use tokio::sync::mpsc;
 use account::keypair::AccountSigningKey;
+use node::context::AppState;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]

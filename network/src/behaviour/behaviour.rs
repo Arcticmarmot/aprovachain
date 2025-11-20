@@ -187,8 +187,10 @@ impl PeerBehaviour {
             gossipsub_cfg
         ).expect("gossipsub build");
 
-        gossipsub.subscribe(&GossipTopic::Tx.ident()).expect("subscribe tx");
-        gossipsub.subscribe(&GossipTopic::Block.ident()).expect("subscribe block");
+        let tx_topic = GossipTopic::Tx.ident();
+        let block_topic = GossipTopic::Block.ident();
+        gossipsub.subscribe(&tx_topic).expect("subscribe tx");
+        gossipsub.subscribe(&block_topic).expect("subscribe block");
 
         Self {
             ping,

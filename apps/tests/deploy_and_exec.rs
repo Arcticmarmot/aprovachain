@@ -1,7 +1,7 @@
 use clap::Parser;
 use apps::bootstrap::{init_env, init_logging};
 use apps::handler::{build_envelope_wire, parse_tx_args, parse_tx_args_with, send_envelope, TxArgs};
-use node::handler::SubmitTxResponse;
+use node::context::SubmitTxResponse;
 use tx::tx_intent::TxPayload;
 
 #[tokio::test]

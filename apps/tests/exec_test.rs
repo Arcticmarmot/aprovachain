@@ -1,7 +1,7 @@
 use apps::handler::*;
 use apps::bootstrap::*;
 use clap::Parser;
-use node::handler::SubmitTxResponse;
+use node::context::SubmitTxResponse;
 
 #[tokio::test]
 pub async fn exec_by_json() {

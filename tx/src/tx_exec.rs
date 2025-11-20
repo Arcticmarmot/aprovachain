@@ -43,8 +43,8 @@ impl TxExec {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TxExecWire {
-    envelope: TxEnvelopeWire,
-    receipt: Receipt,
+    pub envelope: TxEnvelopeWire,
+    pub receipt: Receipt,
 }
 
 impl From<&TxExec> for TxExecWire {

@@ -97,14 +97,16 @@ pub async fn start_p2p(
                         tracing::info!(target:"net::gossip", "tx received");
                         let topic = message.topic;
                         let bytes = message.data;
-                        let tx_topic = GossipTopic::Tx.ident().hash();
-                        let block_topic = GossipTopic::Block.ident().hash();
-                        if topic == tx_topic {
-                            let tx_seal_wire: TxExecSealWire = TxExecSealWire::try_decode_bcs(bytes.as_ref()).unwrap();
-                            let tx_exec_seal = TxExecSeal::try_from(tx_seal_wire).unwrap();
-                            tracing::info!(target:"net::tx", ?tx_exec_seal);
-                        } else if topic == block_topic {
+                        match GossipTopic::from_hash(&topic) {
+                            Some(GossipTopic::Tx) => {
+                                let tx_seal_wire: TxExecSealWire = TxExecSealWire::try_decode_bcs(bytes.as_ref()).unwrap();
+                                let tx_exec_seal = TxExecSeal::try_from(tx_seal_wire).unwrap();
+                                tracing::info!(target:"net::tx", ?tx_exec_seal);
+                            },
+                            Some(GossipTopic::Block) => {
 
+                            },
+                            None => { }
                         }
                     },
                     _ => {}

@@ -9,34 +9,10 @@ use crate::error::{ApiResult, NodeError, Result};
 use primitives::hash::{sha256, Hash32};
 use serde::{Deserialize, Serialize};
 use account::address::ChainAddrBytes;
-use account::keypair::{AccountSigningKey};
 use contract::contract::{Contract, ContractWire};
-use network::handle::P2pHandle;
-use tx::tx_exec::TxExec;
+use tx::tx_exec::{TxExec, TxExecWire};
 use tx::tx_exec_seal::TxExecSeal;
-
-#[derive(Debug, Clone)]
-pub struct AppState {
-    pub p2p_handle: P2pHandle,
-    pub sk: AccountSigningKey
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum SubmitTxResponse {
-    Deploy {
-        ctr_addr: ChainAddrBytes,
-        image_id: Digest,
-        elf_hash: Hash32
-    },
-    Exec {
-        ctr_addr: ChainAddrBytes,
-        image_id: Digest,
-        elf_hash: Hash32,
-        input: Vec<u8>,
-        receipt: Receipt
-    }
-}
+use crate::context::{AppState, SubmitTxResponse};
 
 /// 交易提交处理函数
 pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiResult<SubmitTxResponse> {
@@ -59,6 +35,9 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
                 envelope: tx_envelope,
                 receipt,
             };
+            let wire = TxExecWire::from(&tx_exec);
+            tracing::info!(target: "node::axum", len=?tx_exec.envelope.to_canonical_bytes().len(), "envelope size");
+            tracing::info!(target: "node::axum", len=?tx_exec.to_canonical_bytes().len(), "tx exec size");
             let tx_seal = TxExecSeal::create(tx_exec, sk);
             p2p_handle.publish_tx(tx_seal.to_canonical_bytes())?;
         }
