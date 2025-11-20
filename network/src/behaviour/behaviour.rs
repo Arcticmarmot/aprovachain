@@ -1,11 +1,11 @@
 use std::time::Duration;
 use libp2p::{identify, ping, mdns, Multiaddr, PeerId, identity, kad, gossipsub, StreamProtocol};
-use libp2p::gossipsub::{MessageAuthenticity, TopicHash};
+use libp2p::gossipsub::{Message, MessageAuthenticity, MessageId, TopicHash};
 use libp2p::kad::store::MemoryStore;
 use libp2p::swarm::{NetworkBehaviour};
 use tx::tx_exec_seal::{TxExecSeal, TxExecSealWire};
 use crate::behaviour::gossip::GossipTopic;
-use crate::error::Result;
+use crate::error::{PeerError, Result};
 
 const APROVA_KAD_PROTO: &'static str = "/aprova/kad/1.0.0";
 
@@ -24,7 +24,7 @@ pub enum PeerEvent {
     PeerUp(PeerId, Option<Vec<Multiaddr>>),
     PeerDown(PeerId),
     FoundPeers(Vec<(PeerId, Multiaddr)>),
-    TxReceived,
+    TxReceived(PeerId, MessageId, Message),
     BlockReceived,
     Ignore
 }
@@ -134,18 +134,18 @@ impl From<gossipsub::Event> for PeerEvent {
         match event {
             Message { message, message_id, propagation_source } => {
                 tracing::info!(target:"network::gossip", source=%propagation_source, message=?message, message_id=%message_id, "message comes");
-                PeerEvent::TxReceived
-            }
-            GossipsubNotSupported {peer_id} => {
-                tracing::info!(target:"network::gossip", %peer_id, "unsupported");
-                PeerEvent::Ignore
+                PeerEvent::TxReceived(propagation_source, message_id, message)
             },
             Subscribed {peer_id, topic} => {
-                tracing::info!(target:"network::gossip", %peer_id, %topic, "unsupported");
+                tracing::info!(target:"network::gossip", %peer_id, %topic, "subscribe");
                 PeerEvent::Ignore
             },
             Unsubscribed {peer_id, topic} => {
-                tracing::info!(target:"network::gossip", %peer_id, %topic, "unsupported");
+                tracing::info!(target:"network::gossip", %peer_id, %topic, "unsubscibe");
+                PeerEvent::Ignore
+            },
+            GossipsubNotSupported {peer_id} => {
+                tracing::info!(target:"network::gossip", %peer_id, "unsupported");
                 PeerEvent::Ignore
             },
             SlowPeer {peer_id, failed_messages} => {
@@ -177,7 +177,11 @@ impl PeerBehaviour {
         let mut kademlia = kad::Behaviour::with_config(local_peer_id, store, kad_cfg);
         kademlia.set_mode(Some(kad::Mode::Server));
 
-        let gossipsub_cfg = gossipsub::Config::default();
+        let gossipsub_cfg = gossipsub::ConfigBuilder::default()
+            .protocol_id_prefix("/aprova/gossip/v0.1")
+            .validation_mode(gossipsub::ValidationMode::Strict)
+            .max_transmit_size(5 * 1024 * 1024)
+            .build().expect("build gossipsub config");
         let mut gossipsub = gossipsub::Behaviour::new(
             MessageAuthenticity::Signed(local_key.clone()),
             gossipsub_cfg
@@ -196,11 +200,11 @@ impl PeerBehaviour {
     }
 
     pub fn publish_tx(&mut self, tx_bytes: Vec<u8>) -> Result<()> {
+        tracing::info!(target:"network::gossip", len=%tx_bytes.len(), "tx seal size: ");
         let topic = GossipTopic::Tx.ident();
         let tx_seal_wire: TxExecSealWire = TxExecSealWire::try_decode_bcs(tx_bytes.as_ref())?;
         let tx_exec_seal = TxExecSeal::try_from(tx_seal_wire)?;
-        let _ = self.gossipsub.publish(topic, tx_bytes);
-        tracing::info!("seal sig: {:?}", tx_exec_seal.signature);
+        self.gossipsub.publish(topic, tx_bytes)?;
         Ok(())
     }
 

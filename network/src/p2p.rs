@@ -11,6 +11,8 @@ use tokio::sync::mpsc::UnboundedReceiver;
 use crate::handle::{P2pCmd};
 use account::keypair::{AccountSigningKey, AccountSigningKeyBytes};
 use primitives::file::{load_node_sk_path};
+use tx::tx_exec_seal::{TxExecSeal, TxExecSealWire};
+use crate::behaviour::gossip::GossipTopic;
 
 pub fn load_node_sk_bytes() -> Result<AccountSigningKeyBytes> {
     let sk_path = load_node_sk_path();
@@ -91,8 +93,19 @@ pub async fn start_p2p(
                         peer_set.on_found_peers(peers);
                         peer_set.refresh(swarm);
                     },
-                    SwarmEvent::Behaviour(PeerEvent::TxReceived) => {
+                    SwarmEvent::Behaviour(PeerEvent::TxReceived(peer_id, message_id, message)) => {
                         tracing::info!(target:"net::gossip", "tx received");
+                        let topic = message.topic;
+                        let bytes = message.data;
+                        let tx_topic = GossipTopic::Tx.ident().hash();
+                        let block_topic = GossipTopic::Block.ident().hash();
+                        if topic == tx_topic {
+                            let tx_seal_wire: TxExecSealWire = TxExecSealWire::try_decode_bcs(bytes.as_ref()).unwrap();
+                            let tx_exec_seal = TxExecSeal::try_from(tx_seal_wire).unwrap();
+                            tracing::info!(target:"net::tx", ?tx_exec_seal);
+                        } else if topic == block_topic {
+
+                        }
                     },
                     _ => {}
                 }
