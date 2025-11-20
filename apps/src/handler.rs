@@ -4,7 +4,8 @@ use anyhow::{bail};
 use clap::{Parser};
 use reqwest::{Client, Response};
 use account::address::UserAddress;
-use account::keypair::{AccountSigningKey, AccountVerifyingKey};
+use account::keypair::{AccountSigningKey, AccountSigningKeyBytes, AccountVerifyingKey};
+use primitives::file::{load_user_sk_path};
 use spec::chain::ChainId;
 use primitives::hash::sha256;
 use tx::tx_envelope::{TxEnvelope, TxEnvelopeWire};
@@ -24,15 +25,6 @@ pub struct TxBuildSpec {
 pub struct TxArgs {
     #[clap(long, env, next_help_heading = "The Chain Id of the Tx")]
     chain_id: u64,
-
-    #[clap(long, env, next_help_heading = "The Account Address of the User")]
-    address: String,
-
-    #[clap(long, env, next_help_heading = "The Account VerifyingKey of the User")]
-    verifying_key: String,
-
-    #[clap(long, env, next_help_heading = "The Account SigningKey of the User")]
-    signing_key: String,
 
     #[clap(long, env, next_help_heading = "The payload type of TxPayload")]
     payload_type: String,
@@ -60,18 +52,15 @@ where
     // build chain id from Args
     let chain_id = ChainId(args.chain_id);
 
-    // build vk from Args
-    let mut vk_bytes = [0u8; 32];
-    hex::decode_to_slice(&args.verifying_key, &mut vk_bytes)?;
-    let vk = AccountVerifyingKey::from_bytes(&vk_bytes)?;
-
-    // build addr from chain_id and vk
-    let addr = UserAddress::from_vk(chain_id, &vk);
-
     // build sk from Args
-    let mut sk_bytes = [0u8; 32];
-    hex::decode_to_slice(&args.signing_key, &mut sk_bytes)?;
+    let sk_bytes = load_user_sk_bytes()?;
     let sk = AccountSigningKey::from_bytes(&sk_bytes);
+
+    // build vk from sk
+    let vk = sk.verifying_key();
+
+    // build addr from vk
+    let addr = UserAddress::from_vk(chain_id, &vk);
 
     // build payload from Args
     let payload = build_payload(args)?;
@@ -83,6 +72,14 @@ where
         sk,
         payload
     })
+}
+
+pub fn load_user_sk_bytes() -> anyhow::Result<AccountSigningKeyBytes> {
+    let sk_path = load_user_sk_path();
+    let sk_hex = fs::read(sk_path)?;
+    let mut sk_bytes: AccountSigningKeyBytes = [0u8; 32];
+    hex::decode_to_slice(sk_hex, &mut sk_bytes)?;
+    Ok(sk_bytes)
 }
 
 pub fn build_envelope_wire(spec: TxBuildSpec) -> anyhow::Result<TxEnvelopeWire> {
@@ -100,7 +97,6 @@ pub async fn send_envelope(wire: TxEnvelopeWire) -> anyhow::Result<Response> {
         .body(wire.encode_bcs())
         .send()
         .await?;
-    tracing::info!("{:?}", response);
     Ok(response)
 }
 

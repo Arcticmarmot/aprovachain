@@ -33,12 +33,12 @@ async fn main() -> Result<()> {
     // 初始化数据库
     let db_file_mode = args.db_file_mode;
     let _ = init_db(db_file_mode)?;
-    tracing::info!("rocksdb({db_file_mode:?}) init success...");
+    tracing::info!(target:"node::db", "rocksdb({db_file_mode:?}) init success...");
 
     let (cmd_sender, cmd_receiver) =
         mpsc::unbounded_channel::<P2pCmd>();
     let (sk, peer_set, swarm) = init_p2p()?;
-    tracing::info!("p2p init success...");
+    tracing::info!(target:"node::p2p", "p2p init success...");
     spawn(async move {
         let _ = start_p2p(peer_set, swarm, cmd_receiver).await;
     });
@@ -57,7 +57,7 @@ async fn init_server(db_file_mode: DBFileMode, sk: AccountSigningKey, p2p_handle
         .with_state(state);
     let addr: SocketAddr = "0.0.0.0:8888".parse()?;
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8888").await?;
-    tracing::info!("node listening on http(s)://{addr} ...");
+    tracing::info!(target:"node::axum", "node listening on http(s)://{addr} ...");
     axum::serve(listener, node)
         .with_graceful_shutdown(shutdown_signal(db_file_mode))
         .await?;
