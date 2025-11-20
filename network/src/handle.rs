@@ -25,3 +25,23 @@ impl P2pHandle {
         Ok(())
     }
 }
+
+pub enum TxCmd {
+    PushTx(Vec<u8>),
+}
+
+#[derive(Debug, Clone)]
+pub struct TxHandle {
+    sender: UnboundedSender<TxCmd>
+}
+
+impl TxHandle {
+    pub fn new(sender: UnboundedSender<TxCmd>) -> Self {
+        Self { sender }
+    }
+
+    pub fn push_tx(&self, tx_bytes: Vec<u8>) -> Result<()> {
+        self.sender.send(TxCmd::PushTx(tx_bytes))?;
+        Ok(())
+    }
+}
