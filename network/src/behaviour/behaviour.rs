@@ -8,6 +8,7 @@ use crate::error::{Result};
 
 const APROVA_KAD_PROTO: &'static str = "/aprova/kad/v0.1";
 const APROVA_GOSSIP_PROTO: &'static str = "/aprova/gossip/v0.1";
+const HEART_BEAT_INTERVAL: u64 = 30;
 #[derive(NetworkBehaviour)]
 #[behaviour(to_swarm = "PeerEvent")]
 pub struct PeerBehaviour {
@@ -32,7 +33,7 @@ impl From<ping::Event> for PeerEvent {
     fn from(event: ping::Event) -> Self {
         match &event.result {
             Ok(rtt) => {
-                tracing::info!(target:"net::ping", peer=%event.peer, ?rtt, "ping ok");
+                tracing::debug!(target:"net::ping", peer=%event.peer, ?rtt, "ping ok");
                 PeerEvent::PeerUp(event.peer, None)
             },
             Err(err) => {
@@ -161,7 +162,7 @@ impl PeerBehaviour {
         let local_peer_id = PeerId::from(public.clone());
 
         let ping = ping::Behaviour::new(
-            ping::Config::new().with_interval(Duration::from_secs(10))
+            ping::Config::new().with_interval(Duration::from_secs(HEART_BEAT_INTERVAL))
         );
         let identify_cfg = identify::Config::new("/aprova/v0.1".into(), public.clone());
         let identify = identify::Behaviour::new(identify_cfg);

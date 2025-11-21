@@ -81,14 +81,13 @@ pub async fn start_p2p(
                     }
                     // DiscoveryEvent 事件处理
                     SwarmEvent::Behaviour(PeerEvent::PeerUp(peer_id, addrs_opt)) => {
-                        tracing::info!(target:"net::disc", peer=%peer_id, addrs=?addrs_opt, "peer up");
+                        tracing::debug!(target:"net::disc", peer=%peer_id, addrs=?addrs_opt, "peer up");
                         swarm.behaviour_mut().kad_peer_up(&peer_id, addrs_opt.clone());
                         peer_set.on_peer_up(peer_id, addrs_opt);
                         peer_set.refresh(swarm);
                     },
                     SwarmEvent::Behaviour(PeerEvent::PeerDown(peer_id)) => {
                         tracing::info!(target:"net::disc", peer=%peer_id, "peer down");
-                        peer_set.on_peer_down(peer_id);
                         peer_set.refresh(swarm);
                     },
                     SwarmEvent::Behaviour(PeerEvent::FoundPeers(peers)) => {
@@ -98,21 +97,22 @@ pub async fn start_p2p(
                         peer_set.refresh(swarm);
                     },
                     SwarmEvent::Behaviour(PeerEvent::TxReceived(peer_id, message_id, message)) => {
-                        tracing::info!(target:"net::gossip", "tx received");
                         let topic = message.topic;
                         let bytes = message.data;
                         match GossipTopic::from_hash(&topic) {
                             Some(GossipTopic::Tx) => {
                                 if let Err(err) = event_handle.received_tx(bytes) {
-                                    tracing::warn!(target: "net::event", %err, "receive tx event")
+                                    tracing::info!(target: "net::event", %peer_id, %message_id, %err, "receive tx event")
                                 }
                             },
                             Some(GossipTopic::Block) => {
                                 if let Err(err) = event_handle.received_block(bytes) {
-                                    tracing::warn!(target: "net::event", %err, "receive block event")
+                                    tracing::info!(target: "net::event", %err, "receive block event")
                                 }
                             },
-                            None => { }
+                            None => {
+                                tracing::error!(target: "net::event", "bad event")
+                            }
                         }
                     },
                     _ => {}

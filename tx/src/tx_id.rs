@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
@@ -19,9 +19,15 @@ pub type TxEnvelopeId = TxId<Envelope>;
 pub type TxExecId = TxId<Exec>;
 pub type TxExecSealId = TxId<ExecSeal>;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TxId<T>(pub Hash32, PhantomData<T>);
 
+
+impl<T> Debug for TxId<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
+}
 impl<T> Display for TxId<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "0x{}", hex::encode(&self.0))

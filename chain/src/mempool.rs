@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt::{write, Debug, Formatter};
 use primitives::clock::unix_time_millis;
 use primitives::hash::Hash32;
 use tx::tx_exec_seal::{TxExecSeal, TxExecSealWire};
@@ -7,9 +8,19 @@ use crate::block::{Block, BlockHeader};
 use crate::error::Result;
 use sha2::{Digest, Sha256};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Mempool {
     pub txs: HashSet<TxExecSeal>
+}
+
+impl Debug for Mempool {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Mempool tx_ids:")?;
+        for tx in &self.txs {
+            writeln!(f, "{:?}", tx.tx_id)?;
+        }
+        Ok(())
+    }
 }
 
 impl Mempool {

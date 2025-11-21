@@ -14,8 +14,7 @@ pub const TX_COUNT_LIMIT: usize = 3;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
-struct NodeArgs {
-}
+struct NodeArgs { }
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -56,14 +55,16 @@ async fn main() -> Result<()> {
                         mempool.push_tx(tx);
                         if mempool.count() > TX_COUNT_LIMIT {
                             let new_block = pack_block(&mempool, &block.header, TX_COUNT_LIMIT)?;
-                            cmd_handle.publish_block(new_block.to_canonical_bytes())?;
+                            cmd_handle.publish_block(new_block.encode_bcs())?;
                             block = new_block;
                             tracing::info!(target:"consensus::block", ?block, "published")
                         }
-                        tracing::info!(target:"consensus::block", ?block)
+                        tracing::info!(target:"consensus::block", ?mempool);
                     },
                     P2pEvent::ReceivedBlock(block_bytes) => {
-
+                        tracing::info!(target:"consensus::block", "received block");
+                        // 验证区块是否有效
+                        // let block = Block::try_decode_bcs(&block_bytes)?;
                     }
                 }
             },

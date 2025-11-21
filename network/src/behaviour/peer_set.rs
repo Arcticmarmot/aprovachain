@@ -73,13 +73,13 @@ impl PeerSet {
                 }
                 None => { }
             }
-            tracing::info!(target: "network::dial", "start dial");
+            tracing::debug!(target: "network::dial", "start dial");
             match Self::dial(id, &info.addrs, swarm) {
                 Ok(()) => { info.last_dial = Some(Instant::now()) }
                 _ => { }
             }
         }
-        tracing::info!(target: "network::peer-set", map_len=?self.map.len());
+        tracing::info!(target: "network::peer-set", peer_count=?self.map.len());
     }
 
     pub fn dial<B>(peer_id: &PeerId, addrs: &HashSet<Multiaddr>, swarm: &mut Swarm<B>) -> Result<()> where B: NetworkBehaviour {
@@ -91,7 +91,7 @@ impl PeerSet {
                 Ok(())
             },
             Err(err) => {
-                tracing::error!(target: "network::dial", %peer_id, ?err);
+                tracing::warn!(target: "network::dial", %peer_id, ?err);
                 Err(PeerError::DialPeer)
             }
         }
@@ -133,10 +133,6 @@ impl PeerSet {
                 Self::insert_addr(&mut ele.addrs, addr);
             }
         }
-    }
-
-    pub fn on_peer_down(&mut self, peer_id: PeerId) {
-
     }
 
     pub fn on_found_peers(&mut self, peers: Vec<(PeerId, Multiaddr)>) {

@@ -2,15 +2,14 @@ use tx::tx_envelope::{TxEnvelopeWire, TxEnvelope};
 use axum::body::{Bytes};
 use axum::extract::State;
 use axum::Json;
-use risc0_zkvm::{default_prover, Digest, ExecutorEnv, Prover, Receipt};
+use risc0_zkvm::{default_prover, Digest, ExecutorEnv, Prover};
 use db::controller::{kv_get, kv_put};
 use tx::tx_intent::{TxIntent, TxPayload};
 use crate::error::{ApiResult, NodeError, Result};
 use primitives::hash::{sha256, Hash32};
-use serde::{Deserialize, Serialize};
 use account::address::ChainAddrBytes;
 use contract::contract::{Contract, ContractWire};
-use tx::tx_exec::{TxExec, TxExecWire};
+use tx::tx_exec::{TxExec};
 use tx::tx_exec_seal::TxExecSeal;
 use crate::context::{AppState, SubmitTxResponse};
 
@@ -28,9 +27,9 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
     // 执行交易
     let intent = handle_intent(&tx_envelope.intent)?;
     match intent.clone() {
-        SubmitTxResponse::Deploy{ ctr_addr, image_id, elf_hash } => {
+        SubmitTxResponse::Deploy{ .. } => {
         },
-        SubmitTxResponse::Exec {ctr_addr, image_id, elf_hash, input, receipt} => {
+        SubmitTxResponse::Exec {receipt, ..} => {
             let tx_exec = TxExec {
                 envelope: tx_envelope,
                 receipt,

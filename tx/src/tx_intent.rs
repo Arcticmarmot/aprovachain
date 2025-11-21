@@ -1,7 +1,4 @@
-use std::fmt::{Display, Formatter};
-use std::marker::PhantomData;
-use std::str::FromStr;
-use risc0_zkvm::{Digest, Receipt};
+use risc0_zkvm::{Digest};
 use serde::{Deserialize, Serialize};
 use account::address::{ChainAddrBytes, UserAddress};
 use account::keypair::{AccountVerifyingKey, AccountVerifyingKeyBytes};
