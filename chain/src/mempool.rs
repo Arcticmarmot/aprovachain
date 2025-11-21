@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::fmt::{write, Debug, Formatter};
+use std::fmt::{Debug, Formatter};
 use primitives::clock::unix_time_millis;
 use primitives::hash::Hash32;
 use tx::tx_exec_seal::{TxExecSeal, TxExecSealWire};

@@ -101,6 +101,7 @@ pub fn handle_deploy_tx(intent: &TxIntent, image_id: &Digest, elf: &Vec<u8>, elf
 }
 
 pub fn handle_exec_tx(intent: &TxIntent, ctr_addr: &ChainAddrBytes, input: &Vec<u8>) -> Result<SubmitTxResponse> {
+    tracing::info!(target: "node::handle", tx_id=?intent.tx_id());
     // 根据合约地址查找合约 BCS 编码向量
     let ctr = match kv_get(ctr_addr)? {
         Some(ctr_bytes) => {

@@ -1,6 +1,5 @@
 use risc0_zkvm::Receipt;
 use serde::{Deserialize, Serialize};
-use account::keypair::{AccountVerifyingKey};
 use primitives::hash::{sha256};
 use crate::tx_envelope::{TxEnvelope, TxEnvelopeWire};
 use crate::error::{Result, TxError};
@@ -25,7 +24,7 @@ impl TryFrom<TxExecWire> for TxExec {
 }
 
 impl TxExec {
-    pub fn create(envelope: TxEnvelope, receipt: Receipt, vk: AccountVerifyingKey) -> Result<Self> {
+    pub fn create(envelope: TxEnvelope, receipt: Receipt) -> Result<Self> {
         Ok(Self {
             envelope,
             receipt,
