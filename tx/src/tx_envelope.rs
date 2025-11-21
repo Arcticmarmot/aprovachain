@@ -7,7 +7,7 @@ use crate::tx_intent::{TxIntent, TxIntentWire};
 use crate::error::Result;
 use crate::tx_id::TxEnvelopeId;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TxEnvelope {
     pub intent: TxIntent,
     pub signature: AccountSignature,

@@ -8,6 +8,9 @@ use tokio::sync::mpsc;
 use chain::block::Block;
 use tx::tx_exec_seal::{TxExecSeal, TxExecSealWire};
 
+
+pub const TX_COUNT_LIMIT: usize = 3;
+
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
 struct NodeArgs {
@@ -23,7 +26,7 @@ async fn main() -> Result<()> {
 
     // 解析 NodeArgs
     let args = NodeArgs::parse();
-    
+
     let mut block = Block::genesis()?;
 
     let (cmd_tx, cmd_rx) =
@@ -47,7 +50,12 @@ async fn main() -> Result<()> {
                         let wire = TxExecSealWire::try_decode_bcs(&tx_bytes)?;
                         let tx = TxExecSeal::try_from(wire)?;
                         block.push_tx(tx)?;
-                        tracing::info!(target:"consensus::main", ?block)
+                        if block.count() > TX_COUNT_LIMIT {
+                            let new_block = block.wrap_block()?;
+                            cmd_handle.publish_block(new_block.to_canonical_bytes())?;
+                            tracing::info!(target:"consensus::block", ?block, "published")
+                        }
+                        tracing::info!(target:"consensus::block", ?block)
                     }
                 }
             },

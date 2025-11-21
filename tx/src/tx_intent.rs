@@ -33,7 +33,7 @@ pub enum TxPayload {
     // }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TxIntent {
     pub chain_id: ChainId,
     pub nonce: u128,

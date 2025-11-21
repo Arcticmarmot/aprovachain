@@ -5,10 +5,13 @@ use serde::{Deserialize, Serialize};
 use primitives::hash::Hash32;
 use crate::error::TxError;
 
-
+#[derive(Debug, Clone, PartialEq)]
 pub enum Intent {}
+#[derive(Debug, Clone, PartialEq)]
 pub enum Envelope {}
+#[derive(Debug, Clone, PartialEq)]
 pub enum Exec {}
+#[derive(Debug, Clone, PartialEq)]
 pub enum ExecSeal {}
 
 pub type TxIntentId = TxId<Intent>;
@@ -16,7 +19,7 @@ pub type TxEnvelopeId = TxId<Envelope>;
 pub type TxExecId = TxId<Exec>;
 pub type TxExecSealId = TxId<ExecSeal>;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TxId<T>(pub Hash32, PhantomData<T>);
 
 impl<T> Display for TxId<T> {

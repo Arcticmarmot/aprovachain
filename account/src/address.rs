@@ -53,7 +53,7 @@ impl From<&AccountVerifyingKey> for Address {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UserAddress {
     pub chain_id: ChainId,
     pub addr: Address,
