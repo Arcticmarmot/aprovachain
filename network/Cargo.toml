@@ -15,7 +15,5 @@ anyhow = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 primitives = { workspace = true }
-spec = { workspace = true }
-tx = { workspace = true }
 hex = { workspace = true }
 account = { workspace = true }

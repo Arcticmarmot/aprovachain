@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use primitives::clock::unix_time_millis;
 use primitives::hash::Hash32;
 use tx::tx_exec_seal::TxExecSeal;
 use crate::error::Result;
@@ -11,10 +12,23 @@ pub struct BlockHeader {
     pub timestamp: u128,
 }
 
+impl BlockHeader {
+    pub fn genesis() -> Result<Self> {
+        let now = unix_time_millis()?;
+        Ok(Self {
+            parent_hash: [0u8; 32],
+            height: 0,
+            tx_root: [0u8; 32],
+            timestamp: now
+        })
+    }
+}
 
+
+#[derive(Debug)]
 pub struct Block {
-    header: BlockHeader,
-    txs: Vec<TxExecSeal>
+    pub header: BlockHeader,
+    pub txs: Vec<TxExecSeal>
 }
 
 impl Block {
@@ -25,8 +39,17 @@ impl Block {
         }
     }
 
-    pub fn push_tx(&mut self, tx_envelope: TxExecSeal) -> Result<()> {
-        self.txs.push(tx_envelope);
+    pub fn genesis() -> Result<Self> {
+        let header = BlockHeader::genesis()?;
+        let txs = Vec::new();
+        Ok(Self {
+            header,
+            txs
+        })
+    }
+
+    pub fn push_tx(&mut self, tx_seal: TxExecSeal) -> Result<()> {
+        self.txs.push(tx_seal);
         Ok(())
     }
 

@@ -7,11 +7,10 @@ use anyhow::Result;
 use libp2p::identity::Keypair;
 use crate::behaviour::behaviour::{PeerBehaviour, PeerEvent};
 use crate::behaviour::peer_set::PeerSet;
-use tokio::sync::mpsc::UnboundedReceiver;
-use crate::handle::{P2pCmd};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use crate::handle::{P2pCmd, P2pEvent};
 use account::keypair::{AccountSigningKey, AccountSigningKeyBytes};
 use primitives::file::{load_node_sk_path};
-use tx::tx_exec_seal::{TxExecSeal, TxExecSealWire};
 use crate::behaviour::gossip::GossipTopic;
 
 pub fn load_node_sk_bytes() -> Result<AccountSigningKeyBytes> {
@@ -28,7 +27,7 @@ pub fn init_p2p() -> Result<(AccountSigningKey, PeerSet, Swarm<PeerBehaviour>)> 
     let local_key = Keypair::ed25519_from_bytes(sk_bytes)?;
     let local_id = PeerId::from(local_key.public());
     let sk = AccountSigningKey::from_bytes(&sk_bytes);
-    
+
     let disc_behaviour = PeerBehaviour::new(&local_key);
 
     let mut swarm = libp2p::SwarmBuilder::with_existing_identity(local_key)
@@ -45,15 +44,16 @@ pub fn init_p2p() -> Result<(AccountSigningKey, PeerSet, Swarm<PeerBehaviour>)> 
 }
 
 pub async fn start_p2p(
-    mut peer_set: PeerSet,  
+    mut peer_set: PeerSet,
     mut swarm: Swarm<PeerBehaviour>,
-    mut cmd_receiver: UnboundedReceiver<P2pCmd>
+    mut cmd_rx: UnboundedReceiver<P2pCmd>,
+    event_tx: UnboundedSender<P2pEvent>,
 ) {
     let swarm = &mut swarm;
     let _ = PeerSet::init(swarm);
     loop {
         tokio::select! {
-            Some(cmd) = cmd_receiver.recv() => {
+            Some(cmd) = cmd_rx.recv() => {
                 match cmd {
                     P2pCmd::PublishTx(tx_bytes) => {
                         let _ = swarm.behaviour_mut().publish_tx(tx_bytes);
@@ -99,11 +99,7 @@ pub async fn start_p2p(
                         let bytes = message.data;
                         match GossipTopic::from_hash(&topic) {
                             Some(GossipTopic::Tx) => {
-                                let tx_seal_wire: TxExecSealWire = TxExecSealWire::try_decode_bcs(bytes.as_ref()).unwrap();
-                                let tx_exec_seal = TxExecSeal::try_from(tx_seal_wire).unwrap();
-                                tracing::info!(target:"net::tx", ?tx_exec_seal);
-                                let mut tx_pool: Vec<TxExecSeal> = Vec::new();
-                                tx_pool.push(tx_exec_seal);
+                                event_tx.send(P2pEvent::PushTx(bytes)).unwrap();
                             },
                             Some(GossipTopic::Block) => {
 

@@ -1,11 +1,8 @@
 use thiserror::Error;
-use tx::error::TxError;
-use crate::handle::{P2pCmd, TxCmd};
+use crate::handle::{P2pCmd, P2pEvent};
 
 #[derive(Debug, Error)]
 pub enum PeerError {
-    #[error(transparent)]
-    Tx(#[from] TxError),
     #[error("dial peer failed")]
     DialPeer,
     #[error("dial peer failed")]
@@ -13,7 +10,7 @@ pub enum PeerError {
     #[error("send cmd failed")]
     SendP2pCmd(#[from] tokio::sync::mpsc::error::SendError<P2pCmd>),
     #[error("send cmd failed")]
-    SendTxCmd(#[from] tokio::sync::mpsc::error::SendError<TxCmd>),
+    SendTxCmd(#[from] tokio::sync::mpsc::error::SendError<P2pEvent>),
     #[error("gossip publish failed")]
     GossipPublish(#[from] libp2p::gossipsub::PublishError)
 }

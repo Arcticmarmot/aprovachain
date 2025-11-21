@@ -1,14 +1,13 @@
 use std::time::Duration;
 use libp2p::{identify, ping, mdns, Multiaddr, PeerId, identity, kad, gossipsub, StreamProtocol};
-use libp2p::gossipsub::{Message, MessageAuthenticity, MessageId, TopicHash};
+use libp2p::gossipsub::{Message, MessageAuthenticity, MessageId};
 use libp2p::kad::store::MemoryStore;
 use libp2p::swarm::{NetworkBehaviour};
-use tx::tx_exec_seal::{TxExecSeal, TxExecSealWire};
 use crate::behaviour::gossip::GossipTopic;
-use crate::error::{PeerError, Result};
+use crate::error::{Result};
 
-const APROVA_KAD_PROTO: &'static str = "/aprova/kad/1.0.0";
-
+const APROVA_KAD_PROTO: &'static str = "/aprova/kad/v0.1";
+const APROVA_GOSSIP_PROTO: &'static str = "/aprova/gossip/v0.1";
 #[derive(NetworkBehaviour)]
 #[behaviour(to_swarm = "PeerEvent")]
 pub struct PeerBehaviour {
@@ -178,7 +177,7 @@ impl PeerBehaviour {
         kademlia.set_mode(Some(kad::Mode::Server));
 
         let gossipsub_cfg = gossipsub::ConfigBuilder::default()
-            .protocol_id_prefix("/aprova/gossip/v0.1")
+            .protocol_id_prefix(APROVA_GOSSIP_PROTO)
             .validation_mode(gossipsub::ValidationMode::Strict)
             .max_transmit_size(5 * 1024 * 1024)
             .build().expect("build gossipsub config");
@@ -204,15 +203,13 @@ impl PeerBehaviour {
     pub fn publish_tx(&mut self, tx_bytes: Vec<u8>) -> Result<()> {
         tracing::info!(target:"network::gossip", len=%tx_bytes.len(), "tx seal size: ");
         let topic = GossipTopic::Tx.ident();
-        let tx_seal_wire: TxExecSealWire = TxExecSealWire::try_decode_bcs(tx_bytes.as_ref())?;
-        let tx_exec_seal = TxExecSeal::try_from(tx_seal_wire)?;
         self.gossipsub.publish(topic, tx_bytes)?;
         Ok(())
     }
 
     pub fn publish_block(&mut self, block_bytes: Vec<u8>) -> Result<()> {
+        tracing::info!(target:"network::gossip", len=%block_bytes.len(), "block size: ");
         let topic = GossipTopic::Block.ident();
-        // TODO: 验证 block_bytes
         let _ = self.gossipsub.publish(topic, block_bytes);
         Ok(())
     }

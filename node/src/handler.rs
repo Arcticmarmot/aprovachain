@@ -23,7 +23,7 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
     // 验证交易签名是否有效
     // TODO: 重放交易攻击，拒绝重复的 nonce
     verify_tx_sig(&tx_envelope)?;
-    let p2p_handle = state.p2p_handle;
+    let cmd_handle = state.cmd_handle;
     let sk = state.sk;
     // 执行交易
     let intent = handle_intent(&tx_envelope.intent)?;
@@ -35,11 +35,10 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
                 envelope: tx_envelope,
                 receipt,
             };
-            let wire = TxExecWire::from(&tx_exec);
             tracing::info!(target: "node::axum", len=?tx_exec.envelope.to_canonical_bytes().len(), "envelope size");
             tracing::info!(target: "node::axum", len=?tx_exec.to_canonical_bytes().len(), "tx exec size");
             let tx_seal = TxExecSeal::create(tx_exec, sk);
-            p2p_handle.publish_tx(tx_seal.to_canonical_bytes())?;
+            cmd_handle.publish_tx(tx_seal.to_canonical_bytes())?;
         }
     };
     Ok(Json(intent))

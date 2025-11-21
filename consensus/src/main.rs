@@ -1,10 +1,11 @@
 use anyhow::Result;
-use clap::{arg, Parser};
+use clap::{Parser};
 use tokio::{spawn};
-use network::handle::{P2pCmd, P2pHandle, TxCmd};
-use network::consensus_p2p::{init_p2p, start_p2p};
+use network::handle::*;
+use network::p2p::{init_p2p, start_p2p};
 use consensus::bootstrap::{init_env, init_logging};
 use tokio::sync::mpsc;
+use chain::block::Block;
 use tx::tx_exec_seal::{TxExecSeal, TxExecSealWire};
 
 #[derive(Parser, Debug)]
@@ -22,29 +23,31 @@ async fn main() -> Result<()> {
 
     // 解析 NodeArgs
     let args = NodeArgs::parse();
+    
+    let mut block = Block::genesis()?;
 
-    let (cmd_sender, cmd_receiver) =
+    let (cmd_tx, cmd_rx) =
         mpsc::unbounded_channel::<P2pCmd>();
-    let (tx_sender, mut tx_receiver) =
-        mpsc::unbounded_channel::<TxCmd>();
+    let (event_tx, mut event_rx) =
+        mpsc::unbounded_channel::<P2pEvent>();
+    let cmd_handle = P2pCmdHandle::new(cmd_tx.clone());
 
     let (sk, peer_set, swarm) = init_p2p()?;
-    tracing::info!("p2p init success...");
+    // p2p 接收P2pCmd命令，发出P2pEvent事件
     spawn(async move {
-        let _ = start_p2p(peer_set, swarm, cmd_receiver, tx_sender).await;
+        let _ = start_p2p(peer_set, swarm, cmd_rx, event_tx).await;
     });
-    let p2p_handle = P2pHandle::new(cmd_sender.clone());
-    let mut tx_pool: Vec<TxExecSeal> = Vec::new();
-    // 2. 等待退出信号 或 p2p 任务异常结束
+    tracing::info!("p2p init success...");
+
     loop {
         tokio::select! {
-            Some(cmd) = tx_receiver.recv() => {
+            Some(cmd) = event_rx.recv() => {
                 match cmd {
-                    TxCmd::PushTx(tx_bytes) => {
+                    P2pEvent::PushTx(tx_bytes) => {
                         let wire = TxExecSealWire::try_decode_bcs(&tx_bytes)?;
                         let tx = TxExecSeal::try_from(wire)?;
-                        tx_pool.push(tx);
-                        tracing::info!(target:"consensus::main", len=tx_pool.len())
+                        block.push_tx(tx)?;
+                        tracing::info!(target:"consensus::main", ?block)
                     }
                 }
             },

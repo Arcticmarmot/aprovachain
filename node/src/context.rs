@@ -1,13 +1,13 @@
 use risc0_zkvm::{Digest, Receipt};
 use serde::{Deserialize, Serialize};
 use account::address::ChainAddrBytes;
-use network::handle::P2pHandle;
+use network::handle::{P2pCmdHandle};
 use account::keypair::{AccountSigningKey};
 use primitives::hash::Hash32;
 
 #[derive(Debug, Clone)]
 pub struct AppState {
-    pub p2p_handle: P2pHandle,
+    pub cmd_handle: P2pCmdHandle,
     pub sk: AccountSigningKey
 }
 

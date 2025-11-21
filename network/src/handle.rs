@@ -6,11 +6,11 @@ pub enum P2pCmd {
 }
 
 #[derive(Debug, Clone)]
-pub struct P2pHandle {
+pub struct P2pCmdHandle {
     sender: UnboundedSender<P2pCmd>
 }
 
-impl P2pHandle {
+impl P2pCmdHandle {
     pub fn new(sender: UnboundedSender<P2pCmd>) -> Self {
         Self { sender }
     }
@@ -26,22 +26,22 @@ impl P2pHandle {
     }
 }
 
-pub enum TxCmd {
+pub enum P2pEvent {
     PushTx(Vec<u8>),
 }
 
 #[derive(Debug, Clone)]
-pub struct TxHandle {
-    sender: UnboundedSender<TxCmd>
+pub struct P2pEventHandle {
+    sender: UnboundedSender<P2pEvent>
 }
 
-impl TxHandle {
-    pub fn new(sender: UnboundedSender<TxCmd>) -> Self {
+impl P2pEventHandle {
+    pub fn new(sender: UnboundedSender<P2pEvent>) -> Self {
         Self { sender }
     }
 
     pub fn push_tx(&self, tx_bytes: Vec<u8>) -> Result<()> {
-        self.sender.send(TxCmd::PushTx(tx_bytes))?;
+        self.sender.send(P2pEvent::PushTx(tx_bytes))?;
         Ok(())
     }
 }
