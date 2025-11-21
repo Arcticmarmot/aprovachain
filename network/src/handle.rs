@@ -1,5 +1,7 @@
 use tokio::sync::mpsc::{UnboundedSender};
 use crate::error::Result;
+use crate::handle::P2pEvent::{ReceivedBlock, ReceivedTx};
+
 pub enum P2pCmd {
     PublishTx(Vec<u8>),
     PublishBlock(Vec<u8>)
@@ -27,7 +29,8 @@ impl P2pCmdHandle {
 }
 
 pub enum P2pEvent {
-    PushTx(Vec<u8>),
+    ReceivedTx(Vec<u8>),
+    ReceivedBlock(Vec<u8>)
 }
 
 #[derive(Debug, Clone)]
@@ -40,8 +43,13 @@ impl P2pEventHandle {
         Self { sender }
     }
 
-    pub fn push_tx(&self, tx_bytes: Vec<u8>) -> Result<()> {
-        self.sender.send(P2pEvent::PushTx(tx_bytes))?;
+    pub fn received_tx(&self, tx_bytes: Vec<u8>) -> Result<()> {
+        self.sender.send(ReceivedTx(tx_bytes))?;
+        Ok(())
+    }
+
+    pub fn received_block(&self, block_bytes: Vec<u8>) -> Result<()> {
+        self.sender.send(ReceivedBlock(block_bytes))?;
         Ok(())
     }
 }

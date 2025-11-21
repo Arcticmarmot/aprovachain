@@ -889,6 +889,7 @@ dependencies = [
  "primitives",
  "serde",
  "serde_with",
+ "sha2",
  "spec",
  "thiserror 2.0.17",
  "tx",

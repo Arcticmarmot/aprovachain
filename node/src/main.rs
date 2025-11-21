@@ -4,7 +4,7 @@ use std::net::SocketAddr;
 use clap::{arg, Parser};
 use tokio::{signal, spawn};
 use db::runtime::{init_db, close_db, DBFileMode};
-use network::handle::{P2pCmd, P2pCmdHandle, P2pEvent};
+use network::handle::{P2pCmd, P2pCmdHandle, P2pEvent, P2pEventHandle};
 use network::p2p::{init_p2p, start_p2p};
 use node::bootstrap::{init_env, init_logging};
 use node::handler::{submit_tx};
@@ -41,11 +41,12 @@ async fn main() -> Result<()> {
     let (event_tx, event_rx) =
         mpsc::unbounded_channel::<P2pEvent>();
     let cmd_handle = P2pCmdHandle::new(cmd_tx.clone());
+    let event_handle = P2pEventHandle::new(event_tx.clone());
 
     let (sk, peer_set, swarm) = init_p2p()?;
     // p2p 接收P2pCmd命令，发出P2pEvent事件
     spawn(async move {
-        let _ = start_p2p(peer_set, swarm, cmd_rx, event_tx).await;
+        let _ = start_p2p(peer_set, swarm, cmd_rx, event_handle).await;
     });
     tracing::info!("p2p init success...");
 

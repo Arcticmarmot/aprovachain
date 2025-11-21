@@ -85,7 +85,7 @@ impl TxIntent {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TxIntentWire {
     pub chain_id: u64,
     pub nonce: u128,

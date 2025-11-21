@@ -81,7 +81,7 @@ impl TxExecSeal {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TxExecSealWire {
     pub exec: TxExecWire,
     pub verifying_key: AccountVerifyingKeyBytes,

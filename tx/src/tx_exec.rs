@@ -41,7 +41,7 @@ impl TxExec {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TxExecWire {
     pub envelope: TxEnvelopeWire,
     pub receipt: Receipt,

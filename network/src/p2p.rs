@@ -7,8 +7,8 @@ use anyhow::Result;
 use libp2p::identity::Keypair;
 use crate::behaviour::behaviour::{PeerBehaviour, PeerEvent};
 use crate::behaviour::peer_set::PeerSet;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use crate::handle::{P2pCmd, P2pEvent};
+use tokio::sync::mpsc::{UnboundedReceiver};
+use crate::handle::{P2pCmd, P2pEventHandle};
 use account::keypair::{AccountSigningKey, AccountSigningKeyBytes};
 use primitives::file::{load_node_sk_path};
 use crate::behaviour::gossip::GossipTopic;
@@ -47,7 +47,7 @@ pub async fn start_p2p(
     mut peer_set: PeerSet,
     mut swarm: Swarm<PeerBehaviour>,
     mut cmd_rx: UnboundedReceiver<P2pCmd>,
-    event_tx: UnboundedSender<P2pEvent>,
+    event_handle: P2pEventHandle,
 ) {
     let swarm = &mut swarm;
     let _ = PeerSet::init(swarm);
@@ -56,10 +56,14 @@ pub async fn start_p2p(
             Some(cmd) = cmd_rx.recv() => {
                 match cmd {
                     P2pCmd::PublishTx(tx_bytes) => {
-                        let _ = swarm.behaviour_mut().publish_tx(tx_bytes);
+                        if let Err(err) = swarm.behaviour_mut().publish_tx(tx_bytes) {
+                            tracing::warn!(target: "net::cmd", %err, "publish tx cmd")
+                        }
                     }
                     P2pCmd::PublishBlock(block_bytes) => {
-                        let _ = swarm.behaviour_mut().publish_block(block_bytes);
+                        if let Err(err) = swarm.behaviour_mut().publish_block(block_bytes) {
+                            tracing::warn!(target: "net::cmd", %err, "publish block cmd")
+                        }
                     }
                 }
             },
@@ -99,10 +103,14 @@ pub async fn start_p2p(
                         let bytes = message.data;
                         match GossipTopic::from_hash(&topic) {
                             Some(GossipTopic::Tx) => {
-                                event_tx.send(P2pEvent::PushTx(bytes)).unwrap();
+                                if let Err(err) = event_handle.received_tx(bytes) {
+                                    tracing::warn!(target: "net::event", %err, "receive tx event")
+                                }
                             },
                             Some(GossipTopic::Block) => {
-
+                                if let Err(err) = event_handle.received_block(bytes) {
+                                    tracing::warn!(target: "net::event", %err, "receive block event")
+                                }
                             },
                             None => { }
                         }

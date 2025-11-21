@@ -12,4 +12,5 @@ primitives = { workspace = true }
 thiserror = { workspace = true }
 bcs = { workspace = true }
 hex = { workspace = true }
+sha2 = { workspace = true }
 spec = { workspace = true }

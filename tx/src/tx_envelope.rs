@@ -47,7 +47,7 @@ impl TryFrom<TxEnvelopeWire> for TxEnvelope {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TxEnvelopeWire {
     pub intent: TxIntentWire,
     #[serde_as(as = "Bytes")]

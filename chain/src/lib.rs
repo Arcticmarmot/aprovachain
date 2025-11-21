@@ -1,3 +1,4 @@
 pub mod error;
 pub mod block;
-mod chain;
+pub mod chain;
+pub mod mempool;
