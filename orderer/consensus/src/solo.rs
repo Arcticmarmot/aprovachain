@@ -7,6 +7,7 @@ use chain::block::{Block, BlockHeader};
 use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
 use crate::error::Result;
+
 pub enum InputEvent {
     Tick,
     ReceivedTx(Vec<u8>),
@@ -37,14 +38,15 @@ impl SoloService {
         }
     }
 
-    pub fn pack_block(&self) -> Result<Block> {
-        let curr_header = self.chain_state.tip_header;
-        let block = self.mempool_handle.pack_block(&curr_header, 2)?;
+    pub fn pack_block(&mut self) -> Result<Block> {
+        let tip_header = self.chain_state.tip_header;
+        let block = self.mempool_handle.pack_block(&tip_header, 2)?;
         Ok(block)
     }
 
-    pub fn update_chain_state(&mut self, header: BlockHeader) {
-        self.chain_state.tip_header = header;
+    pub fn update_chain_state(&mut self, header: BlockHeader) -> Result<()> {
+        self.chain_state.update(header)?;
+        Ok(())
     }
 
     pub fn is_leader(&self) -> bool {
@@ -71,20 +73,39 @@ pub async fn start_consensus(service: &mut SoloService,
             Some(input) = input_rx.recv() => {
                 match input {
                     InputEvent::Tick => {
-                        tracing::info!(target:"consensus::tick", "tick tock");
-                        if service.is_leader() {
-                            let block = service.pack_block()?;
-                            service.update_chain_state(block.header);
-                            tracing::info!(target:"consensus::tick", chain=?service.chain_state, "tick tock");
-                            if let Err(err) = output_tx.send(OutputEvent::CommitBlock(block.encode_bcs())) {
-                                tracing::warn!(target:"consensus::output", %err, "propose block");
+                        tracing::info!(target:"consensus::event", "tick tock");
+                        if !service.is_leader() { continue; }
+                        match service.pack_block() {
+                            Ok(block) => {
+                                match service.update_chain_state(block.header) {
+                                    Ok(()) => {
+                                        tracing::info!(target:"consensus::event", chain=?service.chain_state, "state");
+                                        if let Err(err) =
+                                            output_tx.send(OutputEvent::CommitBlock(block.encode_bcs())) {
+                                            tracing::warn!(target:"consensus::event", %err, "output event");
+                                        }
+                                    }
+                                    Err(err) => {
+                                        tracing::warn!(target:"consensus::event", %err, "update chain state");
+                                    }
+                                }
+                            },
+                            Err(err) => {
+                                tracing::warn!(target:"consensus::event", %err, "pack block");
                             }
                         }
+
                     },
                     InputEvent::ReceivedTx(tx_bytes)=> {
-                        tracing::info!(target:"consensus::tick", "received tx");
-                        if service.is_leader() {
-                            service.mempool_handle.push_tx(tx_bytes);
+                        tracing::info!(target:"consensus::event", "received tx");
+                        if !service.is_leader() { continue; }
+                        match service.mempool_handle.received_tx(tx_bytes) {
+                            Ok(()) => {
+                                tracing::info!(target:"consensus::event", "pushed tx");
+                            }
+                            Err(err) => {
+                                tracing::warn!(target:"consensus::event", %err, "received tx");
+                            }
                         }
                     },
                 }

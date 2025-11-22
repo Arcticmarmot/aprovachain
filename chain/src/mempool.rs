@@ -1,3 +1,4 @@
+use std::cmp::min;
 use std::collections::HashSet;
 use std::fmt::{Debug, Formatter};
 use primitives::clock::unix_time_millis;
@@ -37,6 +38,10 @@ impl Mempool {
         Ok(())
     }
 
+    pub fn remove_tx(&mut self, tx: &TxExecSeal) -> bool {
+        self.txs.remove(tx)
+    }
+
     pub fn count(&self) -> usize {
         self.txs.len()
     }
@@ -45,37 +50,47 @@ impl Mempool {
 
 pub struct MempoolHandle {
     mempool: Mempool,
+    bufpool: Vec<TxExecSeal>
 }
 
 impl MempoolHandle {
     pub fn new() -> Self {
         Self {
-            mempool: Mempool::new()
+            mempool: Mempool::new(),
+            bufpool: Vec::new()
         }
     }
 
-    pub fn push_tx(&mut self, tx_bytes: Vec<u8>) {
-        self.mempool.push_tx(tx_bytes);
+    pub fn received_tx(&mut self, tx_bytes: Vec<u8>) -> Result<()> {
+        self.mempool.push_tx(tx_bytes)?;
+        Ok(())
     }
 
-    pub fn pack_block(&self, parent: &BlockHeader, count: usize) -> Result<Block> {
-        if self.mempool.count() < count {
+    pub fn pack_block(&mut self, parent: &BlockHeader, count: usize) -> Result<Block> {
+        if self.mempool.count() == 0 {
             let empty_block = Block::empty(parent)?;
             return Ok(empty_block)
         }
-        // 选出前 10 个交易打包进区块
+        let count = min(count, self.mempool.count());
+        // 选出前 count 个交易打包进区块
         let mut txs: Vec<TxExecSeal> = self.mempool.txs.iter().cloned().collect();
         txs.sort_by_key(|tx| tx.tx_id.clone());
+
         let candidate_txs: Vec<&TxExecSeal> = txs.iter()
             .take(count)
             .collect();
-        let timestamp = unix_time_millis()?;
         let candidate_txs_wire: Vec<TxExecSealWire> = candidate_txs.iter()
             .map(|&tx| TxExecSealWire::from(tx))
             .collect();
+        for &tx in &candidate_txs {
+            if self.mempool.remove_tx(tx) {
+                self.bufpool.push(tx.clone())
+            }
+        }
+        let timestamp = unix_time_millis()?;
 
         let header = BlockHeader {
-            parent_hash: parent.tx_root,
+            parent_hash: parent.hash(),
             height: parent.height + 1,
             tx_root: merkel_root(&candidate_txs),
             timestamp
@@ -107,11 +122,3 @@ pub fn merkel_root(txs: &Vec<&TxExecSeal>) -> Hash32 {
     }
     queue[0].0
 }
-
-
-
-
-
-
-
-
