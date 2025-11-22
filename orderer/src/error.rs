@@ -4,7 +4,7 @@ use account::error::AccountError;
 use contract::error::ContractError;
 
 #[derive(Debug, Error)]
-pub enum ConsensusError {
+pub enum OrdererError {
     #[error(transparent)]
     Tx(#[from] TxError),
     #[error(transparent)]
@@ -13,4 +13,4 @@ pub enum ConsensusError {
     Contract(#[from] ContractError),
 }
 
-pub type Result<T> = std::result::Result<T, ConsensusError>;
+pub type Result<T> = std::result::Result<T, OrdererError>;

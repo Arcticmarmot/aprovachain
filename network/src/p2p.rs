@@ -1,9 +1,9 @@
 use std::fs;
 use std::time::Duration;
-use futures::StreamExt;
 use libp2p::{noise, tcp, yamux, PeerId};
 use libp2p::swarm::{SwarmEvent, Swarm};
 use anyhow::Result;
+use libp2p::futures::StreamExt;
 use libp2p::identity::Keypair;
 use crate::behaviour::behaviour::{PeerBehaviour, PeerEvent};
 use crate::behaviour::peer_set::PeerSet;

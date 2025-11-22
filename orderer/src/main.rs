@@ -3,7 +3,7 @@ use clap::{Parser};
 use tokio::{spawn};
 use network::handle::*;
 use network::p2p::{init_p2p, start_p2p};
-use consensus::bootstrap::{init_env, init_logging};
+use orderer::bootstrap::{init_env, init_logging};
 use tokio::sync::mpsc;
 use chain::block::Block;
 use chain::mempool::{pack_block, Mempool};

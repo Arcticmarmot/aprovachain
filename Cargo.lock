@@ -997,23 +997,10 @@ dependencies = [
 name = "consensus"
 version = "0.1.0"
 dependencies = [
- "account",
  "anyhow",
- "axum",
  "chain",
- "clap",
- "contract",
- "dotenvy",
- "network",
- "primitives",
- "risc0-zkvm",
- "serde",
- "thiserror 2.0.17",
+ "libp2p",
  "tokio",
- "tracing",
- "tracing-appender",
- "tracing-subscriber 0.3.20",
- "tx",
 ]
 
 [[package]]
@@ -3296,7 +3283,6 @@ version = "0.1.0"
 dependencies = [
  "account",
  "anyhow",
- "futures",
  "hex",
  "libp2p",
  "primitives",
@@ -3552,6 +3538,30 @@ name = "option-ext"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
+
+[[package]]
+name = "orderer"
+version = "0.1.0"
+dependencies = [
+ "account",
+ "anyhow",
+ "axum",
+ "chain",
+ "clap",
+ "consensus",
+ "contract",
+ "dotenvy",
+ "network",
+ "primitives",
+ "risc0-zkvm",
+ "serde",
+ "thiserror 2.0.17",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber 0.3.20",
+ "tx",
+]
 
 [[package]]
 name = "parking"

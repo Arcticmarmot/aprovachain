@@ -39,25 +39,32 @@ impl Mempool {
     }
 }
 
-pub fn pack_block(mempool: &Mempool, parent: &BlockHeader, count: usize) -> Result<Block> {
-    // 选出前 10 个交易打包进区块
-    let mut txs: Vec<TxExecSeal> = mempool.txs.iter().cloned().collect();
-    txs.sort_by_key(|tx| tx.tx_id.clone());
-    let candidate_txs: Vec<&TxExecSeal> = txs.iter()
-        .take(count)
-        .collect();
-    let timestamp = unix_time_millis()?;
-    let candidate_txs_wire: Vec<TxExecSealWire> = candidate_txs.iter()
-        .map(|&tx| TxExecSealWire::from(tx))
-        .collect();
 
-    let header = BlockHeader {
-        parent_hash: parent.tx_root,
-        height: parent.height + 1,
-        tx_root: merkel_root(&candidate_txs),
-        timestamp
-    };
-    Ok(Block::new(header, candidate_txs_wire))
+pub struct MempoolHandle {
+    mempool: Mempool
+}
+
+impl MempoolHandle {
+    pub fn pack_block(&self, parent: &BlockHeader, count: usize) -> Result<Block> {
+        // 选出前 10 个交易打包进区块
+        let mut txs: Vec<TxExecSeal> = self.mempool.txs.iter().cloned().collect();
+        txs.sort_by_key(|tx| tx.tx_id.clone());
+        let candidate_txs: Vec<&TxExecSeal> = txs.iter()
+            .take(count)
+            .collect();
+        let timestamp = unix_time_millis()?;
+        let candidate_txs_wire: Vec<TxExecSealWire> = candidate_txs.iter()
+            .map(|&tx| TxExecSealWire::from(tx))
+            .collect();
+
+        let header = BlockHeader {
+            parent_hash: parent.tx_root,
+            height: parent.height + 1,
+            tx_root: merkel_root(&candidate_txs),
+            timestamp
+        };
+        Ok(Block::new(header, candidate_txs_wire))
+    }
 }
 
 pub fn merkel_root(txs: &Vec<&TxExecSeal>) -> Hash32 {
@@ -83,6 +90,8 @@ pub fn merkel_root(txs: &Vec<&TxExecSeal>) -> Hash32 {
     }
     queue[0].0
 }
+
+
 
 
 

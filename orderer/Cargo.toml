@@ -1,5 +1,5 @@
 [package]
-name = "consensus"
+name = "orderer"
 version = "0.1.0"
 edition = "2024"
 
@@ -21,3 +21,4 @@ clap = { workspace = true }
 dotenvy = { workspace = true }
 primitives = { workspace = true }
 serde = { workspace = true}
+consensus = { path = "consensus" }

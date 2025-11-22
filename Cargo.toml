@@ -5,10 +5,9 @@ edition = "2024"
 authors = ["marmot"]
 
 [workspace]
-members = [
-    "account", "apps", "spec", "methods", "methods/uav", "keygen", "node",
-    "primitives", "tx", "contract", "network", "chain", "consensus",
-]
+members = ["account", "apps", "spec", "methods", "methods/uav",
+    "keygen", "node", "node/db", "primitives", "tx", "contract", "network",
+    "chain", "orderer", "orderer/consensus"]
 
 [dependencies]
 
@@ -22,7 +21,8 @@ node = { path = "node" }
 contract = { path = "contract" }
 chain = { path = "chain" }
 network = { path = "network" }
-consensus = { path = "consensus" }
+consensus = { path = "orderer/consensus" }
+db = { path = "node/db" }
 
 directories = { version = "6" }
 tracing = { version="0.1" }
@@ -48,3 +48,8 @@ axum = { version = "0.8" }
 once_cell = { version = "1" }
 risc0-zkvm = { version = "3" }
 risc0-build = { version = "3" }
+libp2p = { version = "0.56", features = [
+    "tokio", "noise", "yamux", "macros",
+    "tcp", "dns", "websocket", "quic",
+    "identify", "kad", "mdns", "ping", "gossipsub",
+] }
