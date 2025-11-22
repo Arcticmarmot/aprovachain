@@ -1000,7 +1000,9 @@ dependencies = [
  "anyhow",
  "chain",
  "libp2p",
+ "thiserror 2.0.17",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -3315,6 +3317,7 @@ dependencies = [
  "account",
  "anyhow",
  "axum",
+ "chain",
  "clap",
  "contract",
  "db",
@@ -3551,10 +3554,12 @@ dependencies = [
  "consensus",
  "contract",
  "dotenvy",
+ "libp2p",
  "network",
  "primitives",
  "risc0-zkvm",
  "serde",
+ "spec",
  "thiserror 2.0.17",
  "tokio",
  "tracing",

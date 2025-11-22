@@ -1,5 +1,4 @@
 use std::time::Duration;
-use anyhow::Result;
 use libp2p::PeerId;
 use tokio::spawn;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
@@ -7,53 +6,53 @@ use tokio::time::sleep;
 use chain::block::{Block, BlockHeader};
 use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
-
+use crate::error::Result;
 pub enum InputEvent {
     Tick,
-    ReceivedTx,
-    ReceivedBlock
+    ReceivedTx(Vec<u8>),
 }
 
 pub enum OutputEvent {
-    CommitBlock(BlockHeader),
-    ProposeBlock(Block)
+    CommitBlock(Vec<u8>),
 }
 
-pub const TICK_INTERVAL: Duration = Duration::from_secs(5);
+pub const TICK_INTERVAL: Duration = Duration::from_secs(30);
 pub struct SoloService {
-    self_id: PeerId,
+    local_id: PeerId,
     leader_id: PeerId,
     chain_state: ChainState,
-    tick_interval: Duration,
     mempool_handle: MempoolHandle
 }
 
 impl SoloService {
-    pub fn new(self_id: PeerId, 
-               leader_id: PeerId, 
-               chain_state: ChainState, 
-               tick_interval: Duration,
+    pub fn new(local_id: PeerId,
+               leader_id: PeerId,
+               chain_state: ChainState,
                mempool_handle: MempoolHandle) -> Self {
         Self {
-            self_id,
+            local_id,
             leader_id,
             chain_state,
-            tick_interval,
             mempool_handle
         }
     }
-    
-    pub fn get_tip_block(&self) -> BlockHeader {
-        self.chain_state.tip_header
+
+    pub fn pack_block(&self) -> Result<Block> {
+        let curr_header = self.chain_state.tip_header;
+        let block = self.mempool_handle.pack_block(&curr_header, 2)?;
+        Ok(block)
     }
-    
-    pub fn pack_block(&self) -> Block {
-        let block = self.mempool_handle.pack_block(&self.get_tip_block(), 10).unwrap();
-        block
+
+    pub fn update_chain_state(&mut self, header: BlockHeader) {
+        self.chain_state.tip_header = header;
+    }
+
+    pub fn is_leader(&self) -> bool {
+        self.local_id == self.leader_id
     }
 }
 
-pub async fn slap_loop(input_tx: UnboundedSender<InputEvent>) {
+pub async fn slot_loop(input_tx: UnboundedSender<InputEvent>) {
     loop {
         sleep(TICK_INTERVAL).await;
         let _ = input_tx.send(InputEvent::Tick);
@@ -65,22 +64,29 @@ pub async fn start_consensus(service: &mut SoloService,
                              mut input_rx: UnboundedReceiver<InputEvent>,
                              output_tx: UnboundedSender<OutputEvent>) -> Result<()> {
     spawn(async move {
-       slap_loop(input_tx).await
+        slot_loop(input_tx).await
     });
     loop {
         tokio::select! {
             Some(input) = input_rx.recv() => {
                 match input {
                     InputEvent::Tick => {
-                        let block = service.pack_block();
-                        output_tx.send(OutputEvent::ProposeBlock(block))?;
+                        tracing::info!(target:"consensus::tick", "tick tock");
+                        if service.is_leader() {
+                            let block = service.pack_block()?;
+                            service.update_chain_state(block.header);
+                            tracing::info!(target:"consensus::tick", chain=?service.chain_state, "tick tock");
+                            if let Err(err) = output_tx.send(OutputEvent::CommitBlock(block.encode_bcs())) {
+                                tracing::warn!(target:"consensus::output", %err, "propose block");
+                            }
+                        }
                     },
-                    InputEvent::ReceivedTx => {
-                        
+                    InputEvent::ReceivedTx(tx_bytes)=> {
+                        tracing::info!(target:"consensus::tick", "received tx");
+                        if service.is_leader() {
+                            service.mempool_handle.push_tx(tx_bytes);
+                        }
                     },
-                    InputEvent::ReceivedBlock => {
-                        
-                    }
                 }
             }
         }

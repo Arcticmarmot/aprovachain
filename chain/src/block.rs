@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use primitives::clock::unix_time_millis;
-use primitives::hash::Hash32;
+use primitives::hash::{sha256, Hash32, HASH32_ZERO};
 use tx::tx_exec_seal::{TxExecSealWire};
 use crate::error::Result;
 
@@ -22,6 +22,24 @@ impl BlockHeader {
             timestamp: now
         })
     }
+
+    pub fn to_canonical_bytes(&self) -> Vec<u8> {
+        bcs::to_bytes(&self).expect("BCS should be infallible by design")
+    }
+
+    pub fn hash(&self) -> Hash32 {
+        sha256(self.to_canonical_bytes())
+    }
+
+    pub fn child_of(parent: &BlockHeader, tx_root: Hash32) -> Result<Self> {
+        let now = unix_time_millis()?;
+        Ok(Self{
+            parent_hash: parent.hash(),
+            height: parent.height + 1,
+            tx_root,
+            timestamp: now
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,6 +58,15 @@ impl Block {
 
     pub fn genesis() -> Result<Self> {
         let header = BlockHeader::genesis()?;
+        let txs = Vec::new();
+        Ok(Self {
+            header,
+            txs
+        })
+    }
+
+    pub fn empty(parent: &BlockHeader) -> Result<Self> {
+        let header = BlockHeader::child_of(&parent, HASH32_ZERO)?;
         let txs = Vec::new();
         Ok(Self {
             header,

@@ -1,2 +1,2 @@
 pub mod solo;
-pub mod raft;
+pub mod error;

@@ -13,6 +13,12 @@ impl Display for ChainId {
     }
 }
 
+impl ChainId {
+    pub fn default() -> Self {
+        Self(1000)
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct ChainSpec {
     pub id: ChainId,

@@ -10,6 +10,8 @@ use node::bootstrap::{init_env, init_logging};
 use node::handler::{submit_tx};
 use tokio::sync::mpsc;
 use account::keypair::AccountSigningKey;
+use chain::block::Block;
+use db::controller::kv_put;
 use node::context::AppState;
 
 #[derive(Parser, Debug)]
@@ -38,7 +40,7 @@ async fn main() -> Result<()> {
 
     let (cmd_tx, cmd_rx) =
         mpsc::unbounded_channel::<P2pCmd>();
-    let (event_tx, event_rx) =
+    let (event_tx, mut event_rx) =
         mpsc::unbounded_channel::<P2pEvent>();
     let cmd_handle = P2pCmdHandle::new(cmd_tx.clone());
     let event_handle = P2pEventHandle::new(event_tx.clone());
@@ -51,10 +53,25 @@ async fn main() -> Result<()> {
     tracing::info!("p2p init success...");
 
     let _ = init_server(db_file_mode, sk, cmd_handle).await?;
-    Ok(())
+
+
+    loop {
+        tokio::select! {
+            Some(cmd) = event_rx.recv() => {
+                match cmd {
+                    P2pEvent::ReceivedTx(_) => { },
+                    P2pEvent::ReceivedBlock(block_bytes) => {
+                        tracing::info!(target:"orderer::event", "received block");
+                        let block = Block::try_decode_bcs(&block_bytes)?;
+                        kv_put(&block.header.tx_root, &block_bytes)?;
+                    }
+                }
+            },
+        }
+    }
 }
 
-async fn init_server(db_file_mode: DBFileMode, sk: AccountSigningKey, cmd_handle: P2pCmdHandle) -> Result<()> {
+    async fn init_server(db_file_mode: DBFileMode, sk: AccountSigningKey, cmd_handle: P2pCmdHandle) -> Result<()> {
     let state = AppState {
         sk,
         cmd_handle,

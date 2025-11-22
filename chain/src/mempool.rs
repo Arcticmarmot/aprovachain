@@ -30,8 +30,11 @@ impl Mempool {
         }
     }
 
-    pub fn push_tx(&mut self, tx_exec_seal: TxExecSeal) {
-        self.txs.insert(tx_exec_seal);
+    pub fn push_tx(&mut self, tx_bytes: Vec<u8>) -> Result<()> {
+        let wire = TxExecSealWire::try_decode_bcs(&tx_bytes)?;
+        let tx = TxExecSeal::try_from(wire)?;
+        self.txs.insert(tx);
+        Ok(())
     }
 
     pub fn count(&self) -> usize {
@@ -41,11 +44,25 @@ impl Mempool {
 
 
 pub struct MempoolHandle {
-    mempool: Mempool
+    mempool: Mempool,
 }
 
 impl MempoolHandle {
+    pub fn new() -> Self {
+        Self {
+            mempool: Mempool::new()
+        }
+    }
+
+    pub fn push_tx(&mut self, tx_bytes: Vec<u8>) {
+        self.mempool.push_tx(tx_bytes);
+    }
+
     pub fn pack_block(&self, parent: &BlockHeader, count: usize) -> Result<Block> {
+        if self.mempool.count() < count {
+            let empty_block = Block::empty(parent)?;
+            return Ok(empty_block)
+        }
         // 选出前 10 个交易打包进区块
         let mut txs: Vec<TxExecSeal> = self.mempool.txs.iter().cloned().collect();
         txs.sort_by_key(|tx| tx.tx_id.clone());
