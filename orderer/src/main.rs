@@ -10,8 +10,8 @@ use tokio::sync::mpsc;
 use chain::block::Block;
 use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
-use consensus::solo::{start_consensus, InputEvent, OutputEvent, SoloService};
-use network::handle::P2pCmd::PublishBlock;
+use consensus::handle::{SoloCmd, SoloCmdHandle, SoloEvent, SoloEventHandle};
+use consensus::solo::{start_consensus, SoloService};
 use spec::chain::ChainId;
 use tx::tx_exec_seal::{TxExecSeal, TxExecSealWire};
 
@@ -33,17 +33,17 @@ async fn main() -> Result<()> {
     // 解析 NodeArgs
     let args = NodeArgs::parse();
 
-    let (cmd_tx, cmd_rx) =
+    let (p2p_cmd_tx, p2p_cmd_rx) =
         mpsc::unbounded_channel::<P2pCmd>();
-    let (event_tx, mut event_rx) =
+    let (p2p_event_tx, mut p2p_event_rx) =
         mpsc::unbounded_channel::<P2pEvent>();
-    let cmd_handle = P2pCmdHandle::new(cmd_tx.clone());
-    let event_handle = P2pEventHandle::new(event_tx.clone());
+    let p2p_cmd_hdl = P2pCmdHandle::new(p2p_cmd_tx.clone());
+    let p2p_event_hdl = P2pEventHandle::new(p2p_event_tx.clone());
 
     let (sk, peer_set, swarm) = init_p2p()?;
     // p2p 接收P2pCmd命令，发出P2pEvent事件
     spawn(async move {
-        let _ = start_p2p(peer_set, swarm, cmd_rx, event_handle).await;
+        let _ = start_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl).await;
     });
     tracing::info!("p2p init success...");
 
@@ -51,50 +51,51 @@ async fn main() -> Result<()> {
     let local_key = Keypair::ed25519_from_bytes(sk.to_bytes())?;
     let local_id = PeerId::from(local_key.public());
 
-    let (input_tx, input_rx) =
-        mpsc::unbounded_channel::<InputEvent>();
-    let (output_tx, mut output_rx) =
-        mpsc::unbounded_channel::<OutputEvent>();
+    let (solo_cmd_tx, solo_cmd_rx) =
+        mpsc::unbounded_channel::<SoloCmd>();
+    let (solo_event_tx, mut solo_event_rx) =
+        mpsc::unbounded_channel::<SoloEvent>();
 
     let mut block = Block::genesis()?;
-    let mut chain_state = ChainState {
+    let chain_state = ChainState {
         chain_id: ChainId(1000),
         tip_header: block.header
     };
-    let mut mempool_handle = MempoolHandle::new();
-    let mut solo = SoloService::new(local_id, local_id, chain_state, mempool_handle);
+    let mempool_handle = MempoolHandle::new();
+    let solo = SoloService::new(local_id, local_id, chain_state, mempool_handle);
 
-    let tick_input_tx = input_tx.clone();
+    let solo_cmd_hdl = SoloCmdHandle::new(solo_cmd_tx.clone());
+    let solo_event_hdl = SoloEventHandle::new(solo_event_tx.clone());
     spawn(async move {
-        start_consensus(&mut solo, tick_input_tx, input_rx, output_tx).await
+        start_consensus(solo, solo_cmd_rx, solo_cmd_hdl, solo_event_hdl).await
     });
-    
+    let solo_cmd_hdl = SoloCmdHandle::new(solo_cmd_tx);
     loop {
         tokio::select! {
-            Some(cmd) = event_rx.recv() => {
+            Some(cmd) = p2p_event_rx.recv() => {
                 match cmd {
                     P2pEvent::ReceivedTx(tx_bytes) => {
                         // 验证字节数组是否是有效交易
                         let wire = TxExecSealWire::try_decode_bcs(&tx_bytes)?;
                         let tx = TxExecSeal::try_from(wire)?;
-                        if let Err(err) = input_tx.send(InputEvent::ReceivedTx(tx_bytes)) {
-                            tracing::warn!(target:"orderer::event", %err, "input event sending failed")
+                        if let Err(err) = solo_cmd_hdl.submit_tx(tx_bytes){
+                            tracing::warn!(target:"orderer::event", %err, "submit tx to consensus failed")
                         }
                     },
                     P2pEvent::ReceivedBlock(block_bytes) => {
                         tracing::info!(target:"orderer::event", "received block");
-                        let block = Block::try_decode_bcs(&block_bytes)?;
-                        
                         // 验证区块是否有效
                         // let block = Block::try_decode_bcs(&block_bytes)?;
                     }
                 }
             },
-            Some(output) = output_rx.recv() => {
+            Some(output) = solo_event_rx.recv() => {
                 match output {
-                    OutputEvent::CommitBlock(block_bytes) => {
+                    SoloEvent::BlockCommited { block_bytes } => {
                         tracing::info!(target:"orderer::event", "commited block");
-                        cmd_handle.publish_block(block_bytes);
+                        if let Err(err) = p2p_cmd_hdl.publish_block(block_bytes) {
+                            tracing::warn!(target:"orderer::event", %err, "publish block failed")
+                        }
                     }
                 }
             }

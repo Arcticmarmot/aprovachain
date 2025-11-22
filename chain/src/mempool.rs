@@ -16,9 +16,9 @@ pub struct Mempool {
 
 impl Debug for Mempool {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Mempool tx_ids:")?;
+        write!(f, "Mempool tx_ids:")?;
         for tx in &self.txs {
-            writeln!(f, "{:?}", tx.tx_id)?;
+            write!(f, "{:?}", tx.tx_id)?;
         }
         Ok(())
     }
@@ -47,17 +47,17 @@ impl Mempool {
     }
 }
 
-
+#[derive(Debug)]
 pub struct MempoolHandle {
     mempool: Mempool,
-    bufpool: Vec<TxExecSeal>
+    pending_txs: Vec<TxExecSeal>
 }
 
 impl MempoolHandle {
     pub fn new() -> Self {
         Self {
             mempool: Mempool::new(),
-            bufpool: Vec::new()
+            pending_txs: Vec::new()
         }
     }
 
@@ -67,58 +67,65 @@ impl MempoolHandle {
     }
 
     pub fn pack_block(&mut self, parent: &BlockHeader, count: usize) -> Result<Block> {
+        // 1. mempool为空，出空块
         if self.mempool.count() == 0 {
             let empty_block = Block::empty(parent)?;
             return Ok(empty_block)
         }
-        let count = min(count, self.mempool.count());
-        // 选出前 count 个交易打包进区块
+        // 2. 复制 + 排序 交易
         let mut txs: Vec<TxExecSeal> = self.mempool.txs.iter().cloned().collect();
-        txs.sort_by_key(|tx| tx.tx_id.clone());
+        // 交易排序
+        txs.sort_by_key(|tx| tx.tx_id);
 
-        let candidate_txs: Vec<&TxExecSeal> = txs.iter()
-            .take(count)
-            .collect();
-        let candidate_txs_wire: Vec<TxExecSealWire> = candidate_txs.iter()
-            .map(|&tx| TxExecSealWire::from(tx))
-            .collect();
-        for &tx in &candidate_txs {
-            if self.mempool.remove_tx(tx) {
-                self.bufpool.push(tx.clone())
+        let count = min(count, self.mempool.count());
+        let mut candidate_ids: Vec<TxExecSealId> = Vec::with_capacity(count);
+        let mut candidate_wires: Vec<TxExecSealWire> = Vec::with_capacity(count);
+        for tx in txs.into_iter().take(count) {
+            candidate_ids.push(tx.tx_id);
+            candidate_wires.push(TxExecSealWire::from(&tx));
+            if self.mempool.remove_tx(&tx) {
+                self.pending_txs.push(tx);
             }
         }
+
+        let tx_root = merkel_root(&candidate_ids);
         let timestamp = unix_time_millis()?;
 
         let header = BlockHeader {
             parent_hash: parent.hash(),
             height: parent.height + 1,
-            tx_root: merkel_root(&candidate_txs),
+            tx_root,
             timestamp
         };
-        Ok(Block::new(header, candidate_txs_wire))
+        Ok(Block::new(header, candidate_wires))
+    }
+
+    pub fn clear_pending(&mut self) {
+        self.pending_txs.clear();
     }
 }
 
-pub fn merkel_root(txs: &Vec<&TxExecSeal>) -> Hash32 {
-    let mut queue: Vec<TxExecSealId> = txs.iter()
-        .map(|tx| tx.tx_id.clone())
+pub fn merkel_root(tx_ids: &[TxExecSealId]) -> Hash32 {
+    assert!(!tx_ids.is_empty(), "merkel_root on empty array not defined");
+    let mut layer: Vec<Hash32> = tx_ids.iter()
+        .map(|tx| tx.0)
         .collect();
-    while queue.len() > 1 {
-        let mut next = Vec::with_capacity((queue.len() + 1) / 2);
-        for pair in queue.chunks(2) {
+    while layer.len() > 1 {
+        let mut next = Vec::with_capacity((layer.len() + 1) / 2);
+        for pair in layer.chunks(2) {
             let node = if pair.len() == 2 {
                 let mut hasher = Sha256::new();
-                hasher.update(&pair[0].0);
-                hasher.update(&pair[1].0);
-                TxExecSealId::new(hasher.finalize().into())
+                hasher.update(&pair[0]);
+                hasher.update(&pair[1]);
+                hasher.finalize().into()
             } else {
                 let mut hasher = Sha256::new();
-                hasher.update(&pair[0].0);
-                TxExecSealId::new(hasher.finalize().into())
+                hasher.update(&pair[0]);
+                hasher.finalize().into()
             };
             next.push(node);
         }
-        queue = next;
+        layer = next;
     }
-    queue[0].0
+    layer[0]
 }

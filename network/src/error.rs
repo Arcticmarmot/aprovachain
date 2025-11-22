@@ -9,7 +9,7 @@ pub enum PeerError {
     SwarmDial(#[from] libp2p::swarm::DialError),
     #[error("send cmd failed")]
     SendP2pCmd(#[from] tokio::sync::mpsc::error::SendError<P2pCmd>),
-    #[error("send cmd failed")]
+    #[error("send event failed")]
     SendTxCmd(#[from] tokio::sync::mpsc::error::SendError<P2pEvent>),
     #[error("gossip publish failed")]
     GossipPublish(#[from] libp2p::gossipsub::PublishError)

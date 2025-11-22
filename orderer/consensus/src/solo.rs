@@ -1,23 +1,16 @@
 use std::time::Duration;
 use libp2p::PeerId;
 use tokio::spawn;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{UnboundedReceiver};
 use tokio::time::sleep;
 use chain::block::{Block, BlockHeader};
 use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
 use crate::error::Result;
+use crate::handle::{SoloCmd, SoloCmdHandle, SoloEventHandle};
 
-pub enum InputEvent {
-    Tick,
-    ReceivedTx(Vec<u8>),
-}
+pub const TICK_INTERVAL: Duration = Duration::from_secs(15);
 
-pub enum OutputEvent {
-    CommitBlock(Vec<u8>),
-}
-
-pub const TICK_INTERVAL: Duration = Duration::from_secs(30);
 pub struct SoloService {
     local_id: PeerId,
     leader_id: PeerId,
@@ -54,25 +47,26 @@ impl SoloService {
     }
 }
 
-pub async fn slot_loop(input_tx: UnboundedSender<InputEvent>) {
+pub async fn slot_loop(solo_cmd_handle: SoloCmdHandle) {
     loop {
         sleep(TICK_INTERVAL).await;
-        let _ = input_tx.send(InputEvent::Tick);
+        let _ = solo_cmd_handle.new_slot();
     }
 }
 
-pub async fn start_consensus(service: &mut SoloService,
-                             input_tx: UnboundedSender<InputEvent>,
-                             mut input_rx: UnboundedReceiver<InputEvent>,
-                             output_tx: UnboundedSender<OutputEvent>) -> Result<()> {
+pub async fn start_consensus(mut service: SoloService,
+                             mut solo_cmd_rx: UnboundedReceiver<SoloCmd>,
+                             solo_cmd_hdl: SoloCmdHandle,
+                             solo_event_hdl: SoloEventHandle) -> Result<()> {
     spawn(async move {
-        slot_loop(input_tx).await
+        slot_loop(solo_cmd_hdl).await
     });
+    let service = &mut service;
     loop {
         tokio::select! {
-            Some(input) = input_rx.recv() => {
+            Some(input) = solo_cmd_rx.recv() => {
                 match input {
-                    InputEvent::Tick => {
+                    SoloCmd::NewSlot => {
                         tracing::info!(target:"consensus::event", "tick tock");
                         if !service.is_leader() { continue; }
                         match service.pack_block() {
@@ -80,9 +74,14 @@ pub async fn start_consensus(service: &mut SoloService,
                                 match service.update_chain_state(block.header) {
                                     Ok(()) => {
                                         tracing::info!(target:"consensus::event", chain=?service.chain_state, "state");
-                                        if let Err(err) =
-                                            output_tx.send(OutputEvent::CommitBlock(block.encode_bcs())) {
-                                            tracing::warn!(target:"consensus::event", %err, "output event");
+                                        match solo_event_hdl.block_commited(block.encode_bcs()) {
+                                            Ok(()) => {
+                                                service.mempool_handle.clear_pending();
+                                                tracing::info!(target:"consensus::event", pool=?service.mempool_handle, "state");
+                                            }
+                                            Err(err) => {
+                                                tracing::warn!(target:"consensus::event", %err, "output event");
+                                            }
                                         }
                                     }
                                     Err(err) => {
@@ -94,9 +93,8 @@ pub async fn start_consensus(service: &mut SoloService,
                                 tracing::warn!(target:"consensus::event", %err, "pack block");
                             }
                         }
-
                     },
-                    InputEvent::ReceivedTx(tx_bytes)=> {
+                    SoloCmd::SubmitTx {tx_bytes}=> {
                         tracing::info!(target:"consensus::event", "received tx");
                         if !service.is_leader() { continue; }
                         match service.mempool_handle.received_tx(tx_bytes) {
