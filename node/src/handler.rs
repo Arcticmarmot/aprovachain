@@ -3,12 +3,12 @@ use axum::body::{Bytes};
 use axum::extract::State;
 use axum::Json;
 use risc0_zkvm::{default_prover, Digest, ExecutorEnv, Prover};
-use db::controller::{kv_get, kv_put};
 use tx::tx_intent::{TxIntent, TxPayload};
 use crate::error::{ApiResult, NodeError, Result};
 use primitives::hash::{sha256, Hash32};
 use account::address::ChainAddrBytes;
-use contract::contract::{Contract, ContractWire};
+use contract::contract::{Contract};
+use db::handle::DBHandle;
 use tx::tx_exec::{TxExec};
 use tx::tx_exec_seal::TxExecSeal;
 use crate::context::{AppState, SubmitTxResponse};
@@ -83,34 +83,35 @@ pub fn handle_deploy_tx(intent: &TxIntent, image_id: &Digest, elf: &Vec<u8>, elf
     // 获取合约Bech32m编码
     let ctr_bech32m =  ctr.addr.to_bech32m()?;
     tracing::info!("{}", ctr_bech32m);
-    let ctr_addr = ctr.addr.to_bytes();
-    tracing::info!("{:?}", ctr_addr);
-
+    let ctr_addr_bytes = ctr.addr.to_bytes();
     // key: 合约的 addr 字节数组
     // value: 合约的BCS编码
-    let _ = kv_put(&ctr_addr, &ctr.to_canonical_bytes());
+    let db_handle = DBHandle::new()?;
+    db_handle.save_contract(&ctr_addr_bytes, &ctr.to_canonical_bytes())?;
     // key: ELF文件哈希
     // value: ELF文件字节数组
-    let _ = kv_put(&ctr.elf_hash, elf);
+    db_handle.save_elf(ctr.elf_hash, elf)?;
 
     Ok(SubmitTxResponse::Deploy {
-        ctr_addr,
+        // TODO: ctr_addr -> ctr_addr_bytes
+        ctr_addr: ctr_addr_bytes,
         image_id: computed_image_id,
         elf_hash: computed_elf_hash
     })
 }
 
-pub fn handle_exec_tx(intent: &TxIntent, ctr_addr: &ChainAddrBytes, input: &Vec<u8>) -> Result<SubmitTxResponse> {
+pub fn handle_exec_tx(intent: &TxIntent, ctr_addr_bytes: &ChainAddrBytes, input: &Vec<u8>) -> Result<SubmitTxResponse> {
     tracing::info!(target: "node::handle", tx_id=?intent.tx_id());
     // 根据合约地址查找合约 BCS 编码向量
-    let ctr = match kv_get(ctr_addr)? {
-        Some(ctr_bytes) => {
-            let wire = ContractWire::try_encode_bcs(&ctr_bytes)?;
-            let ctr = Contract::try_from(wire)?;
-            ctr
-        },
-        None => return Err(NodeError::ContractNotFound)
+    let db_handle = DBHandle::new()?;
+    let ctr = match db_handle.load_contract(ctr_addr_bytes)? {
+        Some(ctr) => ctr,
+        None => return {
+            tracing::warn!("Contract not found");
+            Err(NodeError::ContractNotFound)
+        }
     };
+
     tracing::info!("Contract: {:?}", ctr);
 
     let image_id = ctr.image_id;
@@ -118,9 +119,12 @@ pub fn handle_exec_tx(intent: &TxIntent, ctr_addr: &ChainAddrBytes, input: &Vec<
     let elf_hash = ctr.elf_hash;
 
     // 根据 ELF 文件哈希查找 ELF 文件
-    let elf = match kv_get(&elf_hash)? {
+    let elf = match db_handle.load_elf(elf_hash)? {
         Some(elf) => elf,
-        None => return Err(NodeError::ElfFileNotFound)
+        None => return {
+            tracing::warn!("Elf file not found");
+            Err(NodeError::ElfFileNotFound)
+        }
     };
     tracing::info!("Elf file len: {}", elf.len());
 
@@ -138,7 +142,7 @@ pub fn handle_exec_tx(intent: &TxIntent, ctr_addr: &ChainAddrBytes, input: &Vec<
     let output: Vec<u8> = receipt.journal.decode().unwrap();
     tracing::info!("output: {:?}", output);
     Ok(SubmitTxResponse::Exec {
-        ctr_addr: ctr_addr.clone(),
+        ctr_addr: ctr_addr_bytes.clone(),
         image_id,
         elf_hash,
         input: input.clone(),

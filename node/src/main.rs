@@ -12,7 +12,6 @@ use node::handler::{submit_tx};
 use tokio::sync::mpsc;
 use account::keypair::AccountSigningKey;
 use chain::block::Block;
-use db::controller::kv_put;
 use node::context::AppState;
 
 #[derive(Parser, Debug)]
@@ -63,7 +62,6 @@ async fn main() -> Result<()> {
                     P2pEvent::BlockReceived(block_bytes) => {
                         tracing::info!(target:"orderer::event", "received block");
                         let block = Block::try_decode_bcs(&block_bytes)?;
-                        kv_put(&block.header.tx_root, &block_bytes)?;
                     }
                 }
             },

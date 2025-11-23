@@ -1258,11 +1258,14 @@ dependencies = [
 name = "db"
 version = "0.1.0"
 dependencies = [
+ "account",
  "arc-swap",
  "chain",
  "clap",
+ "contract",
  "directories",
  "once_cell",
+ "primitives",
  "rocksdb",
  "tempfile",
  "thiserror 2.0.17",

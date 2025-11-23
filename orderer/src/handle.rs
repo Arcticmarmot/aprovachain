@@ -1,13 +1,13 @@
 use consensus::solo::handle::SoloCmdHandle;
 use network::handle::P2pCmdHandle;
 use tx::tx_exec_seal::{TxExecSeal, TxExecSealWire};
-use crate::error::{OrdererError, Result};
+use crate::error::{Result};
 
 /// Orderer P2pEvent::TxReceived 处理
 pub fn handle_tx_received(tx_bytes: Vec<u8>, solo_cmd_hdl: &SoloCmdHandle) -> Result<()> {
     // 验证字节数组是否是有效交易
     let wire = TxExecSealWire::try_decode_bcs(&tx_bytes)?;
-    let tx = TxExecSeal::try_from(wire)?;
+    TxExecSeal::try_from(wire)?;
     solo_cmd_hdl.submit_tx(tx_bytes)?;
     Ok(())
 }

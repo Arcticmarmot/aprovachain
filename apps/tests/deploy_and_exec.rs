@@ -5,7 +5,7 @@ use node::context::SubmitTxResponse;
 use tx::tx_intent::TxPayload;
 
 #[tokio::test]
-pub async fn exec_then_deploy() {
+pub async fn deploy_then_exec() {
     // Init
     init_logging().unwrap();
     init_env().unwrap();

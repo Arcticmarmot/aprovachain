@@ -74,7 +74,6 @@ impl MempoolHandle {
         }
         // 2. 复制 + 排序 交易
         let mut txs: Vec<TxExecSeal> = self.mempool.txs.iter().cloned().collect();
-        // 交易排序
         txs.sort_by_key(|tx| tx.tx_id);
 
         let count = min(count, self.mempool.count());

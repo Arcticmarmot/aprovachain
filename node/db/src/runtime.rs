@@ -16,6 +16,7 @@ pub enum DBFileMode {
     Ephemeral,
     Persistent
 }
+
 /// DB_PATH 仅记录第一次写入的路径，OnceCell保证不可删除
 pub static DB_PATH: OnceCell<PathBuf> = OnceCell::new();
 
@@ -40,17 +41,38 @@ pub fn init_db(mode: DBFileMode) -> Result<()> {
     let mut opts = Options::default();
     opts.create_if_missing(true);
     opts.create_missing_column_families(true);
-    // TODO: 创建列族
-    let cf_name = ["chain", "blocks", "txs"];
-    let cf_opts = Options::default();
-    let col_family = ColumnFamilyDescriptor::new("chain", cf_opts);
-    let db = DB::open_cf_descriptors(&opts, &path, vec![col_family]).map_err(DBError::DBOpen)?;
+
+    let cfs = init_cfs();
+    let db = DB::open_cf_descriptors(&opts, &path, cfs).map_err(DBError::DBOpen)?;
 
     DBH.store(Some(Arc::new(db)));
 
     DB_PATH.set(path).expect("DB_PATH set failed");
     TEMP_DIR.store(temp_dir_wrap);
     Ok(())
+}
+
+pub fn init_cfs() -> Vec<ColumnFamilyDescriptor>{
+    // chain state cf
+    let cf_opts = Options::default();
+    let cf_chain = ColumnFamilyDescriptor::new("chain", cf_opts);
+
+    // blocks cf
+    let cf_opts = Options::default();
+    let cf_blocks = ColumnFamilyDescriptor::new("blocks", cf_opts);
+
+    // txs cf
+    let cf_opts = Options::default();
+    let cf_txs = ColumnFamilyDescriptor::new("txs", cf_opts);
+
+    // contracts cf
+    let cf_opts = Options::default();
+    let cf_contracts = ColumnFamilyDescriptor::new("contracts", cf_opts);
+
+    // elfs cf
+    let cf_opts = Options::default();
+    let cf_elfs = ColumnFamilyDescriptor::new("elfs", cf_opts);
+    vec![cf_chain, cf_blocks, cf_txs, cf_contracts, cf_elfs]
 }
 
 #[inline]

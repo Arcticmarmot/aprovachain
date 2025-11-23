@@ -12,3 +12,6 @@ tempfile = { version = "3"}
 arc-swap = "1.7.1"
 clap = { workspace = true }
 chain = { workspace = true }
+contract = { workspace = true }
+account = { workspace = true }
+primitives = { workspace = true }

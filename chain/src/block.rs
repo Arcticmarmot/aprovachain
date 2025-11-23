@@ -23,12 +23,16 @@ impl BlockHeader {
         })
     }
 
-    pub fn to_canonical_bytes(&self) -> Vec<u8> {
-        bcs::to_bytes(&self).expect("BCS should be infallible by design")
+    pub fn try_decode_bcs(bytes: &[u8]) -> Result<Self> {
+        Ok(bcs::from_bytes(bytes)?)
+    }
+
+    pub fn encode_bcs(&self) -> Vec<u8> {
+        bcs::to_bytes(self).expect("BCS should be infallible by design")
     }
 
     pub fn hash(&self) -> Hash32 {
-        sha256(self.to_canonical_bytes())
+        sha256(self.encode_bcs())
     }
 
     pub fn child_of(parent: &BlockHeader, tx_root: Hash32) -> Result<Self> {
