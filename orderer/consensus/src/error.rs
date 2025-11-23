@@ -1,6 +1,6 @@
 use thiserror::Error;
 use chain::error::ChainError;
-use crate::handle::{SoloCmd, SoloEvent};
+use crate::solo::handle::{SoloCmd, SoloEvent};
 
 #[derive(Debug, Error)]
 pub enum ConsensusError {

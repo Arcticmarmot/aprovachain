@@ -10,11 +10,11 @@ use tokio::sync::mpsc;
 use chain::block::Block;
 use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
-use consensus::handle::{SoloCmd, SoloCmdHandle, SoloEvent, SoloEventHandle};
-use consensus::solo::{start_consensus, SoloService};
+use consensus::solo::handle::{SoloCmd, SoloCmdHandle, SoloEvent, SoloEventHandle};
+use consensus::solo::service::{start_consensus, SoloService};
+use orderer::handle::{handle_block_commited, handle_block_received, handle_tx_received};
 use spec::chain::ChainId;
 use tx::tx_exec_seal::{TxExecSeal, TxExecSealWire};
-
 
 pub const TX_COUNT_LIMIT: usize = 3;
 
@@ -74,18 +74,17 @@ async fn main() -> Result<()> {
         tokio::select! {
             Some(cmd) = p2p_event_rx.recv() => {
                 match cmd {
-                    P2pEvent::ReceivedTx(tx_bytes) => {
-                        // 验证字节数组是否是有效交易
-                        let wire = TxExecSealWire::try_decode_bcs(&tx_bytes)?;
-                        let tx = TxExecSeal::try_from(wire)?;
-                        if let Err(err) = solo_cmd_hdl.submit_tx(tx_bytes){
-                            tracing::warn!(target:"orderer::event", %err, "submit tx to consensus failed")
+                    P2pEvent::TxReceived(tx_bytes) => {
+                        tracing::info!(target:"orderer::event", "orderer received tx");
+                        if let Err(err) = handle_tx_received(tx_bytes, &solo_cmd_hdl) {
+                            tracing::error!(target:"orderer::event", %err);
                         }
                     },
-                    P2pEvent::ReceivedBlock(block_bytes) => {
-                        tracing::info!(target:"orderer::event", "received block");
-                        // 验证区块是否有效
-                        // let block = Block::try_decode_bcs(&block_bytes)?;
+                    P2pEvent::BlockReceived(block_bytes) => {
+                        tracing::info!(target:"orderer::event", "orderer received block");
+                        if let Err(err) = handle_block_received(block_bytes) {
+                            tracing::error!(target:"orderer::event", %err);
+                        }
                     }
                 }
             },
@@ -93,8 +92,8 @@ async fn main() -> Result<()> {
                 match output {
                     SoloEvent::BlockCommited { block_bytes } => {
                         tracing::info!(target:"orderer::event", "commited block");
-                        if let Err(err) = p2p_cmd_hdl.publish_block(block_bytes) {
-                            tracing::warn!(target:"orderer::event", %err, "publish block failed")
+                        if let Err(err) = handle_block_commited(block_bytes, &p2p_cmd_hdl) {
+                            tracing::error!(target:"orderer::event", %err);
                         }
                     }
                 }

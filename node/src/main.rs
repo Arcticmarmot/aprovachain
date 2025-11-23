@@ -38,29 +38,29 @@ async fn main() -> Result<()> {
     let _ = init_db(db_file_mode)?;
     tracing::info!(target:"node::db", "rocksdb({db_file_mode:?}) init success...");
 
-    let (cmd_tx, cmd_rx) =
+    let (p2p_cmd_tx, p2p_cmd_rx) =
         mpsc::unbounded_channel::<P2pCmd>();
-    let (event_tx, mut event_rx) =
+    let (p2p_event_tx, mut p2p_event_rx) =
         mpsc::unbounded_channel::<P2pEvent>();
-    let cmd_handle = P2pCmdHandle::new(cmd_tx.clone());
-    let event_handle = P2pEventHandle::new(event_tx.clone());
+    let p2p_cmd_hdl = P2pCmdHandle::new(p2p_cmd_tx.clone());
+    let p2p_event_hdl = P2pEventHandle::new(p2p_event_tx.clone());
 
     let (sk, peer_set, swarm) = init_p2p()?;
     // p2p 接收P2pCmd命令，发出P2pEvent事件
     spawn(async move {
-        let _ = start_p2p(peer_set, swarm, cmd_rx, event_handle).await;
+        let _ = start_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl).await;
     });
     tracing::info!("p2p init success...");
 
-    let _ = init_server(db_file_mode, sk, cmd_handle).await?;
+    let _ = init_server(db_file_mode, sk, p2p_cmd_hdl).await?;
 
 
     loop {
         tokio::select! {
-            Some(cmd) = event_rx.recv() => {
+            Some(cmd) = p2p_event_rx.recv() => {
                 match cmd {
-                    P2pEvent::ReceivedTx(_) => { },
-                    P2pEvent::ReceivedBlock(block_bytes) => {
+                    P2pEvent::TxReceived(_) => { },
+                    P2pEvent::BlockReceived(block_bytes) => {
                         tracing::info!(target:"orderer::event", "received block");
                         let block = Block::try_decode_bcs(&block_bytes)?;
                         kv_put(&block.header.tx_root, &block_bytes)?;
@@ -71,7 +71,7 @@ async fn main() -> Result<()> {
     }
 }
 
-    async fn init_server(db_file_mode: DBFileMode, sk: AccountSigningKey, cmd_handle: P2pCmdHandle) -> Result<()> {
+async fn init_server(db_file_mode: DBFileMode, sk: AccountSigningKey, cmd_handle: P2pCmdHandle) -> Result<()> {
     let state = AppState {
         sk,
         cmd_handle,
