@@ -1,7 +1,7 @@
 //! 数据库初始化和析构方法
 //! ArcSwapOption 全局句柄交换（原子操作，线程安全无锁，不保证读数据是最新的）
 
-use rocksdb::{DB, Options};
+use rocksdb::{DB, Options, ColumnFamilyDescriptor};
 use std::path::{PathBuf};
 use std::sync::{Arc};
 use directories::ProjectDirs;
@@ -39,7 +39,13 @@ pub fn init_db(mode: DBFileMode) -> Result<()> {
 
     let mut opts = Options::default();
     opts.create_if_missing(true);
-    let db = DB::open(&opts, &path).map_err(DBError::DBOpen)?;
+    opts.create_missing_column_families(true);
+    // TODO: 创建列族
+    let cf_name = ["chain", "blocks", "txs"];
+    let cf_opts = Options::default();
+    let col_family = ColumnFamilyDescriptor::new("chain", cf_opts);
+    let db = DB::open_cf_descriptors(&opts, &path, vec![col_family]).map_err(DBError::DBOpen)?;
+
     DBH.store(Some(Arc::new(db)));
 
     DB_PATH.set(path).expect("DB_PATH set failed");

@@ -1259,6 +1259,7 @@ name = "db"
 version = "0.1.0"
 dependencies = [
  "arc-swap",
+ "chain",
  "clap",
  "directories",
  "once_cell",

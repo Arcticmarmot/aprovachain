@@ -1,6 +1,7 @@
 use axum::{routing::post, Router};
 use anyhow::Result;
 use std::net::SocketAddr;
+use std::process::exit;
 use clap::{arg, Parser};
 use tokio::{signal, spawn};
 use db::runtime::{init_db, close_db, DBFileMode};
@@ -54,7 +55,6 @@ async fn main() -> Result<()> {
 
     let _ = init_server(db_file_mode, sk, p2p_cmd_hdl).await?;
 
-
     loop {
         tokio::select! {
             Some(cmd) = p2p_event_rx.recv() => {
@@ -67,6 +67,11 @@ async fn main() -> Result<()> {
                     }
                 }
             },
+             // TODO: 优化 ctrl_c 退出
+            _ = signal::ctrl_c() => {
+                tracing::info!(target:"node::signal", "ctrl-c received, shutting down");
+                exit(0);
+            }
         }
     }
 }

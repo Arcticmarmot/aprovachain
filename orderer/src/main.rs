@@ -14,7 +14,6 @@ use consensus::solo::handle::{SoloCmd, SoloCmdHandle, SoloEvent, SoloEventHandle
 use consensus::solo::service::{start_consensus, SoloService};
 use orderer::handle::{handle_block_commited, handle_block_received, handle_tx_received};
 use spec::chain::ChainId;
-use tx::tx_exec_seal::{TxExecSeal, TxExecSealWire};
 
 pub const TX_COUNT_LIMIT: usize = 3;
 
