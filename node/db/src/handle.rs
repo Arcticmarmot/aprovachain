@@ -83,7 +83,7 @@ impl DBHandle {
     }
 
     pub fn load_elf(&self, elf_hash: Hash32) -> Result<Option<Vec<u8>>> {
-        let elf = self.dbh.get_cf(self.cf_contracts(), elf_hash)
+        let elf = self.dbh.get_cf(self.cf_elfs(), elf_hash)
             .map_err(DBError::DBGet)?;
         Ok(elf)
     }
