@@ -1,6 +1,7 @@
+use std::fmt::{Debug, Formatter};
 use risc0_zkvm::{Digest};
 use serde::{Deserialize, Serialize};
-use account::address::{ChainAddrBytes, UserAddress};
+use account::address::{ChainAddrBytes, ContractAddress, UserAddress};
 use account::keypair::{AccountVerifyingKey, AccountVerifyingKeyBytes};
 use spec::chain::{ChainId};
 use primitives::rand::random_u128;
@@ -8,12 +9,12 @@ use primitives::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32};
 use crate::error::TxError;
 use crate::error::Result;
-use crate::id::TxIntentId;
+use crate::id::{TxIntentId};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum TxPayload {
     Exec {
-        ctr_addr: ChainAddrBytes,
+        ctr_addr_bytes: ChainAddrBytes,
         input: Vec<u8>
     },
     Deploy {
@@ -28,6 +29,24 @@ pub enum TxPayload {
     //     elf: Vec<u8>,
     //     elf_hash: Hash32
     // }
+}
+
+impl Debug for TxPayload {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "TxPayload {{ ")?;
+        match self {
+            TxPayload::Deploy { image_id, elf_hash, .. } => {
+                write!(f, "type: deploy, ")?;
+                write!(f, "image_id: {}, ", image_id.to_string())?;
+            },
+            TxPayload::Exec { ctr_addr_bytes, input } => {
+                write!(f, "type: exec, ")?;
+                write!(f, "ctr_addr: {:?}, ", ContractAddress::from_bytes(ctr_addr_bytes.clone()))?;
+                write!(f, "input: {:?}", input)?;
+            }
+        }
+        write!(f, " }}")
+    }
 }
 
 #[derive(Debug, Clone)]

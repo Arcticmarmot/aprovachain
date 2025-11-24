@@ -30,7 +30,7 @@ pub async fn deploy_then_exec() {
     let response =send_envelope(tx_envelope_wire).await.unwrap();
     let json = response.json::<SubmitTxResponse>().await.unwrap();
     tracing::info!(target:"apps::resp", "Response: {:?}", json);
-    let ctr_addr = match json {
+    let ctr_addr_bytes = match json {
         SubmitTxResponse::Deploy { ctr_addr_bytes, .. } => {
             Some(ctr_addr_bytes)
         },
@@ -46,7 +46,7 @@ pub async fn deploy_then_exec() {
     sleep(Duration::from_secs(20)).await;
     tracing::info!(target:"apps::init", "TxArgs: {:?}", args);
     let payload = TxPayload::Exec {
-        ctr_addr,
+        ctr_addr_bytes,
         input: vec![100, 200],
     };
     let tx_build_spec = parse_tx_args_with(&args, |_| Ok(payload)).unwrap();

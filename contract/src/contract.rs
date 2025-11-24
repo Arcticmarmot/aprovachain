@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use risc0_zkvm::Digest;
 use account::address::{ChainAddrBytes, ContractAddress};
 use primitives::hash::Hash32;
@@ -5,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use account::keypair::AccountVerifyingKey;
 use spec::chain::ChainId;
 use crate::error::{ContractError,Result};
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Contract {
     pub addr: ContractAddress,
     pub elf_hash: Hash32,

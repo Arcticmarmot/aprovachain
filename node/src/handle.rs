@@ -23,7 +23,7 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
         },
         None => {
             // NOTE: 主网需要保证从第 0 个区块开始存储
-            ensure!(header.height == 0, "invalid new block header");
+            // ensure!(header.height == 0, "invalid new block header");
         }
     }
 
@@ -48,8 +48,8 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
         let payload = &envelope.intent.payload;
 
         match payload {
-            TxPayload::Exec { ctr_addr, input } => {
-                let ctr = db_handle.load_contract(&ctr_addr)?
+            TxPayload::Exec { ctr_addr_bytes, input } => {
+                let ctr = db_handle.load_contract(&ctr_addr_bytes)?
                     .ok_or_else(|| anyhow!("invalid contract address"))?;
                 let image_id = ctr.image_id;
                 let receipt = receipt_opt.ok_or_else(|| anyhow!("exec tx must have receipt"))?;
@@ -81,7 +81,7 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
     db_handle.save_chain_state(&header)?;
 
     if let Some(block) = db_handle.load_block(header.height)? {
-        tracing::info!(target: "==BLOCK==", ?block);
+        tracing::info!(target: "node::block", ?block, "=======BLOCK=======\r\n");
     }
     Ok(())
 }

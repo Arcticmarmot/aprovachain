@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use sha2::Digest;
 use spec::registry;
 use bech32::{Bech32m};
@@ -109,10 +110,16 @@ impl UserAddress {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct ContractAddress {
     pub chain_id: ChainId,
     pub addr: Address,
+}
+
+impl Debug for ContractAddress {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, " {} ", self.to_bech32m().unwrap())
+    }
 }
 
 impl ContractAddress {

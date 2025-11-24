@@ -202,7 +202,7 @@ impl PeerBehaviour {
     }
 
     pub fn publish_tx(&mut self, tx_bytes: Vec<u8>) -> Result<()> {
-        tracing::info!(target:"network::gossip", len=%tx_bytes.len(), "tx seal size: ");
+        tracing::info!(target:"network::gossip", len=%tx_bytes.len(), "tx size: ");
         let topic = GossipTopic::Tx.ident();
         self.gossipsub.publish(topic, tx_bytes)?;
         Ok(())

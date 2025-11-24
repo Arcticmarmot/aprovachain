@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 use serde::{Deserialize, Serialize};
 use primitives::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32, HASH32_ZERO};
-use tx::attestation::{TxAttestationWire};
+use tx::attestation::{TxAttestation, TxAttestationWire};
 use tx::id::TxAttestationId;
 use crate::error::Result;
 
@@ -63,7 +63,7 @@ impl Debug for Block {
         // txs 用你自己的格式
         writeln!(f, "  txs: [")?;
         for tx in &self.txs {
-            writeln!(f, "    tx_id={:?},", TxAttestationId::new(sha256(tx.encode_bcs())))?;
+            writeln!(f, "    {:?},", TxAttestation::try_from(tx.clone()).unwrap())?;
         }
         writeln!(f, "  ]")?;
         write!(f, "}}")

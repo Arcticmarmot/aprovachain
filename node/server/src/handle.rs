@@ -34,7 +34,7 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
                 envelope: tx_envelope,
                 receipt_opt: None
             };
-            tracing::info!(target: "node::server", len=?tx_outcome.envelope.to_canonical_bytes().len(), "envelope size");
+            tracing::info!(target: "node::server", len=?tx_outcome.envelope.to_canonical_bytes().len(), "tx envelope size");
             tracing::info!(target: "node::server", len=?tx_outcome.to_canonical_bytes().len(), "tx outcome size");
             let tx = TxAttestation::create(tx_outcome, sk);
             cmd_handle.publish_tx(tx.to_canonical_bytes())?;
@@ -44,7 +44,7 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
                 envelope: tx_envelope,
                 receipt_opt: Some(receipt),
             };
-            tracing::info!(target: "node::server", len=?tx_outcome.envelope.to_canonical_bytes().len(), "envelope size");
+            tracing::info!(target: "node::server", len=?tx_outcome.envelope.to_canonical_bytes().len(), "tx envelope size");
             tracing::info!(target: "node::server", len=?tx_outcome.to_canonical_bytes().len(), "tx outcome size");
             let tx = TxAttestation::create(tx_outcome, sk);
             cmd_handle.publish_tx(tx.to_canonical_bytes())?;
@@ -59,8 +59,8 @@ pub fn handle_intent(db_handle: DBHandle, intent: &TxIntent) -> Result<SubmitTxR
         TxPayload::Deploy{ image_id, elf, elf_hash } => {
             handle_deploy_tx(db_handle, intent, image_id, elf, elf_hash)
         },
-        TxPayload::Exec { ctr_addr, input} => {
-            handle_exec_tx(db_handle, intent, ctr_addr, input)
+        TxPayload::Exec { ctr_addr_bytes, input} => {
+            handle_exec_tx(db_handle, intent, ctr_addr_bytes, input)
         }
     }
 }
@@ -94,7 +94,7 @@ pub fn handle_deploy_tx(db_handle: DBHandle, intent: &TxIntent, image_id: &Diges
     let ctr_bech32m =  ctr.addr.to_bech32m()?;
     tracing::info!("{}", ctr_bech32m);
     let ctr_addr_bytes = ctr.addr.to_bytes();
-    
+
     Ok(SubmitTxResponse::Deploy {
         ctr_addr_bytes,
         image_id: computed_image_id,

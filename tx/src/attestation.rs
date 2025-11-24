@@ -1,4 +1,5 @@
 use std::cmp::{Ordering, PartialEq};
+use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, Bytes};
@@ -10,7 +11,7 @@ use crate::id::TxAttestationId;
 use crate::error::Result;
 use crate::intent::TxPayload;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct TxAttestation {
     pub tx_id: TxAttestationId,
     pub outcome: TxOutcome,
@@ -49,6 +50,15 @@ impl Ord for TxAttestation {
 impl PartialOrd for TxAttestation {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl Debug for TxAttestation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Tx {{")?;
+        write!(f, " id: {} ", self.tx_id)?;
+        write!(f, " payload: {:?} ", self.outcome.envelope.intent.payload)?;
+        write!(f, "}}")
     }
 }
 
@@ -114,12 +124,12 @@ pub struct TxAttestationWire {
 }
 
 impl From<&TxAttestation> for TxAttestationWire {
-    fn from(seal: &TxAttestation) -> Self {
-        let outcome = &seal.outcome;
+    fn from(tx: &TxAttestation) -> Self {
+        let outcome = &tx.outcome;
         Self {
             outcome: outcome.into(),
-            verifying_key: seal.verifying_key.to_bytes(),
-            signature: seal.signature.to_bytes()
+            verifying_key: tx.verifying_key.to_bytes(),
+            signature: tx.signature.to_bytes()
         }
     }
 }
