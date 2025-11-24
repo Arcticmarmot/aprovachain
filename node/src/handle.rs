@@ -1,8 +1,8 @@
 use anyhow::{ensure, Context, Result, anyhow};
 use chain::block::Block;
 use db::handle::DBHandle;
-use tx::tx_exec_seal::TxExecSeal;
-use tx::tx_intent::TxPayload;
+use tx::attestation::TxAttestation;
+use tx::intent::TxPayload;
 
 pub fn handle_tx_received(tx_bytes: Vec<u8>) -> Result<()> {
     Ok(())
@@ -25,23 +25,23 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
 
     // 验证区块内交易
     // 解码各个交易
-    let txs: Vec<TxExecSeal> = block.txs.iter()
+    let txs: Vec<TxAttestation> = block.txs.iter()
         .cloned()
         .map(|tx| {
-            TxExecSeal::try_from(tx).with_context(|| "tx decode failed")
+            TxAttestation::try_from(tx).with_context(|| "tx decode failed")
         })
-        .collect::<Result<Vec<TxExecSeal>>>()?;
+        .collect::<Result<Vec<TxAttestation>>>()?;
 
     // 业务层校验交易
     for tx in &txs {
         // 检查节点签名
         tx.self_verify()?;
         // 检查用户签名
-        let envelope = &tx.exec.envelope;
+        let envelope = &tx.outcome.envelope;
         envelope.self_verify()?;
 
         let payload = &envelope.intent.payload;
-        let receipt = &tx.exec.receipt;
+        let receipt = &tx.outcome.receipt;
         match payload {
             TxPayload::Exec { ctr_addr, input } => {
                 // TODO: 合约需要部署在所有节点上

@@ -3,9 +3,9 @@ use account::keypair::{AccountSignature, AccountSignatureBytes, AccountSigningKe
 use primitives::hash::{sha256};
 use crate::error::TxError;
 use serde_with::{serde_as, Bytes};
-use crate::tx_intent::{TxIntent, TxIntentWire};
+use crate::intent::{TxIntent, TxIntentWire};
 use crate::error::Result;
-use crate::tx_id::TxEnvelopeId;
+use crate::id::TxEnvelopeId;
 
 #[derive(Debug, Clone)]
 pub struct TxEnvelope {

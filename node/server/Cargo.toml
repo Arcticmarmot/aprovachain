@@ -17,4 +17,3 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 primitives = { workspace = true }
 serde = { workspace = true }
-chain = { workspace = true }

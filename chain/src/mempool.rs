@@ -3,15 +3,15 @@ use std::collections::HashSet;
 use std::fmt::{Debug, Formatter};
 use primitives::clock::unix_time_millis;
 use primitives::hash::Hash32;
-use tx::tx_exec_seal::{TxExecSeal, TxExecSealWire};
-use tx::tx_id::TxExecSealId;
+use tx::attestation::{TxAttestation, TxAttestationWire};
+use tx::id::TxAttestationId;
 use crate::block::{Block, BlockHeader};
 use crate::error::Result;
 use sha2::{Digest, Sha256};
 
 #[derive(Clone)]
 pub struct Mempool {
-    pub txs: HashSet<TxExecSeal>
+    pub txs: HashSet<TxAttestation>
 }
 
 impl Debug for Mempool {
@@ -32,13 +32,13 @@ impl Mempool {
     }
 
     pub fn push_tx(&mut self, tx_bytes: Vec<u8>) -> Result<()> {
-        let wire = TxExecSealWire::try_decode_bcs(&tx_bytes)?;
-        let tx = TxExecSeal::try_from(wire)?;
+        let wire = TxAttestationWire::try_decode_bcs(&tx_bytes)?;
+        let tx = TxAttestation::try_from(wire)?;
         self.txs.insert(tx);
         Ok(())
     }
 
-    pub fn remove_tx(&mut self, tx: &TxExecSeal) -> bool {
+    pub fn remove_tx(&mut self, tx: &TxAttestation) -> bool {
         self.txs.remove(tx)
     }
 
@@ -50,7 +50,7 @@ impl Mempool {
 #[derive(Debug)]
 pub struct MempoolHandle {
     mempool: Mempool,
-    pending_txs: Vec<TxExecSeal>
+    pending_txs: Vec<TxAttestation>
 }
 
 impl MempoolHandle {
@@ -73,15 +73,15 @@ impl MempoolHandle {
             return Ok(empty_block)
         }
         // 2. 复制 + 排序 交易
-        let mut txs: Vec<TxExecSeal> = self.mempool.txs.iter().cloned().collect();
+        let mut txs: Vec<TxAttestation> = self.mempool.txs.iter().cloned().collect();
         txs.sort_by_key(|tx| tx.tx_id);
 
         let count = min(count, self.mempool.count());
-        let mut candidate_ids: Vec<TxExecSealId> = Vec::with_capacity(count);
-        let mut candidate_wires: Vec<TxExecSealWire> = Vec::with_capacity(count);
+        let mut candidate_ids: Vec<TxAttestationId> = Vec::with_capacity(count);
+        let mut candidate_wires: Vec<TxAttestationWire> = Vec::with_capacity(count);
         for tx in txs.into_iter().take(count) {
             candidate_ids.push(tx.tx_id);
-            candidate_wires.push(TxExecSealWire::from(&tx));
+            candidate_wires.push(TxAttestationWire::from(&tx));
             if self.mempool.remove_tx(&tx) {
                 self.pending_txs.push(tx);
             }
@@ -104,7 +104,7 @@ impl MempoolHandle {
     }
 }
 
-pub fn merkel_root(tx_ids: &[TxExecSealId]) -> Hash32 {
+pub fn merkel_root(tx_ids: &[TxAttestationId]) -> Hash32 {
     assert!(!tx_ids.is_empty(), "merkel_root on empty array not defined");
     let mut layer: Vec<Hash32> = tx_ids.iter()
         .map(|tx| tx.0)

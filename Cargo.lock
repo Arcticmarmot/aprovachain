@@ -3314,7 +3314,6 @@ checksum = "a5b0c77c1b780822bc749a33e39aeb2c07584ab93332303babeabb645298a76e"
 name = "node"
 version = "0.1.0"
 dependencies = [
- "account",
  "anyhow",
  "chain",
  "clap",
@@ -4765,7 +4764,6 @@ dependencies = [
  "account",
  "anyhow",
  "axum",
- "chain",
  "contract",
  "db",
  "network",

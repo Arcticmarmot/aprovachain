@@ -8,8 +8,8 @@ use account::keypair::{AccountSigningKey, AccountSigningKeyBytes, AccountVerifyi
 use primitives::file::{load_user_sk_path};
 use spec::chain::ChainId;
 use primitives::hash::sha256;
-use tx::tx_envelope::{TxEnvelope, TxEnvelopeWire};
-use tx::tx_intent::{TxIntent, TxPayload};
+use tx::envelope::{TxEnvelope, TxEnvelopeWire};
+use tx::intent::{TxIntent, TxPayload};
 
 #[derive(Debug)]
 pub struct TxBuildSpec {

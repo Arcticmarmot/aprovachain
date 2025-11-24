@@ -10,14 +10,14 @@ pub enum Intent {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Envelope {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Exec {}
+pub enum Outcome {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum ExecSeal {}
+pub enum Attestation {}
 
 pub type TxIntentId = TxId<Intent>;
 pub type TxEnvelopeId = TxId<Envelope>;
-pub type TxExecId = TxId<Exec>;
-pub type TxExecSealId = TxId<ExecSeal>;
+pub type TxOutcomeId = TxId<Outcome>;
+pub type TxAttestationId = TxId<Attestation>;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TxId<T>(pub Hash32, PhantomData<T>);

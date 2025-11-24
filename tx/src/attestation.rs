@@ -5,106 +5,106 @@ use serde_with::{serde_as, Bytes};
 use account::keypair::{AccountSignature, AccountSignatureBytes, AccountSigningKey, AccountVerifyingKey, AccountVerifyingKeyBytes};
 use primitives::hash::sha256;
 use crate::error::TxError;
-use crate::tx_exec::{TxExec, TxExecWire};
-use crate::tx_id::TxExecSealId;
+use crate::outcome::{TxOutcome, TxOutcomeWire};
+use crate::id::TxAttestationId;
 use crate::error::Result;
 
 
 #[derive(Debug, Clone)]
-pub struct TxExecSeal {
-    pub tx_id: TxExecSealId,
-    pub exec: TxExec,
+pub struct TxAttestation {
+    pub tx_id: TxAttestationId,
+    pub outcome: TxOutcome,
     pub verifying_key: AccountVerifyingKey,
     pub signature: AccountSignature
 }
 
-impl PartialEq<Self> for TxExecSeal {
+impl PartialEq<Self> for TxAttestation {
     fn eq(&self, other: &Self) -> bool {
         self.tx_id == other.tx_id
     }
 }
 
-impl Eq for TxExecSeal { }
+impl Eq for TxAttestation { }
 
-impl Hash for TxExecSeal {
+impl Hash for TxAttestation {
     fn hash<H: Hasher>(&self, state: &mut H) {
         state.write(&self.to_canonical_bytes());
     }
 }
 
-impl TryFrom<TxExecSealWire> for TxExecSeal {
+impl TryFrom<TxAttestationWire> for TxAttestation {
     type Error = TxError;
-    fn try_from(wire: TxExecSealWire) -> Result<Self> {
-        let exec = TxExec::try_from(wire.exec)?;
+    fn try_from(wire: TxAttestationWire) -> Result<Self> {
+        let outcome = TxOutcome::try_from(wire.outcome)?;
         let verifying_key = AccountVerifyingKey::from_bytes(&wire.verifying_key)?;
         let signature = AccountSignature::from_bytes(&wire.signature);
-        let tx_id = Self::compute_tx_id(&exec, &verifying_key, &signature);
+        let tx_id = Self::compute_tx_id(&outcome, &verifying_key, &signature);
         Ok(Self {
             tx_id,
-            exec,
+            outcome,
             verifying_key,
             signature
         })
     }
 }
 
-impl TxExecSeal {
-    pub fn create(exec: TxExec, sk: AccountSigningKey) -> Self {
-        let tx_exec_id = exec.tx_id();
+impl TxAttestation {
+    pub fn create(outcome: TxOutcome, sk: AccountSigningKey) -> Self {
+        let tx_outcome_id = outcome.tx_id();
         let vk = sk.verifying_key();
-        let sig = sk.sign(&tx_exec_id.0);
-        let tx_id = Self::compute_tx_id(&exec, &vk, &sig);
+        let sig = sk.sign(&tx_outcome_id.0);
+        let tx_id = Self::compute_tx_id(&outcome, &vk, &sig);
         Self {
             tx_id,
-            exec,
+            outcome,
             verifying_key: vk,
             signature: sig
         }
     }
 
     pub fn to_canonical_bytes(&self) -> Vec<u8> {
-        TxExecSealWire::from(self).encode_bcs()
+        TxAttestationWire::from(self).encode_bcs()
     }
 
-    pub fn compute_tx_id(exec: &TxExec, vk: &AccountVerifyingKey, sig: &AccountSignature) -> TxExecSealId {
-        let wire = TxExecSealWire {
-            exec: exec.into(),
+    pub fn compute_tx_id(outcome: &TxOutcome, vk: &AccountVerifyingKey, sig: &AccountSignature) -> TxAttestationId {
+        let wire = TxAttestationWire {
+            outcome: outcome.into(),
             verifying_key: vk.to_bytes(),
             signature: sig.to_bytes()
         };
-        TxExecSealId::new(sha256(wire.encode_bcs()))
+        TxAttestationId::new(sha256(wire.encode_bcs()))
     }
     
-    pub fn tx_id(&self) -> TxExecSealId {
-        TxExecSealId::new(sha256(&self.to_canonical_bytes()))
+    pub fn tx_id(&self) -> TxAttestationId {
+        TxAttestationId::new(sha256(&self.to_canonical_bytes()))
     }
     
     pub fn self_verify(&self) -> Result<()> {
-        Ok(self.verifying_key.verify(&self.exec.tx_id().0, &self.signature)?)
+        Ok(self.verifying_key.verify(&self.outcome.tx_id().0, &self.signature)?)
     }
 }
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TxExecSealWire {
-    pub exec: TxExecWire,
+pub struct TxAttestationWire {
+    pub outcome: TxOutcomeWire,
     pub verifying_key: AccountVerifyingKeyBytes,
     #[serde_as(as = "Bytes")]
     pub signature: AccountSignatureBytes
 }
 
-impl From<&TxExecSeal> for TxExecSealWire {
-    fn from(seal: &TxExecSeal) -> Self {
-        let exec = &seal.exec;
+impl From<&TxAttestation> for TxAttestationWire {
+    fn from(seal: &TxAttestation) -> Self {
+        let outcome = &seal.outcome;
         Self {
-            exec: exec.into(),
+            outcome: outcome.into(),
             verifying_key: seal.verifying_key.to_bytes(),
             signature: seal.signature.to_bytes()
         }
     }
 }
 
-impl TxExecSealWire {
+impl TxAttestationWire {
     pub fn encode_bcs(&self) -> Vec<u8> {
         bcs::to_bytes(&self).expect("BCS should be infallible by design")
     }

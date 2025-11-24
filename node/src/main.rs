@@ -61,13 +61,13 @@ async fn main() -> Result<()> {
             Some(cmd) = p2p_event_rx.recv() => {
                 match cmd {
                     P2pEvent::TxReceived(tx_bytes) => {
-                        tracing::info!(target:"orderer::event", "node received tx");
+                        tracing::info!(target:"node::event", "node received tx");
                         if let Err(err) = handle_tx_received(tx_bytes) {
                             tracing::warn!(target:"node::event", %err);
                         }
                     },
                     P2pEvent::BlockReceived(block_bytes) => {
-                        tracing::info!(target:"orderer::event", "node received block");
+                        tracing::info!(target:"node::event", "node received block");
                         if let Err(err) = handle_block_received(block_bytes) {
                             tracing::warn!(target:"node::event::block", %err);
                         }

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use primitives::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32, HASH32_ZERO};
-use tx::tx_exec_seal::{TxExecSealWire};
+use tx::attestation::{TxAttestationWire};
 use crate::error::Result;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
@@ -49,11 +49,11 @@ impl BlockHeader {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Block {
     pub header: BlockHeader,
-    pub txs: Vec<TxExecSealWire>
+    pub txs: Vec<TxAttestationWire>
 }
 
 impl Block {
-    pub fn new(header: BlockHeader, txs: Vec<TxExecSealWire>) -> Self {
+    pub fn new(header: BlockHeader, txs: Vec<TxAttestationWire>) -> Self {
         Self {
             header,
             txs

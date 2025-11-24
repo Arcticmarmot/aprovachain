@@ -2,7 +2,7 @@ use clap::Parser;
 use apps::bootstrap::{init_env, init_logging};
 use apps::handler::{build_envelope_wire, parse_tx_args, parse_tx_args_with, send_envelope, TxArgs};
 use server::context::SubmitTxResponse;
-use tx::tx_intent::TxPayload;
+use tx::intent::TxPayload;
 
 #[tokio::test]
 pub async fn deploy_then_exec() {

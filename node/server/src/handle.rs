@@ -1,16 +1,16 @@
-use tx::tx_envelope::{TxEnvelopeWire, TxEnvelope};
+use tx::envelope::{TxEnvelopeWire, TxEnvelope};
 use axum::body::{Bytes};
 use axum::extract::State;
 use axum::Json;
 use risc0_zkvm::{default_prover, Digest, ExecutorEnv, Prover};
-use tx::tx_intent::{TxIntent, TxPayload};
+use tx::intent::{TxIntent, TxPayload};
 use crate::error::{ApiResult, ServerError, Result};
 use primitives::hash::{sha256, Hash32};
 use account::address::ChainAddrBytes;
 use contract::contract::{Contract};
 use db::handle::DBHandle;
-use tx::tx_exec::{TxExec};
-use tx::tx_exec_seal::TxExecSeal;
+use tx::outcome::{TxOutcome};
+use tx::attestation::TxAttestation;
 use crate::context::{AppState, SubmitTxResponse};
 
 /// 交易提交处理函数
@@ -32,13 +32,13 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
         SubmitTxResponse::Deploy{ .. } => {
         },
         SubmitTxResponse::Exec {receipt, ..} => {
-            let tx_exec = TxExec {
+            let tx_exec = TxOutcome {
                 envelope: tx_envelope,
                 receipt,
             };
             tracing::info!(target: "node::axum", len=?tx_exec.envelope.to_canonical_bytes().len(), "envelope size");
             tracing::info!(target: "node::axum", len=?tx_exec.to_canonical_bytes().len(), "tx exec size");
-            let tx_seal = TxExecSeal::create(tx_exec, sk);
+            let tx_seal = TxAttestation::create(tx_exec, sk);
             cmd_handle.publish_tx(tx_seal.to_canonical_bytes())?;
         }
     };

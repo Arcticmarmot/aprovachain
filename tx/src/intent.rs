@@ -8,7 +8,7 @@ use primitives::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32};
 use crate::error::TxError;
 use crate::error::Result;
-use crate::tx_id::TxIntentId;
+use crate::id::TxIntentId;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TxPayload {
