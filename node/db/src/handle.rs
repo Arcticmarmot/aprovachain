@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use rocksdb::{ColumnFamily, WriteBatch, DB};
 use account::address::{ChainAddrBytes};
-use chain::block::BlockHeader;
+use chain::block::{Block, BlockHeader};
 use contract::contract::{Contract, ContractWire};
 use primitives::hash::Hash32;
 use crate::error::DBError;
@@ -61,9 +61,9 @@ impl DBHandle {
     }
 
     pub fn load_contract(&self, ctr_addr_bytes: &ChainAddrBytes) -> Result<Option<Contract>> {
-        let ctr = self.dbh.get_cf(self.cf_contracts(), ctr_addr_bytes)
+        let ctr_opt = self.dbh.get_cf(self.cf_contracts(), ctr_addr_bytes)
             .map_err(DBError::DBGet)?;
-        Ok(match ctr {
+        Ok(match ctr_opt {
             Some(ctr_bytes) => {
                 let wire = ContractWire::try_encode_bcs(&ctr_bytes)?;
                 Some(Contract::try_from(wire)?)
@@ -83,5 +83,25 @@ impl DBHandle {
         let elf = self.dbh.get_cf(self.cf_elfs(), elf_hash)
             .map_err(DBError::DBGet)?;
         Ok(elf)
+    }
+
+    pub fn save_block(&self, block: &Block) -> Result<()> {
+        let mut batch = WriteBatch::default();
+        let height_key: [u8; 16] = block.header.height.to_be_bytes();
+        batch.put_cf(self.cf_blocks(), height_key, block.encode_bcs());
+        self.dbh.write(batch).map_err(DBError::DBPut)?;
+        Ok(())
+    }
+
+    pub fn load_block(&self, height: u128) -> Result<Option<Block>> {
+        let height_key: [u8; 16] = height.to_be_bytes();
+        let block_opt = self.dbh.get_cf(self.cf_blocks(), height_key)
+            .map_err(DBError::DBGet)?;
+        Ok(match block_opt{
+            Some(block_bytes) => {
+                Some(Block::try_decode_bcs(&block_bytes)?)
+            },
+            None => None
+        })
     }
 }

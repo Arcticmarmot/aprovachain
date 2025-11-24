@@ -4,7 +4,7 @@ use libp2p::identity::{Keypair};
 use libp2p::PeerId;
 use tokio::{spawn};
 use network::handle::*;
-use network::p2p::{init_p2p, start_p2p};
+use network::runtime::{init_p2p, run_p2p};
 use orderer::bootstrap::{init_env, init_logging};
 use tokio::sync::mpsc;
 use chain::block::Block;
@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
     let (sk, peer_set, swarm) = init_p2p()?;
     // p2p 接收P2pCmd命令，发出P2pEvent事件
     spawn(async move {
-        let _ = start_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl).await;
+        let _ = run_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl).await;
     });
     tracing::info!(target:"orderer::init", "p2p init success...");
 

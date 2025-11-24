@@ -34,7 +34,7 @@ impl Hash for TxExecSeal {
 
 impl TryFrom<TxExecSealWire> for TxExecSeal {
     type Error = TxError;
-    fn try_from(wire: TxExecSealWire) -> crate::error::Result<Self> {
+    fn try_from(wire: TxExecSealWire) -> Result<Self> {
         let exec = TxExec::try_from(wire.exec)?;
         let verifying_key = AccountVerifyingKey::from_bytes(&wire.verifying_key)?;
         let signature = AccountSignature::from_bytes(&wire.signature);

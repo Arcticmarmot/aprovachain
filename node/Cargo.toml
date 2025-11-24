@@ -5,7 +5,9 @@ edition = "2024"
 
 [dependencies]
 db = { workspace = true }
-server = { path = "server" }
+server = { workspace = true }
+tx = { workspace = true }
+account = { workspace = true }
 network = { workspace = true }
 tokio = { workspace = true }
 anyhow = { workspace = true }

@@ -43,7 +43,7 @@ pub fn init_p2p() -> Result<(AccountSigningKey, PeerSet, Swarm<PeerBehaviour>)> 
     Ok((sk, peer_set, swarm))
 }
 
-pub async fn start_p2p(
+pub async fn run_p2p(
     mut peer_set: PeerSet,
     mut swarm: Swarm<PeerBehaviour>,
     mut cmd_rx: UnboundedReceiver<P2pCmd>,
