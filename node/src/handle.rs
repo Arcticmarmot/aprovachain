@@ -1,7 +1,5 @@
-use anyhow::{Context, Error, Result};
-use account::address::ContractAddress;
+use anyhow::{ensure, Context, Result, anyhow};
 use chain::block::Block;
-use chain::error::ChainError::InvalidBlock;
 use db::handle::DBHandle;
 use tx::tx_exec_seal::TxExecSeal;
 use tx::tx_intent::TxPayload;
@@ -11,41 +9,50 @@ pub fn handle_tx_received(tx_bytes: Vec<u8>) -> Result<()> {
 }
 
 pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
+    // 解码 block
     let block = Block::try_decode_bcs(&block_bytes)?;
     let header = block.header;
+    tracing::info!(target:"node::event", ?header, "new block header");
     let db_handle = DBHandle::new()?;
     // 验证是否是合法区块，并存储 chain_state
-    let chain_state = db_handle.load_chain_state()?;
-    match chain_state {
+    match db_handle.load_chain_state()? {
         Some(tip_header) => {
-            if header.height != tip_header.height + 1 { return Err(Error::new(InvalidBlock)); }
-            if header.parent_hash != tip_header.hash() { return Err(Error::new(InvalidBlock)); }
+            ensure!(header.height == tip_header.height + 1, "invalid new block header");
+            ensure!(header.parent_hash == tip_header.hash(), "invalid new block header");
         },
         None => { }
     }
 
     // 验证区块内交易
+    // 解码各个交易
     let txs: Vec<TxExecSeal> = block.txs.iter()
-        .map(|tx| TxExecSeal::try_from(tx.clone()).unwrap() ).collect();
-    for tx in txs {
-        let payload = tx.exec.envelope.intent.payload;
-        let receipt = tx.exec.receipt;
+        .cloned()
+        .map(|tx| {
+            TxExecSeal::try_from(tx).with_context(|| "tx decode failed")
+        })
+        .collect::<Result<Vec<TxExecSeal>>>()?;
+
+    // 业务层校验交易
+    for tx in &txs {
+        // 检查节点签名
+        tx.self_verify()?;
+        // 检查用户签名
+        let envelope = &tx.exec.envelope;
+        envelope.self_verify()?;
+
+        let payload = &envelope.intent.payload;
+        let receipt = &tx.exec.receipt;
         match payload {
             TxPayload::Exec { ctr_addr, input } => {
-                match db_handle.load_contract(&ctr_addr)? {
-                    Some(ctr) => {
-                        let image_id = ctr.image_id;
-                        receipt.verify(image_id).context("verify receipt failed")?;
-                        // 简单的 ELF 文件， input == output
-                        let output: Vec<u8> = receipt.journal.decode().context("output decode failed")?;
-                        if output != input {
-                            return Err(Error::new(InvalidBlock));
-                        }
-                    },
-                    None => {
-                        return Err(Error::new(InvalidBlock));
-                    }
-                };
+                // TODO: 合约需要部署在所有节点上
+                let ctr = db_handle.load_contract(&ctr_addr)?
+                    .ok_or_else(|| anyhow!("invalid contract address"))?;
+                let image_id = ctr.image_id;
+                receipt.verify(image_id).context("verify receipt failed")?;
+                // 简单的 ELF 文件， input == output
+                let output: Vec<u8> = receipt.journal.decode().context("output decode failed")?;
+                println!("{:?}", input);
+                tracing::info!(target:"node::event", input=?input, output=?output);
             },
             TxPayload::Deploy { .. } => { }
         }
@@ -56,5 +63,9 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
 
     // 更新 chain_state
     db_handle.save_chain_state(&header)?;
+
+    if let Some(block) = db_handle.load_block(header.height)? {
+        tracing::info!(target: "==BLOCK==", ?block);
+    }
     Ok(())
 }

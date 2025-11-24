@@ -31,6 +31,11 @@ impl TxEnvelope {
     pub fn tx_id(&self) -> TxEnvelopeId {
         TxEnvelopeId::new(sha256(self.to_canonical_bytes()))
     }
+
+    pub fn self_verify(&self) -> Result<()> {
+        let intent = &self.intent;
+        Ok(intent.verifying_key.verify(&intent.tx_id().0, &self.signature)?)
+    }
 }
 
 impl TryFrom<TxEnvelopeWire> for TxEnvelope {

@@ -78,6 +78,10 @@ impl TxExecSeal {
     pub fn tx_id(&self) -> TxExecSealId {
         TxExecSealId::new(sha256(&self.to_canonical_bytes()))
     }
+    
+    pub fn self_verify(&self) -> Result<()> {
+        Ok(self.verifying_key.verify(&self.exec.tx_id().0, &self.signature)?)
+    }
 }
 
 #[serde_as]

@@ -69,7 +69,7 @@ async fn main() -> Result<()> {
                     P2pEvent::BlockReceived(block_bytes) => {
                         tracing::info!(target:"orderer::event", "node received block");
                         if let Err(err) = handle_block_received(block_bytes) {
-                            tracing::warn!(target:"node::event", %err);
+                            tracing::warn!(target:"node::event::block", %err);
                         }
                     }
                 }
