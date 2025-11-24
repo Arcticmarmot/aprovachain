@@ -1,6 +1,3 @@
-use axum::http::StatusCode;
-use axum::Json;
-use axum::response::{IntoResponse, Response};
 use thiserror::Error;
 use tx::error::TxError;
 use account::error::AccountError;
@@ -35,21 +32,3 @@ pub enum NodeError {
     #[error("contract not found")]
     ContractNotFound,
 }
-
-impl IntoResponse for NodeError {
-    fn into_response(self) -> Response {
-        match self {
-            NodeError::Tx(e) => (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
-            NodeError::DB(e) => (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
-            NodeError::ImageIdCompute(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-            NodeError::ExecutorEnvBuild(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-            NodeError::ImageIdMismatch => (StatusCode::BAD_REQUEST, self.to_string()).into_response(),
-            NodeError::ElfHashMismatch => (StatusCode::BAD_REQUEST, self.to_string()).into_response(),
-            NodeError::ElfFileNotFound => (StatusCode::BAD_REQUEST, self.to_string()).into_response(),
-            _ => (StatusCode::BAD_REQUEST, self.to_string()).into_response()
-        }
-    }
-}
-
-pub type Result<T> = std::result::Result<T, NodeError>;
-pub type ApiResult<T> = std::result::Result<Json<T>, NodeError>;

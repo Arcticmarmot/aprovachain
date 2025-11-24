@@ -30,7 +30,7 @@ async fn main() -> Result<()> {
     init_env()?;
 
     // 解析 NodeArgs
-    let args = NodeArgs::parse();
+    let _ = NodeArgs::parse();
 
     let (p2p_cmd_tx, p2p_cmd_rx) =
         mpsc::unbounded_channel::<P2pCmd>();
@@ -44,7 +44,7 @@ async fn main() -> Result<()> {
     spawn(async move {
         let _ = start_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl).await;
     });
-    tracing::info!("p2p init success...");
+    tracing::info!(target:"orderer::init", "p2p init success...");
 
     // 共识层初始化
     let local_key = Keypair::ed25519_from_bytes(sk.to_bytes())?;
@@ -55,7 +55,7 @@ async fn main() -> Result<()> {
     let (solo_event_tx, mut solo_event_rx) =
         mpsc::unbounded_channel::<SoloEvent>();
 
-    let mut block = Block::genesis()?;
+    let block = Block::genesis()?;
     let chain_state = ChainState {
         chain_id: ChainId(1000),
         tip_header: block.header
@@ -68,6 +68,8 @@ async fn main() -> Result<()> {
     spawn(async move {
         start_consensus(solo, solo_cmd_rx, solo_cmd_hdl, solo_event_hdl).await
     });
+    tracing::info!(target:"orderer::init", "consensus init success...");
+    
     let solo_cmd_hdl = SoloCmdHandle::new(solo_cmd_tx);
     loop {
         tokio::select! {

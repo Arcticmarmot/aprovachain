@@ -61,10 +61,6 @@ pub fn init_cfs() -> Vec<ColumnFamilyDescriptor>{
     let cf_opts = Options::default();
     let cf_blocks = ColumnFamilyDescriptor::new("blocks", cf_opts);
 
-    // txs cf
-    let cf_opts = Options::default();
-    let cf_txs = ColumnFamilyDescriptor::new("txs", cf_opts);
-
     // contracts cf
     let cf_opts = Options::default();
     let cf_contracts = ColumnFamilyDescriptor::new("contracts", cf_opts);
@@ -72,7 +68,7 @@ pub fn init_cfs() -> Vec<ColumnFamilyDescriptor>{
     // elfs cf
     let cf_opts = Options::default();
     let cf_elfs = ColumnFamilyDescriptor::new("elfs", cf_opts);
-    vec![cf_chain, cf_blocks, cf_txs, cf_contracts, cf_elfs]
+    vec![cf_chain, cf_blocks, cf_contracts, cf_elfs]
 }
 
 #[inline]

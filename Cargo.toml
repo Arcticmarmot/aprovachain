@@ -6,7 +6,7 @@ authors = ["marmot"]
 
 [workspace]
 members = ["account", "apps", "spec", "methods", "methods/uav",
-    "keygen", "node", "node/db", "primitives", "tx", "contract", "network",
+    "keygen", "node", "node/db", "node/server", "primitives", "tx", "contract", "network",
     "chain", "orderer", "orderer/consensus"]
 
 [dependencies]
@@ -23,6 +23,7 @@ chain = { path = "chain" }
 network = { path = "network" }
 consensus = { path = "orderer/consensus" }
 db = { path = "node/db" }
+server = { path = "node/server" }
 
 directories = { version = "6" }
 tracing = { version="0.1" }

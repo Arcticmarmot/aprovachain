@@ -162,6 +162,7 @@ dependencies = [
  "risc0-zkvm",
  "serde",
  "serde_json",
+ "server",
  "spec",
  "tokio",
  "tracing",
@@ -3320,7 +3321,6 @@ version = "0.1.0"
 dependencies = [
  "account",
  "anyhow",
- "axum",
  "chain",
  "clap",
  "contract",
@@ -3328,8 +3328,7 @@ dependencies = [
  "dotenvy",
  "network",
  "primitives",
- "risc0-zkvm",
- "serde",
+ "server",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -4764,6 +4763,30 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.106",
+]
+
+[[package]]
+name = "server"
+version = "0.1.0"
+dependencies = [
+ "account",
+ "anyhow",
+ "axum",
+ "chain",
+ "clap",
+ "contract",
+ "db",
+ "dotenvy",
+ "network",
+ "primitives",
+ "risc0-zkvm",
+ "serde",
+ "thiserror 2.0.17",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber 0.3.20",
+ "tx",
 ]
 
 [[package]]

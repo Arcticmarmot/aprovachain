@@ -28,10 +28,6 @@ impl DBHandle {
         self.dbh.cf_handle("blocks").expect("cf 'blocks' must be exist")
     }
 
-    pub fn cf_txs(&self) -> &ColumnFamily {
-        self.dbh.cf_handle("txs").expect("cf 'txs' must be exist")
-    }
-
     pub fn cf_contracts(&self) -> &ColumnFamily {
         self.dbh.cf_handle("contracts").expect("cf 'contracts' must be exist")
     }

@@ -4,7 +4,7 @@ use axum::extract::State;
 use axum::Json;
 use risc0_zkvm::{default_prover, Digest, ExecutorEnv, Prover};
 use tx::tx_intent::{TxIntent, TxPayload};
-use crate::error::{ApiResult, NodeError, Result};
+use crate::error::{ApiResult, ServerError, Result};
 use primitives::hash::{sha256, Hash32};
 use account::address::ChainAddrBytes;
 use contract::contract::{Contract};
@@ -67,12 +67,12 @@ pub fn handle_deploy_tx(intent: &TxIntent, image_id: &Digest, elf: &Vec<u8>, elf
     // 验证 ELF 文件哈希是否对应
     let computed_elf_hash = sha256(elf);
     if &computed_elf_hash != elf_hash {
-        return Err(NodeError::ElfHashMismatch)
+        return Err(ServerError::ElfHashMismatch)
     }
     // 验证 image_id 是否对应
-    let computed_image_id = risc0_zkvm::compute_image_id(elf).map_err(NodeError::ImageIdCompute)?;
+    let computed_image_id = risc0_zkvm::compute_image_id(elf).map_err(ServerError::ImageIdCompute)?;
     if &computed_image_id != image_id {
-        return Err(NodeError::ImageIdMismatch)
+        return Err(ServerError::ImageIdMismatch)
     }
     tracing::info!("Deploy ImageId: {:?}", image_id.as_words());
     tracing::info!("Deploy ElfHash: {:?}", elf_hash);
@@ -108,7 +108,7 @@ pub fn handle_exec_tx(intent: &TxIntent, ctr_addr_bytes: &ChainAddrBytes, input:
         Some(ctr) => ctr,
         None => return {
             tracing::warn!("Contract not found");
-            Err(NodeError::ContractNotFound)
+            Err(ServerError::ContractNotFound)
         }
     };
 
@@ -123,7 +123,7 @@ pub fn handle_exec_tx(intent: &TxIntent, ctr_addr_bytes: &ChainAddrBytes, input:
         Some(elf) => elf,
         None => return {
             tracing::warn!("Elf file not found");
-            Err(NodeError::ElfFileNotFound)
+            Err(ServerError::ElfFileNotFound)
         }
     };
     tracing::info!("Elf file len: {}", elf.len());
@@ -132,11 +132,11 @@ pub fn handle_exec_tx(intent: &TxIntent, ctr_addr_bytes: &ChainAddrBytes, input:
     let env = ExecutorEnv::builder()
         .write(&input)
         .unwrap()
-        .build().map_err(NodeError::ExecutorEnvBuild)?;
+        .build().map_err(ServerError::ExecutorEnvBuild)?;
 
     // 根据虚拟机环境和 ELF 文件生成证明
     let prover = default_prover();
-    let proof = prover.prove(env, &elf).map_err(NodeError::ProofGenerate)?;
+    let proof = prover.prove(env, &elf).map_err(ServerError::ProofGenerate)?;
     tracing::info!("PROOF: {:?}", proof);
     let receipt = proof.receipt;
     let output: Vec<u8> = receipt.journal.decode().unwrap();

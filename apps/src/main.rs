@@ -2,7 +2,7 @@ use clap::Parser;
 use anyhow::{Result};
 use apps::bootstrap::{init_env, init_logging};
 use apps::handler::{build_envelope_wire, parse_tx_args, send_envelope, TxArgs};
-use node::context::SubmitTxResponse;
+use server::context::SubmitTxResponse;
 
 #[tokio::main]
 async fn main() -> Result<()> {

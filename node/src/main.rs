@@ -1,6 +1,4 @@
-use axum::{routing::post, Router};
 use anyhow::Result;
-use std::net::SocketAddr;
 use std::process::exit;
 use clap::{arg, Parser};
 use tokio::{signal, spawn};
@@ -8,11 +6,9 @@ use db::runtime::{init_db, close_db, DBFileMode};
 use network::handle::{P2pCmd, P2pCmdHandle, P2pEvent, P2pEventHandle};
 use network::p2p::{init_p2p, start_p2p};
 use node::bootstrap::{init_env, init_logging};
-use node::handler::{submit_tx};
 use tokio::sync::mpsc;
-use account::keypair::AccountSigningKey;
 use chain::block::Block;
-use node::context::AppState;
+use server::runtime::run_server;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
@@ -36,7 +32,7 @@ async fn main() -> Result<()> {
     // 初始化数据库
     let db_file_mode = args.db_file_mode;
     let _ = init_db(db_file_mode)?;
-    tracing::info!(target:"node::db", "rocksdb({db_file_mode:?}) init success...");
+    tracing::info!(target:"node::init", "rocksdb({db_file_mode:?}) init success...");
 
     let (p2p_cmd_tx, p2p_cmd_rx) =
         mpsc::unbounded_channel::<P2pCmd>();
@@ -50,17 +46,23 @@ async fn main() -> Result<()> {
     spawn(async move {
         let _ = start_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl).await;
     });
-    tracing::info!("p2p init success...");
+    tracing::info!(target:"node::init", "p2p init success...");
 
-    let _ = init_server(db_file_mode, sk, p2p_cmd_hdl).await?;
+    // 开启 http 服务
+    spawn(async move {
+        let _ = run_server(sk, p2p_cmd_hdl).await;
+    });
+    tracing::info!(target:"node::init", "server init success...");
 
     loop {
         tokio::select! {
             Some(cmd) = p2p_event_rx.recv() => {
                 match cmd {
-                    P2pEvent::TxReceived(_) => { },
+                    P2pEvent::TxReceived(_) => {
+                        tracing::info!(target:"orderer::event", "node received tx");
+                    },
                     P2pEvent::BlockReceived(block_bytes) => {
-                        tracing::info!(target:"orderer::event", "received block");
+                        tracing::info!(target:"orderer::event", "node received block");
                         let block = Block::try_decode_bcs(&block_bytes)?;
                     }
                 }
@@ -68,31 +70,9 @@ async fn main() -> Result<()> {
              // TODO: 优化 ctrl_c 退出
             _ = signal::ctrl_c() => {
                 tracing::info!(target:"node::signal", "ctrl-c received, shutting down");
+                let _ = close_db(db_file_mode);
                 exit(0);
             }
         }
     }
-}
-
-async fn init_server(db_file_mode: DBFileMode, sk: AccountSigningKey, cmd_handle: P2pCmdHandle) -> Result<()> {
-    let state = AppState {
-        sk,
-        cmd_handle,
-    };
-    let node = Router::new()
-        .route("/api/submit-tx", post(submit_tx))
-        .with_state(state);
-    let addr: SocketAddr = "0.0.0.0:8888".parse()?;
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8888").await?;
-    tracing::info!(target:"node::axum", "node listening on http(s)://{addr} ...");
-    axum::serve(listener, node)
-        .with_graceful_shutdown(shutdown_signal(db_file_mode))
-        .await?;
-    Ok(())
-}
-
-async fn shutdown_signal(mode: DBFileMode) {
-    let _ = signal::ctrl_c().await;
-    let _ = close_db(mode);
-    eprintln!("shutting down");
 }
