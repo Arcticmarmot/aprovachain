@@ -4,11 +4,13 @@ use std::net::SocketAddr;
 use tokio::{signal};
 use network::handle::{P2pCmdHandle};
 use account::keypair::AccountSigningKey;
+use db::handle::DBHandle;
 use crate::context::AppState;
 use crate::handle::submit_tx;
 
-pub async fn run_server(sk: AccountSigningKey, cmd_handle: P2pCmdHandle) -> Result<()> {
+pub async fn run_server(sk: AccountSigningKey, db_handle: DBHandle, cmd_handle: P2pCmdHandle) -> Result<()> {
     let state = AppState {
+        db_handle,
         sk,
         cmd_handle,
     };
@@ -26,5 +28,4 @@ pub async fn run_server(sk: AccountSigningKey, cmd_handle: P2pCmdHandle) -> Resu
 
 async fn shutdown_signal() {
     let _ = signal::ctrl_c().await;
-    eprintln!("shutting down");
 }

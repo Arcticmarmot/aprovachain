@@ -15,6 +15,9 @@ use crate::context::{AppState, SubmitTxResponse};
 
 /// 交易提交处理函数
 pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiResult<SubmitTxResponse> {
+    let db_handle = state.db_handle;
+    let cmd_handle = state.cmd_handle;
+    let sk = state.sk;
     // 从字节数组构造 TxEnvelope
     let tx_envelope_wire: TxEnvelopeWire = TxEnvelopeWire::try_decode_bcs(tx_bytes.as_ref())?;
     let tx_envelope = TxEnvelope::try_from(tx_envelope_wire)?;
@@ -22,10 +25,9 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
     // 验证交易签名是否有效
     // TODO: 重放交易攻击，拒绝重复的 nonce
     verify_tx_sig(&tx_envelope)?;
-    let cmd_handle = state.cmd_handle;
-    let sk = state.sk;
+    
     // 执行交易
-    let intent = handle_intent(&tx_envelope.intent)?;
+    let intent = handle_intent(db_handle, &tx_envelope.intent)?;
     match intent.clone() {
         SubmitTxResponse::Deploy{ .. } => {
         },
@@ -43,14 +45,14 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
     Ok(Json(intent))
 }
 
-pub fn handle_intent(intent: &TxIntent) -> Result<SubmitTxResponse> {
+pub fn handle_intent(db_handle: DBHandle, intent: &TxIntent) -> Result<SubmitTxResponse> {
     let payload = &intent.payload;
     match payload {
         TxPayload::Deploy{ image_id, elf, elf_hash } => {
-            handle_deploy_tx(intent, image_id, elf, elf_hash)
+            handle_deploy_tx(db_handle, intent, image_id, elf, elf_hash)
         },
         TxPayload::Exec { ctr_addr, input} => {
-            handle_exec_tx(intent, ctr_addr, input)
+            handle_exec_tx(db_handle, intent, ctr_addr, input)
         }
     }
 }
@@ -63,7 +65,7 @@ pub fn verify_tx_sig(envelope: &TxEnvelope) -> Result<()> {
     Ok(())
 }
 
-pub fn handle_deploy_tx(intent: &TxIntent, image_id: &Digest, elf: &Vec<u8>, elf_hash: &Hash32) -> Result<SubmitTxResponse> {
+pub fn handle_deploy_tx(db_handle: DBHandle, intent: &TxIntent, image_id: &Digest, elf: &Vec<u8>, elf_hash: &Hash32) -> Result<SubmitTxResponse> {
     // 验证 ELF 文件哈希是否对应
     let computed_elf_hash = sha256(elf);
     if &computed_elf_hash != elf_hash {
@@ -86,7 +88,6 @@ pub fn handle_deploy_tx(intent: &TxIntent, image_id: &Digest, elf: &Vec<u8>, elf
     let ctr_addr_bytes = ctr.addr.to_bytes();
     // key: 合约的 addr 字节数组
     // value: 合约的BCS编码
-    let db_handle = DBHandle::new()?;
     db_handle.save_contract(&ctr_addr_bytes, &ctr.to_canonical_bytes())?;
     // key: ELF文件哈希
     // value: ELF文件字节数组
@@ -100,10 +101,9 @@ pub fn handle_deploy_tx(intent: &TxIntent, image_id: &Digest, elf: &Vec<u8>, elf
     })
 }
 
-pub fn handle_exec_tx(intent: &TxIntent, ctr_addr_bytes: &ChainAddrBytes, input: &Vec<u8>) -> Result<SubmitTxResponse> {
+pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_bytes: &ChainAddrBytes, input: &Vec<u8>) -> Result<SubmitTxResponse> {
     tracing::info!(target: "node::handle", tx_id=?intent.tx_id());
     // 根据合约地址查找合约 BCS 编码向量
-    let db_handle = DBHandle::new()?;
     let ctr = match db_handle.load_contract(ctr_addr_bytes)? {
         Some(ctr) => ctr,
         None => return {

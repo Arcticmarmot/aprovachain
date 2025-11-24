@@ -10,6 +10,7 @@ use crate::error::Result;
 
 pub const CHAIN_TIP_KEY: &[u8] = b"tip_header";
 
+#[derive(Debug, Clone)]
 pub struct DBHandle {
     pub dbh: Arc<DB>,
 }

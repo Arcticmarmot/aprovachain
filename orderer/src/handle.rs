@@ -1,7 +1,7 @@
 use consensus::solo::handle::SoloCmdHandle;
 use network::handle::P2pCmdHandle;
 use tx::tx_exec_seal::{TxExecSeal, TxExecSealWire};
-use crate::error::{Result};
+use anyhow::Result;
 
 /// Orderer P2pEvent::TxReceived 处理
 pub fn handle_tx_received(tx_bytes: Vec<u8>, solo_cmd_hdl: &SoloCmdHandle) -> Result<()> {
@@ -11,7 +11,6 @@ pub fn handle_tx_received(tx_bytes: Vec<u8>, solo_cmd_hdl: &SoloCmdHandle) -> Re
     solo_cmd_hdl.submit_tx(tx_bytes)?;
     Ok(())
 }
-
 
 /// Orderer P2pEvent::BlockReceived 处理
 pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {

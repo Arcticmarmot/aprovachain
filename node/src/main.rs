@@ -7,7 +7,8 @@ use network::handle::{P2pCmd, P2pCmdHandle, P2pEvent, P2pEventHandle};
 use network::p2p::{init_p2p, start_p2p};
 use node::bootstrap::{init_env, init_logging};
 use tokio::sync::mpsc;
-use chain::block::Block;
+use db::handle::DBHandle;
+use node::handle::{handle_block_received, handle_tx_received};
 use server::runtime::run_server;
 
 #[derive(Parser, Debug)]
@@ -32,6 +33,7 @@ async fn main() -> Result<()> {
     // 初始化数据库
     let db_file_mode = args.db_file_mode;
     let _ = init_db(db_file_mode)?;
+    let db_handle = DBHandle::new()?;
     tracing::info!(target:"node::init", "rocksdb({db_file_mode:?}) init success...");
 
     let (p2p_cmd_tx, p2p_cmd_rx) =
@@ -50,7 +52,7 @@ async fn main() -> Result<()> {
 
     // 开启 http 服务
     spawn(async move {
-        let _ = run_server(sk, p2p_cmd_hdl).await;
+        let _ = run_server(sk, db_handle, p2p_cmd_hdl).await;
     });
     tracing::info!(target:"node::init", "server init success...");
 
@@ -58,16 +60,21 @@ async fn main() -> Result<()> {
         tokio::select! {
             Some(cmd) = p2p_event_rx.recv() => {
                 match cmd {
-                    P2pEvent::TxReceived(_) => {
+                    P2pEvent::TxReceived(tx_bytes) => {
                         tracing::info!(target:"orderer::event", "node received tx");
+                        if let Err(err) = handle_tx_received(tx_bytes) {
+                            tracing::warn!(target:"node::event", %err);
+                        }
                     },
                     P2pEvent::BlockReceived(block_bytes) => {
                         tracing::info!(target:"orderer::event", "node received block");
-                        let block = Block::try_decode_bcs(&block_bytes)?;
+                        if let Err(err) = handle_block_received(block_bytes) {
+                            tracing::warn!(target:"node::event", %err);
+                        }
                     }
                 }
             },
-             // TODO: 优化 ctrl_c 退出
+
             _ = signal::ctrl_c() => {
                 tracing::info!(target:"node::signal", "ctrl-c received, shutting down");
                 let _ = close_db(db_file_mode);

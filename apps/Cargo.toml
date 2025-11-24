@@ -7,8 +7,6 @@ authors = ["marmot"]
 [dependencies]
 tx = { workspace = true }
 server = { workspace = true }
-methods = { workspace = true }
-node = { workspace = true }
 primitives = { workspace = true }
 spec = { workspace = true }
 reqwest = { version = "0.12" }
@@ -19,10 +17,7 @@ tracing-subscriber = { workspace = true }
 dotenvy = { workspace = true }
 anyhow = { workspace = true }
 account = { workspace = true }
-ed25519-dalek = { workspace = true }
 hex = { workspace = true }
 serde_json = { workspace = true }
-serde = { workspace = true }
 tokio = { workspace = true }
 risc0-zkvm = { workspace = true }
-bytes = { version = "1.10"}

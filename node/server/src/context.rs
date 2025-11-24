@@ -3,10 +3,12 @@ use serde::{Deserialize, Serialize};
 use account::address::ChainAddrBytes;
 use network::handle::{P2pCmdHandle};
 use account::keypair::{AccountSigningKey};
+use db::handle::DBHandle;
 use primitives::hash::Hash32;
 
 #[derive(Debug, Clone)]
 pub struct AppState {
+    pub db_handle: DBHandle,
     pub cmd_handle: P2pCmdHandle,
     pub sk: AccountSigningKey
 }

@@ -150,17 +150,12 @@ version = "0.1.0"
 dependencies = [
  "account",
  "anyhow",
- "bytes",
  "clap",
  "dotenvy",
- "ed25519-dalek",
  "hex",
- "methods",
- "node",
  "primitives",
  "reqwest",
  "risc0-zkvm",
- "serde",
  "serde_json",
  "server",
  "spec",
@@ -3319,22 +3314,18 @@ checksum = "a5b0c77c1b780822bc749a33e39aeb2c07584ab93332303babeabb645298a76e"
 name = "node"
 version = "0.1.0"
 dependencies = [
- "account",
  "anyhow",
  "chain",
  "clap",
- "contract",
  "db",
  "dotenvy",
  "network",
  "primitives",
  "server",
- "thiserror 2.0.17",
  "tokio",
  "tracing",
  "tracing-appender",
  "tracing-subscriber 0.3.20",
- "tx",
 ]
 
 [[package]]
@@ -4773,10 +4764,8 @@ dependencies = [
  "anyhow",
  "axum",
  "chain",
- "clap",
  "contract",
  "db",
- "dotenvy",
  "network",
  "primitives",
  "risc0-zkvm",
@@ -4784,8 +4773,6 @@ dependencies = [
  "thiserror 2.0.17",
  "tokio",
  "tracing",
- "tracing-appender",
- "tracing-subscriber 0.3.20",
  "tx",
 ]
 
