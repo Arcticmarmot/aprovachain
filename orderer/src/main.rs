@@ -54,11 +54,10 @@ async fn main() -> Result<()> {
         mpsc::unbounded_channel::<SoloCmd>();
     let (solo_event_tx, mut solo_event_rx) =
         mpsc::unbounded_channel::<SoloEvent>();
-
-    let block = Block::genesis()?;
+    
     let chain_state = ChainState {
         chain_id: ChainId(1000),
-        tip_header: block.header
+        tip_header_opt: None
     };
     let mempool_handle = MempoolHandle::new();
     let solo = SoloService::new(local_id, local_id, chain_state, mempool_handle);

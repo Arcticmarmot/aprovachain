@@ -32,9 +32,16 @@ impl SoloService {
     }
 
     pub fn pack_block(&mut self) -> Result<Block> {
-        let tip_header = self.chain_state.tip_header;
-        let block = self.mempool_handle.pack_block(&tip_header, 2)?;
-        Ok(block)
+        match self.chain_state.tip_header_opt {
+            Some(tip_header) => {
+                let block = self.mempool_handle.pack_block(&tip_header, 2)?;
+                Ok(block)
+            },
+            None => {
+                let genesis = Block::genesis()?;
+                Ok(genesis)
+            }
+        }
     }
 
     pub fn update_chain_state(&mut self, header: BlockHeader) -> Result<()> {

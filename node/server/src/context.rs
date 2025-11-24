@@ -17,12 +17,12 @@ pub struct AppState {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SubmitTxResponse {
     Deploy {
-        ctr_addr: ChainAddrBytes,
+        ctr_addr_bytes: ChainAddrBytes,
         image_id: Digest,
         elf_hash: Hash32
     },
     Exec {
-        ctr_addr: ChainAddrBytes,
+        ctr_addr_bytes: ChainAddrBytes,
         image_id: Digest,
         elf_hash: Hash32,
         input: Vec<u8>,

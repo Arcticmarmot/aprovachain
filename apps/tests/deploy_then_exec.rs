@@ -1,4 +1,6 @@
+use std::time::Duration;
 use clap::Parser;
+use tokio::time::sleep;
 use apps::bootstrap::{init_env, init_logging};
 use apps::handler::{build_envelope_wire, parse_tx_args, parse_tx_args_with, send_envelope, TxArgs};
 use server::context::SubmitTxResponse;
@@ -29,8 +31,8 @@ pub async fn deploy_then_exec() {
     let json = response.json::<SubmitTxResponse>().await.unwrap();
     tracing::info!(target:"apps::resp", "Response: {:?}", json);
     let ctr_addr = match json {
-        SubmitTxResponse::Deploy { ctr_addr, .. } => {
-            Some(ctr_addr)
+        SubmitTxResponse::Deploy { ctr_addr_bytes, .. } => {
+            Some(ctr_addr_bytes)
         },
         _ => None
     }.unwrap();
@@ -40,6 +42,8 @@ pub async fn deploy_then_exec() {
         "apps",
         "--chain-id", "1000",
     ]).expect("parse args");
+
+    sleep(Duration::from_secs(20)).await;
     tracing::info!(target:"apps::init", "TxArgs: {:?}", args);
     let payload = TxPayload::Exec {
         ctr_addr,

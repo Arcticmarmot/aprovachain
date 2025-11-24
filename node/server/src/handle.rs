@@ -21,7 +21,7 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
     // 从字节数组构造 TxEnvelope
     let tx_envelope_wire: TxEnvelopeWire = TxEnvelopeWire::try_decode_bcs(tx_bytes.as_ref())?;
     let tx_envelope = TxEnvelope::try_from(tx_envelope_wire)?;
-    tracing::info!(target:"node::axum", tx_envelope_id=%tx_envelope.tx_id(), "tx envelope id");
+    tracing::info!(target:"node::server", tx_envelope_id=%tx_envelope.tx_id(), "tx envelope id");
     // 验证交易签名是否有效
     // TODO: 重放交易攻击，拒绝重复的 nonce
     verify_tx_sig(&tx_envelope)?;
@@ -30,16 +30,24 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
     let intent = handle_intent(db_handle, &tx_envelope.intent)?;
     match intent.clone() {
         SubmitTxResponse::Deploy{ .. } => {
+            let tx_outcome = TxOutcome {
+                envelope: tx_envelope,
+                receipt_opt: None
+            };
+            tracing::info!(target: "node::server", len=?tx_outcome.envelope.to_canonical_bytes().len(), "envelope size");
+            tracing::info!(target: "node::server", len=?tx_outcome.to_canonical_bytes().len(), "tx outcome size");
+            let tx = TxAttestation::create(tx_outcome, sk);
+            cmd_handle.publish_tx(tx.to_canonical_bytes())?;
         },
         SubmitTxResponse::Exec {receipt, ..} => {
-            let tx_exec = TxOutcome {
+            let tx_outcome = TxOutcome {
                 envelope: tx_envelope,
-                receipt,
+                receipt_opt: Some(receipt),
             };
-            tracing::info!(target: "node::axum", len=?tx_exec.envelope.to_canonical_bytes().len(), "envelope size");
-            tracing::info!(target: "node::axum", len=?tx_exec.to_canonical_bytes().len(), "tx exec size");
-            let tx_seal = TxAttestation::create(tx_exec, sk);
-            cmd_handle.publish_tx(tx_seal.to_canonical_bytes())?;
+            tracing::info!(target: "node::server", len=?tx_outcome.envelope.to_canonical_bytes().len(), "envelope size");
+            tracing::info!(target: "node::server", len=?tx_outcome.to_canonical_bytes().len(), "tx outcome size");
+            let tx = TxAttestation::create(tx_outcome, sk);
+            cmd_handle.publish_tx(tx.to_canonical_bytes())?;
         }
     };
     Ok(Json(intent))
@@ -76,26 +84,19 @@ pub fn handle_deploy_tx(db_handle: DBHandle, intent: &TxIntent, image_id: &Diges
     if &computed_image_id != image_id {
         return Err(ServerError::ImageIdMismatch)
     }
-    tracing::info!("Deploy ImageId: {:?}", image_id.as_words());
-    tracing::info!("Deploy ElfHash: {:?}", elf_hash);
+    tracing::info!(target: "node::server", image_id=?image_id.as_words());
+    tracing::info!(target: "node::server", elf_hash=?elf_hash);
 
-    // 创建合约
-    let ctr = Contract::create(intent.chain_id, computed_elf_hash, computed_image_id,
+    // 模拟创建合约
+    let ctr = Contract::create(intent.chain_id, elf_hash, image_id,
                                &intent.verifying_key, intent.nonce);
     // 获取合约Bech32m编码
     let ctr_bech32m =  ctr.addr.to_bech32m()?;
     tracing::info!("{}", ctr_bech32m);
     let ctr_addr_bytes = ctr.addr.to_bytes();
-    // key: 合约的 addr 字节数组
-    // value: 合约的BCS编码
-    db_handle.save_contract(&ctr_addr_bytes, &ctr.to_canonical_bytes())?;
-    // key: ELF文件哈希
-    // value: ELF文件字节数组
-    db_handle.save_elf(ctr.elf_hash, elf)?;
-
+    
     Ok(SubmitTxResponse::Deploy {
-        // TODO: ctr_addr -> ctr_addr_bytes
-        ctr_addr: ctr_addr_bytes,
+        ctr_addr_bytes,
         image_id: computed_image_id,
         elf_hash: computed_elf_hash
     })
@@ -107,12 +108,12 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_bytes: &C
     let ctr = match db_handle.load_contract(ctr_addr_bytes)? {
         Some(ctr) => ctr,
         None => return {
-            tracing::warn!("Contract not found");
+            tracing::warn!(target: "node::server", "Contract not found");
             Err(ServerError::ContractNotFound)
         }
     };
 
-    tracing::info!("Contract: {:?}", ctr);
+    tracing::info!(target: "node::server", "Contract: {:?}", ctr);
 
     let image_id = ctr.image_id;
     // 从合约中获取 elf_hash
@@ -122,7 +123,7 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_bytes: &C
     let elf = match db_handle.load_elf(elf_hash)? {
         Some(elf) => elf,
         None => return {
-            tracing::warn!("Elf file not found");
+            tracing::warn!(target: "node::server", "Elf file not found");
             Err(ServerError::ElfFileNotFound)
         }
     };
@@ -137,12 +138,12 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_bytes: &C
     // 根据虚拟机环境和 ELF 文件生成证明
     let prover = default_prover();
     let proof = prover.prove(env, &elf).map_err(ServerError::ProofGenerate)?;
-    tracing::info!("PROOF: {:?}", proof);
+    tracing::info!(target: "node::server", ?proof);
     let receipt = proof.receipt;
     let output: Vec<u8> = receipt.journal.decode().unwrap();
-    tracing::info!("output: {:?}", output);
+    tracing::info!(target: "node::server", ?output);
     Ok(SubmitTxResponse::Exec {
-        ctr_addr: ctr_addr_bytes.clone(),
+        ctr_addr_bytes: ctr_addr_bytes.clone(),
         image_id,
         elf_hash,
         input: input.clone(),

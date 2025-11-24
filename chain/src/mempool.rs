@@ -74,7 +74,7 @@ impl MempoolHandle {
         }
         // 2. 复制 + 排序 交易
         let mut txs: Vec<TxAttestation> = self.mempool.txs.iter().cloned().collect();
-        txs.sort_by_key(|tx| tx.tx_id);
+        txs.sort();
 
         let count = min(count, self.mempool.count());
         let mut candidate_ids: Vec<TxAttestationId> = Vec::with_capacity(count);

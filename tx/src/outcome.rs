@@ -9,7 +9,7 @@ use crate::id::TxOutcomeId;
 #[derive(Debug, Clone)]
 pub struct TxOutcome {
     pub envelope: TxEnvelope,
-    pub receipt: Receipt,
+    pub receipt_opt: Option<Receipt>,
 }
 
 impl TryFrom<TxOutcomeWire> for TxOutcome {
@@ -18,16 +18,16 @@ impl TryFrom<TxOutcomeWire> for TxOutcome {
         let envelope = TxEnvelope::try_from(wire.envelope)?;
         Ok(Self {
             envelope,
-            receipt: wire.receipt
+            receipt_opt: wire.receipt_opt
         })
     }
 }
 
 impl TxOutcome {
-    pub fn create(envelope: TxEnvelope, receipt: Receipt) -> Result<Self> {
+    pub fn create(envelope: TxEnvelope, receipt_opt: Option<Receipt>) -> Result<Self> {
         Ok(Self {
             envelope,
-            receipt,
+            receipt_opt,
         })
     }
     
@@ -43,14 +43,14 @@ impl TxOutcome {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TxOutcomeWire {
     pub envelope: TxEnvelopeWire,
-    pub receipt: Receipt,
+    pub receipt_opt: Option<Receipt>,
 }
 
 impl From<&TxOutcome> for TxOutcomeWire {
     fn from(outcome: &TxOutcome) -> Self {
         Self {
             envelope: TxEnvelopeWire::from(&outcome.envelope),
-            receipt: outcome.receipt.clone(),
+            receipt_opt: outcome.receipt_opt.clone(),
         }
     }
 }

@@ -1,5 +1,6 @@
 use anyhow::{ensure, Context, Result, anyhow};
 use chain::block::Block;
+use contract::contract::Contract;
 use db::handle::DBHandle;
 use tx::attestation::TxAttestation;
 use tx::intent::TxPayload;
@@ -20,7 +21,10 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
             ensure!(header.height == tip_header.height + 1, "invalid new block header");
             ensure!(header.parent_hash == tip_header.hash(), "invalid new block header");
         },
-        None => { }
+        None => {
+            // NOTE: 主网需要保证从第 0 个区块开始存储
+            ensure!(header.height == 0, "invalid new block header");
+        }
     }
 
     // 验证区块内交易
@@ -39,22 +43,34 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
         // 检查用户签名
         let envelope = &tx.outcome.envelope;
         envelope.self_verify()?;
-
+        let receipt_opt = tx.outcome.receipt_opt.clone();
+        let intent = &envelope.intent;
         let payload = &envelope.intent.payload;
-        let receipt = &tx.outcome.receipt;
+
         match payload {
             TxPayload::Exec { ctr_addr, input } => {
-                // TODO: 合约需要部署在所有节点上
                 let ctr = db_handle.load_contract(&ctr_addr)?
                     .ok_or_else(|| anyhow!("invalid contract address"))?;
                 let image_id = ctr.image_id;
+                let receipt = receipt_opt.ok_or_else(|| anyhow!("exec tx must have receipt"))?;
                 receipt.verify(image_id).context("verify receipt failed")?;
                 // 简单的 ELF 文件， input == output
                 let output: Vec<u8> = receipt.journal.decode().context("output decode failed")?;
                 println!("{:?}", input);
                 tracing::info!(target:"node::event", input=?input, output=?output);
             },
-            TxPayload::Deploy { .. } => { }
+            TxPayload::Deploy { image_id, elf_hash, elf } => {
+                let ctr = Contract::create(intent.chain_id, elf_hash, image_id,
+                                           &intent.verifying_key, intent.nonce);
+                let ctr_addr_bytes = ctr.addr.to_bytes();
+                // key: 合约的 addr 字节数组
+                // value: 合约的BCS编码
+                db_handle.save_contract(&ctr_addr_bytes, &ctr.to_canonical_bytes())?;
+                // key: ELF文件哈希
+                // value: ELF文件字节数组
+                db_handle.save_elf(ctr.elf_hash, elf)?;
+                tracing::info!(target:"node::event", contract_addr=?ctr.addr, "contract deployed");
+            }
         }
     }
 

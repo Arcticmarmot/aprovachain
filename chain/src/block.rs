@@ -1,7 +1,9 @@
+use std::fmt::{Debug, Formatter};
 use serde::{Deserialize, Serialize};
 use primitives::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32, HASH32_ZERO};
 use tx::attestation::{TxAttestationWire};
+use tx::id::TxAttestationId;
 use crate::error::Result;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
@@ -46,10 +48,26 @@ impl BlockHeader {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Block {
     pub header: BlockHeader,
     pub txs: Vec<TxAttestationWire>
+}
+
+impl Debug for Block {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        // header 直接用派生 Debug
+        writeln!(f, "Block {{")?;
+        writeln!(f, "  header: {:?},", self.header)?;
+
+        // txs 用你自己的格式
+        writeln!(f, "  txs: [")?;
+        for tx in &self.txs {
+            writeln!(f, "    tx_id={:?},", TxAttestationId::new(sha256(tx.encode_bcs())))?;
+        }
+        writeln!(f, "  ]")?;
+        write!(f, "}}")
+    }
 }
 
 impl Block {

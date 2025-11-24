@@ -1,4 +1,4 @@
-use std::cmp::PartialEq;
+use std::cmp::{Ordering, PartialEq};
 use std::hash::{Hash, Hasher};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, Bytes};
@@ -8,7 +8,7 @@ use crate::error::TxError;
 use crate::outcome::{TxOutcome, TxOutcomeWire};
 use crate::id::TxAttestationId;
 use crate::error::Result;
-
+use crate::intent::TxPayload;
 
 #[derive(Debug, Clone)]
 pub struct TxAttestation {
@@ -29,6 +29,26 @@ impl Eq for TxAttestation { }
 impl Hash for TxAttestation {
     fn hash<H: Hasher>(&self, state: &mut H) {
         state.write(&self.to_canonical_bytes());
+    }
+}
+
+impl Ord for TxAttestation {
+    fn cmp(&self, other: &Self) -> Ordering {
+        fn pri(payload: &TxPayload) -> u8 {
+            match payload {
+                TxPayload::Deploy { .. } => 0,
+                TxPayload::Exec { .. } => 1,
+            }
+        }
+        let self_key = (pri(&self.outcome.envelope.intent.payload), &self.tx_id);
+        let other_key = (pri(&other.outcome.envelope.intent.payload), &other.tx_id);
+        self_key.cmp(&other_key)
+    }
+}
+
+impl PartialOrd for TxAttestation {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 

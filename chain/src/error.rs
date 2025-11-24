@@ -9,7 +9,9 @@ pub enum ChainError {
     #[error("bcs parse failed")]
     BcsParse(#[from] bcs::Error),
     #[error("invalid next block")]
-    InvalidBlock
+    InvalidBlock,
+    #[error("chain not init")]
+    ChainNotInit
 }
 
 pub type Result<T> = std::result::Result<T, ChainError>;
