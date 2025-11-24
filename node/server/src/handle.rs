@@ -7,6 +7,7 @@ use tx::intent::{TxIntent, TxPayload};
 use crate::error::{ApiResult, ServerError, Result};
 use primitives::hash::{sha256, Hash32};
 use account::address::ChainAddrBytes;
+use account::keypair::AccountVerifyingKey;
 use contract::contract::{Contract};
 use db::handle::DBHandle;
 use tx::outcome::{TxOutcome};
@@ -27,8 +28,8 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
     verify_tx_sig(&tx_envelope)?;
     
     // 执行交易
-    let intent = handle_intent(db_handle, &tx_envelope.intent)?;
-    match intent.clone() {
+    let response = handle_intent(db_handle, &tx_envelope.verifying_key, &tx_envelope.intent)?;
+    match response.clone() {
         SubmitTxResponse::Deploy{ .. } => {
             let tx_outcome = TxOutcome {
                 envelope: tx_envelope,
@@ -50,14 +51,14 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
             cmd_handle.publish_tx(tx.to_canonical_bytes())?;
         }
     };
-    Ok(Json(intent))
+    Ok(Json(response))
 }
 
-pub fn handle_intent(db_handle: DBHandle, intent: &TxIntent) -> Result<SubmitTxResponse> {
+pub fn handle_intent(db_handle: DBHandle, vk: &AccountVerifyingKey, intent: &TxIntent) -> Result<SubmitTxResponse> {
     let payload = &intent.payload;
     match payload {
         TxPayload::Deploy{ image_id, elf, elf_hash } => {
-            handle_deploy_tx(db_handle, intent, image_id, elf, elf_hash)
+            handle_deploy_tx(db_handle, intent, vk, image_id, elf, elf_hash)
         },
         TxPayload::Exec { ctr_addr_bytes, input} => {
             handle_exec_tx(db_handle, intent, ctr_addr_bytes, input)
@@ -67,13 +68,14 @@ pub fn handle_intent(db_handle: DBHandle, intent: &TxIntent) -> Result<SubmitTxR
 
 /// 验证交易签名
 pub fn verify_tx_sig(envelope: &TxEnvelope) -> Result<()> {
-    let vk = &envelope.intent.verifying_key;
+    let vk = &envelope.verifying_key;
     let intent_id_hash = envelope.intent.tx_id().0;
     vk.verify(&intent_id_hash, &envelope.signature)?;
     Ok(())
 }
 
-pub fn handle_deploy_tx(db_handle: DBHandle, intent: &TxIntent, image_id: &Digest, elf: &Vec<u8>, elf_hash: &Hash32) -> Result<SubmitTxResponse> {
+pub fn handle_deploy_tx(_: DBHandle, intent: &TxIntent, vk: &AccountVerifyingKey, 
+                        image_id: &Digest, elf: &Vec<u8>, elf_hash: &Hash32) -> Result<SubmitTxResponse> {
     // 验证 ELF 文件哈希是否对应
     let computed_elf_hash = sha256(elf);
     if &computed_elf_hash != elf_hash {
@@ -88,8 +90,7 @@ pub fn handle_deploy_tx(db_handle: DBHandle, intent: &TxIntent, image_id: &Diges
     tracing::info!(target: "node::server", elf_hash=?elf_hash);
 
     // 模拟创建合约
-    let ctr = Contract::create(intent.chain_id, elf_hash, image_id,
-                               &intent.verifying_key, intent.nonce);
+    let ctr = Contract::create(intent.chain_id, elf_hash, image_id, vk, intent.nonce);
     // 获取合约Bech32m编码
     let ctr_bech32m =  ctr.addr.to_bech32m()?;
     tracing::info!("{}", ctr_bech32m);

@@ -83,7 +83,7 @@ pub fn load_user_sk_bytes() -> anyhow::Result<AccountSigningKeyBytes> {
 }
 
 pub fn build_envelope_wire(spec: TxBuildSpec) -> anyhow::Result<TxEnvelopeWire> {
-    let tx_intent = TxIntent::create(spec.chain_id, spec.addr, spec.vk, spec.payload)?;
+    let tx_intent = TxIntent::create(spec.chain_id, spec.payload)?;
     let tx_envelope = TxEnvelope::create(tx_intent, spec.sk);
     let tx_envelope_wire = TxEnvelopeWire::from(&tx_envelope);
     Ok(tx_envelope_wire)

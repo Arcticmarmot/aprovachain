@@ -1,8 +1,7 @@
 use std::fmt::{Debug, Formatter};
 use risc0_zkvm::{Digest};
 use serde::{Deserialize, Serialize};
-use account::address::{ChainAddrBytes, ContractAddress, UserAddress};
-use account::keypair::{AccountVerifyingKey, AccountVerifyingKeyBytes};
+use account::address::{ChainAddrBytes, ContractAddress};
 use spec::chain::{ChainId};
 use primitives::rand::random_u128;
 use primitives::clock::unix_time_millis;
@@ -38,6 +37,7 @@ impl Debug for TxPayload {
             TxPayload::Deploy { image_id, elf_hash, .. } => {
                 write!(f, "type: deploy, ")?;
                 write!(f, "image_id: {}, ", image_id.to_string())?;
+                write!(f, "elf_hash: {:?}, ", elf_hash)?;
             },
             TxPayload::Exec { ctr_addr_bytes, input } => {
                 write!(f, "type: exec, ")?;
@@ -53,8 +53,6 @@ impl Debug for TxPayload {
 pub struct TxIntent {
     pub chain_id: ChainId,
     pub nonce: u128,
-    pub address: UserAddress,
-    pub verifying_key: AccountVerifyingKey,
     pub timestamp: u128,
     pub payload: TxPayload,
 }
@@ -64,13 +62,9 @@ impl TryFrom<TxIntentWire> for TxIntent {
 
     fn try_from(wire: TxIntentWire) -> Result<Self> {
         let chain_id = ChainId(wire.chain_id);
-        let address = UserAddress::from_bytes(wire.address);
-        let verifying_key = AccountVerifyingKey::from_bytes(&wire.verifying_key)?;
         Ok(Self {
             chain_id,
             nonce: wire.nonce,
-            address,
-            verifying_key,
             timestamp: wire.timestamp,
             payload: wire.payload
         })
@@ -79,15 +73,13 @@ impl TryFrom<TxIntentWire> for TxIntent {
 
 
 impl TxIntent {
-    pub fn create(chain_id: ChainId, addr: UserAddress, vk: AccountVerifyingKey, payload: TxPayload) -> Result<Self> {
+    pub fn create(chain_id: ChainId, payload: TxPayload) -> Result<Self> {
         let nonce = random_u128()?;
         let timestamp = unix_time_millis()?;
         Ok(Self {
             chain_id,
             nonce,
             timestamp,
-            address: addr,
-            verifying_key: vk,
             payload,
         })
     }
@@ -105,8 +97,6 @@ impl TxIntent {
 pub struct TxIntentWire {
     pub chain_id: u64,
     pub nonce: u128,
-    pub address: ChainAddrBytes,
-    pub verifying_key: AccountVerifyingKeyBytes,
     pub timestamp: u128,
     pub payload: TxPayload
 }
@@ -128,8 +118,6 @@ impl From<&TxIntent> for TxIntentWire {
         Self {
             chain_id: intent.chain_id.0,
             nonce: intent.nonce,
-            address: intent.address.to_bytes(),
-            verifying_key: intent.verifying_key.to_bytes(),
             timestamp: intent.timestamp,
             payload: intent.payload.clone()
         }

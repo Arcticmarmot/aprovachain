@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
-use account::keypair::{AccountSignature, AccountSignatureBytes, AccountSigningKey};
+use account::keypair::{AccountSignature, AccountSignatureBytes, AccountSigningKey, AccountVerifyingKey, AccountVerifyingKeyBytes};
 use primitives::hash::{sha256};
 use crate::error::TxError;
 use serde_with::{serde_as, Bytes};
+use account::address::{ChainAddrBytes, UserAddress};
 use crate::intent::{TxIntent, TxIntentWire};
 use crate::error::Result;
 use crate::id::TxEnvelopeId;
@@ -10,6 +11,8 @@ use crate::id::TxEnvelopeId;
 #[derive(Debug, Clone)]
 pub struct TxEnvelope {
     pub intent: TxIntent,
+    pub verifying_key: AccountVerifyingKey,
+    pub address: UserAddress,
     pub signature: AccountSignature,
 }
 
@@ -17,9 +20,13 @@ impl TxEnvelope {
     pub fn create(intent: TxIntent, sk: AccountSigningKey) -> Self {
         // 使用私钥对 TxIntent 计算出的 tx_intent_id 进行签名
         let tx_intent_id = intent.tx_id();
+        let verifying_key = sk.verifying_key();
+        let address = UserAddress::from_vk(intent.chain_id, &verifying_key);
         let signature: AccountSignature = sk.sign(&tx_intent_id.0);
         Self {
             intent,
+            verifying_key,
+            address,
             signature
         }
     }
@@ -33,8 +40,7 @@ impl TxEnvelope {
     }
 
     pub fn self_verify(&self) -> Result<()> {
-        let intent = &self.intent;
-        Ok(intent.verifying_key.verify(&intent.tx_id().0, &self.signature)?)
+        Ok(self.verifying_key.verify(&self.intent.tx_id().0, &self.signature)?)
     }
 }
 
@@ -43,9 +49,13 @@ impl TryFrom<TxEnvelopeWire> for TxEnvelope {
 
     fn try_from(wire: TxEnvelopeWire) -> Result<Self> {
         let intent = TxIntent::try_from(wire.intent)?;
+        let verifying_key = AccountVerifyingKey::from_bytes(&wire.verifying_key)?;
+        let address = UserAddress::from_bytes(wire.address);
         let signature = AccountSignature::from_bytes(&wire.signature);
         Ok(Self {
             intent,
+            verifying_key,
+            address,
             signature
         })
     }
@@ -55,6 +65,8 @@ impl TryFrom<TxEnvelopeWire> for TxEnvelope {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TxEnvelopeWire {
     pub intent: TxIntentWire,
+    pub verifying_key: AccountVerifyingKeyBytes,
+    pub address: ChainAddrBytes,
     #[serde_as(as = "Bytes")]
     pub signature: AccountSignatureBytes
 }
@@ -64,6 +76,8 @@ impl From<&TxEnvelope> for TxEnvelopeWire {
         let intent = &envelope.intent;
         Self {
             intent: intent.into(),
+            verifying_key: envelope.verifying_key.to_bytes(),
+            address: envelope.address.to_bytes(),
             signature: envelope.signature.to_bytes()
         }
     }

@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug};
 use risc0_zkvm::Digest;
 use account::address::{ChainAddrBytes, ContractAddress};
 use primitives::hash::Hash32;

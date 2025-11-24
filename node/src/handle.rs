@@ -5,7 +5,7 @@ use db::handle::DBHandle;
 use tx::attestation::TxAttestation;
 use tx::intent::TxPayload;
 
-pub fn handle_tx_received(tx_bytes: Vec<u8>) -> Result<()> {
+pub fn handle_tx_received(_: Vec<u8>) -> Result<()> {
     Ok(())
 }
 
@@ -61,7 +61,7 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
             },
             TxPayload::Deploy { image_id, elf_hash, elf } => {
                 let ctr = Contract::create(intent.chain_id, elf_hash, image_id,
-                                           &intent.verifying_key, intent.nonce);
+                                           &envelope.verifying_key, intent.nonce);
                 let ctr_addr_bytes = ctr.addr.to_bytes();
                 // key: 合约的 addr 字节数组
                 // value: 合约的BCS编码

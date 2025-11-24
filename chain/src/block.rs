@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use primitives::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32, HASH32_ZERO};
 use tx::attestation::{TxAttestation, TxAttestationWire};
-use tx::id::TxAttestationId;
 use crate::error::Result;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
