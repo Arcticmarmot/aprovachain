@@ -14,8 +14,6 @@ use tx::intent::{TxIntent, TxPayload};
 #[derive(Debug)]
 pub struct TxBuildSpec {
     chain_id: ChainId,
-    addr: UserAddress,
-    vk: AccountVerifyingKey,
     sk: AccountSigningKey,
     payload: TxPayload
 }
@@ -67,8 +65,6 @@ where
 
     Ok(TxBuildSpec {
         chain_id,
-        addr,
-        vk,
         sk,
         payload
     })

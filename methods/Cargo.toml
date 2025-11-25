@@ -10,4 +10,3 @@ risc0-build = { workspace = true }
 
 [package.metadata.risc0]
 methods = ["uav"]
-account = { workspace = true }
