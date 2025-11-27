@@ -3,8 +3,7 @@ use std::path::PathBuf;
 use anyhow::{bail};
 use clap::{Parser};
 use reqwest::{Client, Response};
-use account::address::UserAddress;
-use account::keypair::{AccountSigningKey, AccountSigningKeyBytes, AccountVerifyingKey};
+use account::keypair::{AccountSigningKey, AccountSigningKeyBytes};
 use primitives::file::{load_user_sk_path};
 use spec::chain::ChainId;
 use primitives::hash::sha256;
@@ -53,12 +52,6 @@ where
     // build sk from Args
     let sk_bytes = load_user_sk_bytes()?;
     let sk = AccountSigningKey::from_bytes(&sk_bytes);
-
-    // build vk from sk
-    let vk = sk.verifying_key();
-
-    // build addr from vk
-    let addr = UserAddress::from_vk(chain_id, &vk);
 
     // build payload from Args
     let payload = build_payload(args)?;

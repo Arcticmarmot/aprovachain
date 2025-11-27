@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use account::keypair::AccountVerifyingKey;
 use spec::chain::ChainId;
 use crate::error::{ContractError,Result};
+
 #[derive(Debug, Clone)]
 pub struct Contract {
     pub addr: ContractAddress,

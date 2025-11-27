@@ -1268,6 +1268,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "demo"
+version = "0.1.0"
+dependencies = [
+ "risc0-zkvm",
+ "serde",
+]
+
+[[package]]
 name = "der"
 version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4904,6 +4912,7 @@ dependencies = [
  "bech32",
  "once_cell",
  "parking_lot",
+ "primitives",
  "thiserror 2.0.17",
 ]
 

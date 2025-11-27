@@ -7,4 +7,5 @@ edition = "2024"
 bech32 = { workspace = true }
 thiserror = { workspace = true }
 once_cell = { workspace = true }
-parking_lot = { version = "0.12" }
+primitives = { workspace = true }
+parking_lot = { workspace = true }
