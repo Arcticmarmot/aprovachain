@@ -1,8 +1,8 @@
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeSet};
 use primitives::hash::Hash32;
 
 pub type Version = u128;
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct EntryKey {
     pub cf: String,
     pub key: Vec<u8>
@@ -11,7 +11,7 @@ pub struct EntryKey {
 pub struct ReadEntry {
     pub entry_key: EntryKey,
     pub version: Version,
-    pub value: Vec<u8>
+    pub value: Option<Vec<u8>>
 }
 #[derive(Debug, Clone)]
 pub struct WriteEntry {
@@ -19,8 +19,15 @@ pub struct WriteEntry {
     pub value: Vec<u8>
 }
 
-pub type ReadSet = HashSet<ReadEntry>;
+pub type ReadSet = BTreeSet<ReadEntry>;
 pub type WriteSet = BTreeSet<WriteEntry>;
+pub type AccessSet = BTreeSet<EntryKey>;
+
+impl EntryKey {
+    pub fn new() {
+
+    }
+}
 
 #[derive(Debug, Clone)]
 struct CtrInput {

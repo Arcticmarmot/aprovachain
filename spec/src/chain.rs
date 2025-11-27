@@ -1,10 +1,11 @@
 use std::fmt::{Display, Formatter};
 use bech32::Hrp;
+use serde::{Deserialize, Serialize};
 use crate::error::Result;
 
 pub static CTR_PREFIX: &'static str = "ctr";
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ChainId(pub u64);
 
 impl Display for ChainId {

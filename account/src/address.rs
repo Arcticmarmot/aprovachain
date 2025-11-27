@@ -54,7 +54,7 @@ impl From<&AccountVerifyingKey> for Address {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserAddress {
     pub chain_id: ChainId,
     pub addr: Address,
