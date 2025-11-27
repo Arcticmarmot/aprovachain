@@ -6,6 +6,7 @@ use spec::chain::{ChainId};
 use primitives::rand::random_u128;
 use primitives::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32};
+use spec::ctr_io::AccessSet;
 use crate::error::TxError;
 use crate::error::Result;
 use crate::id::{TxIntentId};
@@ -14,7 +15,8 @@ use crate::id::{TxIntentId};
 pub enum TxPayload {
     Exec {
         ctr_addr_bytes: ChainAddrBytes,
-        input: Vec<u8>
+        input: Vec<u8>,
+        access_set: AccessSet
     },
     Deploy {
         image_id: Digest,
@@ -39,7 +41,7 @@ impl Debug for TxPayload {
                 write!(f, "image_id: {}, ", image_id.to_string())?;
                 write!(f, "elf_hash: {:?}, ", elf_hash)?;
             },
-            TxPayload::Exec { ctr_addr_bytes, input } => {
+            TxPayload::Exec { ctr_addr_bytes, input, ..  } => {
                 write!(f, "type: exec, ")?;
                 write!(f, "ctr_addr: {:?}, ", ContractAddress::from_bytes(ctr_addr_bytes.clone()))?;
                 write!(f, "input: {:?}", input)?;

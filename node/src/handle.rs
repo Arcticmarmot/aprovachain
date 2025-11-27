@@ -48,7 +48,7 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
         let payload = &envelope.intent.payload;
 
         match payload {
-            TxPayload::Exec { ctr_addr_bytes, input } => {
+            TxPayload::Exec { ctr_addr_bytes, input, .. } => {
                 let ctr = db_handle.load_contract(&ctr_addr_bytes)?
                     .ok_or_else(|| anyhow!("invalid contract address"))?;
                 let image_id = ctr.image_id;

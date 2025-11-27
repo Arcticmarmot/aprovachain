@@ -10,6 +10,7 @@ use account::address::ChainAddrBytes;
 use account::keypair::AccountVerifyingKey;
 use contract::contract::{Contract};
 use db::handle::DBHandle;
+use spec::ctr_io::AccessSet;
 use tx::outcome::{TxOutcome};
 use tx::attestation::TxAttestation;
 use crate::context::{AppState, SubmitTxResponse};
@@ -60,8 +61,8 @@ pub fn handle_intent(db_handle: DBHandle, vk: &AccountVerifyingKey, intent: &TxI
         TxPayload::Deploy{ image_id, elf, elf_hash } => {
             handle_deploy_tx(db_handle, intent, vk, image_id, elf, elf_hash)
         },
-        TxPayload::Exec { ctr_addr_bytes, input} => {
-            handle_exec_tx(db_handle, intent, ctr_addr_bytes, input)
+        TxPayload::Exec { ctr_addr_bytes, input, access_set} => {
+            handle_exec_tx(db_handle, intent, ctr_addr_bytes, input, access_set)
         }
     }
 }
@@ -103,7 +104,8 @@ pub fn handle_deploy_tx(_: DBHandle, intent: &TxIntent, vk: &AccountVerifyingKey
     })
 }
 
-pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_bytes: &ChainAddrBytes, input: &Vec<u8>) -> Result<SubmitTxResponse> {
+pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_bytes: &ChainAddrBytes,
+                      input: &Vec<u8>, access_set: &AccessSet) -> Result<SubmitTxResponse> {
     tracing::info!(target: "node::handle", tx_id=?intent.tx_id());
     // 根据合约地址查找合约 BCS 编码向量
     let ctr = match db_handle.load_contract(ctr_addr_bytes)? {
@@ -129,6 +131,12 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_bytes: &C
         }
     };
     tracing::info!("Elf file len: {}", elf.len());
+
+    // TODO: 加载 access_set 数据
+    for entry in access_set {
+        let data = db_handle.load_entry(entry.cf.clone(), &entry.key)?;
+
+    }
 
     // 搭建虚拟机环境传入 input
     let env = ExecutorEnv::builder()

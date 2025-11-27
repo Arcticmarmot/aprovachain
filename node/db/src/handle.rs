@@ -21,6 +21,10 @@ impl DBHandle {
         Ok(Self { dbh })
     }
 
+    pub fn cf_by_name(&self, name: String) -> &ColumnFamily {
+        self.dbh.cf_handle(&name).expect(&format!("cf '{name}' must be exist"))
+    }
+    
     pub fn cf_chain(&self) -> &ColumnFamily {
         self.dbh.cf_handle("chain").expect("cf 'chain' must be exist")
     }
@@ -103,5 +107,11 @@ impl DBHandle {
             },
             None => None
         })
+    }
+
+    pub fn load_entry(&self, cf_name: String, key: &[u8]) -> Result<Option<Vec<u8>>> {
+        let data = self.dbh.get_cf(self.cf_by_name(cf_name), key)
+            .map_err(DBError::DBGet)?;
+        Ok(data)
     }
 }

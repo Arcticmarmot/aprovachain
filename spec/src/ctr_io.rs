@@ -1,8 +1,9 @@
 use std::collections::{BTreeSet};
+use serde::{Deserialize, Serialize};
 use primitives::hash::Hash32;
 
 pub type Version = u128;
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct EntryKey {
     pub cf: String,
     pub key: Vec<u8>
@@ -23,11 +24,6 @@ pub type ReadSet = BTreeSet<ReadEntry>;
 pub type WriteSet = BTreeSet<WriteEntry>;
 pub type AccessSet = BTreeSet<EntryKey>;
 
-impl EntryKey {
-    pub fn new() {
-
-    }
-}
 
 #[derive(Debug, Clone)]
 struct CtrInput {

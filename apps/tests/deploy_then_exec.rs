@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::time::Duration;
 use clap::Parser;
 use tokio::time::sleep;
@@ -48,6 +49,7 @@ pub async fn deploy_then_exec() {
     let payload = TxPayload::Exec {
         ctr_addr_bytes,
         input: vec![100, 200],
+        access_set: BTreeSet::new()
     };
     let tx_build_spec = parse_tx_args_with(&args, |_| Ok(payload)).unwrap();
     let tx_envelope_wire = build_envelope_wire(tx_build_spec).unwrap();

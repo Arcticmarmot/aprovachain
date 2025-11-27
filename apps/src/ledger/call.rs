@@ -19,7 +19,7 @@ impl LedgerCall {
     }
 }
 
-fn address_entry_key(addr: &UserAddress) -> EntryKey {
+fn address_to_entry_key(addr: &UserAddress) -> EntryKey {
     EntryKey {
         cf: "ledger".to_string(),
         key: Vec::from(addr.to_bytes()),
@@ -31,11 +31,11 @@ pub fn generate_access_set(input: Vec<u8>) -> Result<AccessSet> {
     let call = LedgerCall::try_decode_bcs(&input)?;
     match call {
         LedgerCall::Transfer { from, to, .. } => {
-            access_set.insert(address_entry_key(&from));
-            access_set.insert(address_entry_key(&to));
+            access_set.insert(address_to_entry_key(&from));
+            access_set.insert(address_to_entry_key(&to));
         },
         LedgerCall::QueryBalance { addr } => {
-
+            access_set.insert(address_to_entry_key(&addr));
         }
     }
     Ok(access_set)

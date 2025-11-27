@@ -4782,6 +4782,7 @@ dependencies = [
  "primitives",
  "risc0-zkvm",
  "serde",
+ "spec",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
