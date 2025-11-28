@@ -1,6 +1,6 @@
 use std::path::{PathBuf};
 use account::keypair::*;
-use primitives::file::aprova_proj_dir;
+use platform::file::aprova_proj_dir;
 
 fn main() {
     let proj = aprova_proj_dir().expect("proj dir not found");

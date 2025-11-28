@@ -10,7 +10,7 @@ use crate::behaviour::peer_set::PeerSet;
 use tokio::sync::mpsc::{UnboundedReceiver};
 use crate::handle::{P2pCmd, P2pEventHandle};
 use account::keypair::{AccountSigningKey, AccountSigningKeyBytes};
-use primitives::file::{load_node_sk_path};
+use platform::file::{load_node_sk_path};
 use crate::behaviour::gossip::GossipTopic;
 
 pub fn load_node_sk_bytes() -> Result<AccountSigningKeyBytes> {

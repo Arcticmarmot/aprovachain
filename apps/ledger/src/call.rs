@@ -1,8 +1,8 @@
 use account::address::{UserAddress};
 use serde::{Deserialize, Serialize};
 use spec::chain::ChainId;
-use spec::ctr_io::{AccessSet, NamespaceKey};
-use crate::ledger::error::Result;
+use apps::ctr_io::{AccessSet, NamespaceKey};
+use crate::error::Result;
 
 pub const APP_NAME: &'static str = "ledger";
 
@@ -33,8 +33,8 @@ fn address_to_entry_key(chain_id: ChainId, addr: &String) -> Result<NamespaceKey
 }
 
 pub fn generate_access_set(chain_id: ChainId, input: Vec<u8>) -> Result<AccessSet> {
-    let mut access_set = AccessSet::new();
     let call = LedgerCall::try_decode_bcs(&input)?;
+    let mut access_set = AccessSet::new();
     match call {
         LedgerCall::Transfer { from, to, .. } => {
             access_set.insert(address_to_entry_key(chain_id, &from)?);

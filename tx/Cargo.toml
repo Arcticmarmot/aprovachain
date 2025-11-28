@@ -14,3 +14,5 @@ serde_with = { workspace = true }
 hex = { workspace = true }
 spec = { workspace = true }
 risc0-zkvm = { workspace = true }
+apps = { workspace = true }
+platform = { workspace = true }

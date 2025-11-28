@@ -4,7 +4,7 @@ use anyhow::{bail};
 use clap::{Parser};
 use reqwest::{Client, Response};
 use account::keypair::{AccountSigningKey, AccountSigningKeyBytes};
-use primitives::file::{load_user_sk_path};
+use platform::file::{load_user_sk_path};
 use spec::chain::ChainId;
 use primitives::hash::sha256;
 use tx::envelope::{TxEnvelope, TxEnvelopeWire};

@@ -16,3 +16,4 @@ contract = { workspace = true }
 account = { workspace = true }
 primitives = { workspace = true }
 spec = { workspace = true }
+apps = { workspace = true }

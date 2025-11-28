@@ -12,3 +12,4 @@ tracing = { workspace = true }
 primitives = { workspace = true }
 hex = { workspace = true }
 account = { workspace = true }
+platform = { workspace = true }

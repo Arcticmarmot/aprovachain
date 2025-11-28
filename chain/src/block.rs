@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Formatter};
 use serde::{Deserialize, Serialize};
-use primitives::clock::unix_time_millis;
+use platform::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32, HASH32_ZERO};
 use tx::attestation::{TxAttestation, TxAttestationWire};
 use crate::error::Result;

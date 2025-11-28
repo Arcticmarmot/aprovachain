@@ -4,7 +4,7 @@ use account::address::{ChainAddrBytes};
 use chain::block::{Block, BlockHeader};
 use contract::contract::{Contract, ContractWire};
 use primitives::hash::Hash32;
-use spec::ctr_io::{NamespaceKey, ValueSnapShot};
+use apps::ctr_io::{NamespaceKey, ValueSnapShot};
 use crate::error::DBError;
 use crate::runtime::dbh;
 use crate::error::Result;

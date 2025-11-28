@@ -5,7 +5,7 @@ use tracing_appender::rolling;
 use tracing_subscriber::{fmt, EnvFilter};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use primitives::file::aprova_proj_dir;
+use platform::file::aprova_proj_dir;
 
 pub fn init_logging() -> anyhow::Result<()> {
     let _ = dotenv();

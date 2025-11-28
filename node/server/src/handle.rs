@@ -10,7 +10,7 @@ use account::address::ChainAddrBytes;
 use account::keypair::AccountVerifyingKey;
 use contract::contract::{Contract};
 use db::handle::DBHandle;
-use spec::ctr_io::AccessSet;
+use apps::ctr_io::AccessSet;
 use tx::outcome::{TxOutcome};
 use tx::attestation::TxAttestation;
 use crate::context::{AppState, SubmitTxResponse};
@@ -134,7 +134,7 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_bytes: &C
 
     // TODO: 加载 access_set 数据
     for entry in access_set {
-        
+
     }
 
     // 搭建虚拟机环境传入 input

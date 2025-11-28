@@ -148,25 +148,11 @@ checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
 name = "apps"
 version = "0.1.0"
 dependencies = [
- "account",
- "anyhow",
  "bcs",
- "clap",
- "dotenvy",
- "hex",
- "primitives",
- "reqwest",
- "risc0-zkvm",
+ "bech32",
  "serde",
- "serde_json",
- "server",
  "spec",
  "thiserror 2.0.17",
- "tokio",
- "tracing",
- "tracing-appender",
- "tracing-subscriber 0.3.20",
- "tx",
 ]
 
 [[package]]
@@ -885,6 +871,7 @@ dependencies = [
  "account",
  "bcs",
  "hex",
+ "platform",
  "primitives",
  "serde",
  "serde_with",
@@ -1258,6 +1245,7 @@ name = "db"
 version = "0.1.0"
 dependencies = [
  "account",
+ "apps",
  "arc-swap",
  "chain",
  "clap",
@@ -1269,14 +1257,6 @@ dependencies = [
  "spec",
  "tempfile",
  "thiserror 2.0.17",
-]
-
-[[package]]
-name = "demo"
-version = "0.1.0"
-dependencies = [
- "risc0-zkvm",
- "serde",
 ]
 
 [[package]]
@@ -1690,6 +1670,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb4cb245038516f5f85277875cdaa4f7d2c9a0fa0468de06ed190163b1581fcf"
 dependencies = [
  "percent-encoding",
+]
+
+[[package]]
+name = "front"
+version = "0.1.0"
+dependencies = [
+ "account",
+ "anyhow",
+ "bcs",
+ "clap",
+ "dotenvy",
+ "hex",
+ "ledger",
+ "platform",
+ "primitives",
+ "reqwest",
+ "risc0-zkvm",
+ "serde",
+ "serde_json",
+ "server",
+ "spec",
+ "thiserror 2.0.17",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber 0.3.20",
+ "tx",
 ]
 
 [[package]]
@@ -2471,7 +2478,7 @@ name = "keygen"
 version = "0.1.0"
 dependencies = [
  "account",
- "primitives",
+ "platform",
 ]
 
 [[package]]
@@ -2504,6 +2511,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 dependencies = [
  "spin",
+]
+
+[[package]]
+name = "ledger"
+version = "0.1.0"
+dependencies = [
+ "account",
+ "apps",
+ "bcs",
+ "serde",
+ "spec",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "ledger_guest"
+version = "0.1.0"
+dependencies = [
+ "apps",
+ "bcs",
+ "ledger",
+ "risc0-zkvm",
 ]
 
 [[package]]
@@ -3299,6 +3328,7 @@ dependencies = [
  "anyhow",
  "hex",
  "libp2p",
+ "platform",
  "primitives",
  "thiserror 2.0.17",
  "tokio",
@@ -3333,6 +3363,7 @@ dependencies = [
  "db",
  "dotenvy",
  "network",
+ "platform",
  "primitives",
  "server",
  "tokio",
@@ -3564,6 +3595,7 @@ dependencies = [
  "dotenvy",
  "libp2p",
  "network",
+ "platform",
  "primitives",
  "risc0-zkvm",
  "serde",
@@ -3696,6 +3728,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
+name = "platform"
+version = "0.1.0"
+dependencies = [
+ "directories",
+ "rand_core 0.9.3",
+]
+
+[[package]]
 name = "polling"
 version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3778,8 +3818,6 @@ dependencies = [
 name = "primitives"
 version = "0.1.0"
 dependencies = [
- "directories",
- "rand_core 0.9.3",
  "sha2",
 ]
 
@@ -4776,6 +4814,7 @@ version = "0.1.0"
 dependencies = [
  "account",
  "anyhow",
+ "apps",
  "axum",
  "contract",
  "db",
@@ -4783,7 +4822,6 @@ dependencies = [
  "primitives",
  "risc0-zkvm",
  "serde",
- "spec",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -4918,7 +4956,6 @@ dependencies = [
  "bech32",
  "once_cell",
  "parking_lot",
- "primitives",
  "serde",
  "thiserror 2.0.17",
 ]
@@ -5465,8 +5502,10 @@ name = "tx"
 version = "0.1.0"
 dependencies = [
  "account",
+ "apps",
  "bcs",
  "hex",
+ "platform",
  "primitives",
  "rand_core 0.9.3",
  "risc0-zkvm",

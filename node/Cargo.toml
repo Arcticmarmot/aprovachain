@@ -18,3 +18,4 @@ dotenvy = { workspace = true }
 primitives = { workspace = true }
 chain = { workspace = true }
 contract = { workspace = true }
+platform = { workspace = true }

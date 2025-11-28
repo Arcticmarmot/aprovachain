@@ -1,7 +1,7 @@
 use std::cmp::min;
 use std::collections::HashSet;
 use std::fmt::{Debug, Formatter};
-use primitives::clock::unix_time_millis;
+use platform::clock::unix_time_millis;
 use primitives::hash::Hash32;
 use tx::attestation::{TxAttestation, TxAttestationWire};
 use tx::id::TxAttestationId;

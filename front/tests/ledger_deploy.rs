@@ -1,13 +1,15 @@
-use std::collections::BTreeSet;
 use std::time::Duration;
 use clap::Parser;
 use tokio::time::sleep;
-use account::address::UserAddress;
-use apps::bootstrap::{init_env, init_logging};
-use apps::handler::{build_envelope_wire, parse_tx_args, parse_tx_args_with, send_envelope, TxArgs};
-use apps::ledger::call::LedgerCall;
+use front::bootstrap::{init_env, init_logging};
+use front::handler::{build_envelope_wire, parse_tx_args, parse_tx_args_with, send_envelope, TxArgs};
+use ledger::call::{generate_access_set, LedgerCall};
 use server::context::SubmitTxResponse;
+use spec::chain::ChainId;
 use tx::intent::TxPayload;
+
+const SMOLENSK: &'static str = "main1guwa5cdjvwtc8m86tmrjtkknqtee759k77j7qz";
+const KOL_SERVER: &'static str = "main16n6z9xz7j5nled2neqsj8qtmcwdnqz6gwsks9f";
 
 #[tokio::test]
 pub async fn ledger_deploy() {
@@ -49,11 +51,16 @@ pub async fn ledger_deploy() {
     sleep(Duration::from_secs(20)).await;
     tracing::info!(target:"apps::init", "TxArgs: {:?}", args);
 
+    let mint = LedgerCall::Mint { to: SMOLENSK.to_string(), amount: 50 };
+    let input = mint.encode_bcs();
+    let access_set = generate_access_set(ChainId(1000), input.clone()).unwrap();
+
     let payload = TxPayload::Exec {
         ctr_addr_bytes,
-        input: vec![100, 200],
-        access_set: BTreeSet::new()
+        input,
+        access_set
     };
+
     let tx_build_spec = parse_tx_args_with(&args, |_| Ok(payload)).unwrap();
     let tx_envelope_wire = build_envelope_wire(tx_build_spec).unwrap();
 

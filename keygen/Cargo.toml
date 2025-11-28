@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 account = { workspace = true }
-primitives = { workspace = true }
+platform = { workspace = true }

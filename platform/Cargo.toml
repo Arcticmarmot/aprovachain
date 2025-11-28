@@ -1,0 +1,8 @@
+[package]
+name = "platform"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rand_core = { workspace = true }
+directories = { workspace = true }
