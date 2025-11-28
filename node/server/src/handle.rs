@@ -134,8 +134,7 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_bytes: &C
 
     // TODO: 加载 access_set 数据
     for entry in access_set {
-        let data = db_handle.load_entry(entry.cf.clone(), &entry.key)?;
-
+        
     }
 
     // 搭建虚拟机环境传入 input

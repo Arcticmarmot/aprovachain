@@ -2,6 +2,7 @@ use thiserror::Error;
 use rocksdb::Error as RocksDBError;
 use chain::error::ChainError;
 use contract::error::ContractError;
+use spec::error::SpecError;
 
 #[derive(Debug, Error)]
 pub enum DBError {
@@ -9,6 +10,8 @@ pub enum DBError {
     Chain(#[from] ChainError),
     #[error(transparent)]
     Contract(#[from] ContractError),
+    #[error(transparent)]
+    Spec(#[from] SpecError),
     #[error("DB not init")]
     DBNotInit,
     #[error("fixed dir create failed")]

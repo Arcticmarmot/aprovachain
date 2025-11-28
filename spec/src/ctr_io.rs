@@ -1,28 +1,55 @@
 use std::collections::{BTreeSet};
 use serde::{Deserialize, Serialize};
 use primitives::hash::Hash32;
+use crate::error::Result;
 
-pub type Version = u128;
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
-pub struct EntryKey {
-    pub cf: String,
+pub struct NamespaceKey {
+    pub ns: String,
     pub key: Vec<u8>
 }
-#[derive(Debug, Clone)]
-pub struct ReadEntry {
-    pub entry_key: EntryKey,
-    pub version: Version,
+
+impl NamespaceKey {
+    pub fn encode_bcs(&self) -> Vec<u8> {
+        bcs::to_bytes(self).expect("BCS should be infallible by design")
+    }
+
+    pub fn try_decode_bcs(b: &[u8]) -> Result<Self> {
+        Ok(bcs::from_bytes(b)?)
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+pub struct ValueSnapShot {
+    pub version: u128,
     pub value: Option<Vec<u8>>
 }
+
+impl ValueSnapShot {
+    pub fn encode_bcs(&self) -> Vec<u8> {
+        bcs::to_bytes(self).expect("BCS should be infallible by design")
+    }
+
+    pub fn try_decode_bcs(b: &[u8]) -> Result<Self> {
+        Ok(bcs::from_bytes(b)?)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ReadEntry {
+    pub key: NamespaceKey,
+    pub snap: ValueSnapShot
+}
+
 #[derive(Debug, Clone)]
 pub struct WriteEntry {
-    pub entry_key: EntryKey,
-    pub value: Vec<u8>
+    pub key: NamespaceKey,
+    pub snap: ValueSnapShot
 }
 
 pub type ReadSet = BTreeSet<ReadEntry>;
 pub type WriteSet = BTreeSet<WriteEntry>;
-pub type AccessSet = BTreeSet<EntryKey>;
+pub type AccessSet = BTreeSet<NamespaceKey>;
 
 
 #[derive(Debug, Clone)]

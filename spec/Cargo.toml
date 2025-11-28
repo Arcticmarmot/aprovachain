@@ -10,3 +10,4 @@ once_cell = { workspace = true }
 primitives = { workspace = true }
 parking_lot = { workspace = true }
 serde = { workspace = true }
+bcs = { workspace = true }

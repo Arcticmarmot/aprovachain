@@ -1266,6 +1266,7 @@ dependencies = [
  "once_cell",
  "primitives",
  "rocksdb",
+ "spec",
  "tempfile",
  "thiserror 2.0.17",
 ]
@@ -4913,6 +4914,7 @@ dependencies = [
 name = "spec"
 version = "0.1.0"
 dependencies = [
+ "bcs",
  "bech32",
  "once_cell",
  "parking_lot",

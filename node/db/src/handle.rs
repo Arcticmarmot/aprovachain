@@ -4,6 +4,7 @@ use account::address::{ChainAddrBytes};
 use chain::block::{Block, BlockHeader};
 use contract::contract::{Contract, ContractWire};
 use primitives::hash::Hash32;
+use spec::ctr_io::{NamespaceKey, ValueSnapShot};
 use crate::error::DBError;
 use crate::runtime::dbh;
 use crate::error::Result;
@@ -21,8 +22,8 @@ impl DBHandle {
         Ok(Self { dbh })
     }
 
-    pub fn cf_by_name(&self, name: String) -> &ColumnFamily {
-        self.dbh.cf_handle(&name).expect(&format!("cf '{name}' must be exist"))
+    pub fn cf_data(&self) -> &ColumnFamily {
+        self.dbh.cf_handle("data").expect(&format!("cf 'data' must be exist"))
     }
     
     pub fn cf_chain(&self) -> &ColumnFamily {
@@ -39,6 +40,35 @@ impl DBHandle {
 
     pub fn cf_elfs(&self) -> &ColumnFamily {
         self.dbh.cf_handle("elfs").expect("cf 'elfs' must be exist")
+    }
+
+    pub fn save_data_entry(&self, ns_key: &NamespaceKey, value: Option<Vec<u8>>) -> Result<()> {
+        let mut batch = WriteBatch::default();
+        match self.load_data_entry(ns_key)? {
+            Some(snap) => {
+                let version = snap.version + 1;
+                let new_snap = ValueSnapShot { version, value };
+                batch.put_cf(self.cf_data(), ns_key.encode_bcs(), new_snap.encode_bcs());
+            },
+            None => {
+                let new_snap = ValueSnapShot { version: 0, value };
+                batch.put_cf(self.cf_data(), ns_key.encode_bcs(), new_snap.encode_bcs());
+            }
+        }
+        self.dbh.write(batch).map_err(DBError::DBPut)?;
+        Ok(())
+    }
+
+    pub fn load_data_entry(&self, ns_key: &NamespaceKey) -> Result<Option<ValueSnapShot>> {
+        let data = self.dbh.get_cf(self.cf_data(), ns_key.encode_bcs())
+            .map_err(DBError::DBGet)?;
+        Ok(match data {
+            Some(snap_bytes) => {
+                let snap = ValueSnapShot::try_decode_bcs(&snap_bytes)?;
+                Some(snap)
+            }
+            None => None
+        })
     }
 
     pub fn save_chain_state(&self, header: &BlockHeader) -> Result<()> {
@@ -107,11 +137,5 @@ impl DBHandle {
             },
             None => None
         })
-    }
-
-    pub fn load_entry(&self, cf_name: String, key: &[u8]) -> Result<Option<Vec<u8>>> {
-        let data = self.dbh.get_cf(self.cf_by_name(cf_name), key)
-            .map_err(DBError::DBGet)?;
-        Ok(data)
     }
 }
