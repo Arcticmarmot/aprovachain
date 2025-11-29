@@ -9,4 +9,4 @@ edition = "2024"
 risc0-build = { workspace = true }
 
 [package.metadata.risc0]
-methods = ["uav", "ledger_guest"]
+methods = ["pass", "ledger_guest"]

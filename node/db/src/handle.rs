@@ -42,7 +42,7 @@ impl DBHandle {
         self.dbh.cf_handle("elfs").expect("cf 'elfs' must be exist")
     }
 
-    pub fn save_data_entry(&self, ns_key: &NamespaceKey, value: Option<Vec<u8>>) -> Result<()> {
+    pub fn save_data_entry(&self, ns_key: &NamespaceKey, value: Vec<u8>) -> Result<()> {
         let mut batch = WriteBatch::default();
         match self.load_data_entry(ns_key)? {
             Some(snap) => {

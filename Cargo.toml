@@ -5,13 +5,7 @@ edition = "2024"
 authors = ["marmot"]
 
 [workspace]
-members = ["account", "front", "spec", "keygen",
-    "methods", "methods/uav", "methods/ledger_guest",
-    "apps", "apps/ledger",
-    "node", "node/db", "node/server",
-    "orderer", "orderer/consensus",
-    "primitives", "tx", "contract", "network", "chain", "platform",
-]
+members = ["account", "front", "spec", "keygen", "methods", "methods/pass", "methods/ledger_guest", "apps", "apps/ledger", "node", "node/db", "node/server", "orderer", "orderer/consensus", "primitives", "tx", "contract", "network", "chain", "platform"]
 
 [dependencies]
 

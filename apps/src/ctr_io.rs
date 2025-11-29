@@ -1,5 +1,6 @@
-use std::collections::{BTreeSet};
+use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
+use spec::chain::ChainId;
 use spec::error::Result;
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
@@ -21,7 +22,7 @@ impl NamespaceKey {
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct ValueSnapShot {
     pub version: u128,
-    pub value: Option<Vec<u8>>
+    pub value: Vec<u8>
 }
 
 impl ValueSnapShot {
@@ -34,25 +35,14 @@ impl ValueSnapShot {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
-pub struct ReadEntry {
-    pub key: NamespaceKey,
-    pub snap: ValueSnapShot
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
-pub struct WriteEntry {
-    pub key: NamespaceKey,
-    pub snap: ValueSnapShot
-}
-
-pub type ReadSet = BTreeSet<ReadEntry>;
-pub type WriteSet = BTreeSet<WriteEntry>;
+pub type ReadSet = BTreeMap<NamespaceKey, Option<ValueSnapShot>>;
+pub type WriteSet = BTreeMap<NamespaceKey, Option<ValueSnapShot>>;
 pub type AccessSet = BTreeSet<NamespaceKey>;
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CtrInput {
+    pub chain_id: ChainId,
     pub input: Vec<u8>,
     pub context: EnvContext
 }

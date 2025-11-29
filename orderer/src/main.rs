@@ -7,7 +7,6 @@ use network::handle::*;
 use network::runtime::{init_p2p, run_p2p};
 use orderer::bootstrap::{init_env, init_logging};
 use tokio::sync::mpsc;
-use chain::block::Block;
 use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
 use consensus::solo::handle::{SoloCmd, SoloCmdHandle, SoloEvent, SoloEventHandle};

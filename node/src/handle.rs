@@ -80,6 +80,7 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
     // 更新 chain_state
     db_handle.save_chain_state(&header)?;
 
+    // TODO: delete tracing info
     if let Some(block) = db_handle.load_block(header.height)? {
         tracing::info!(target: "node::block", ?block, "=======BLOCK=======\r\n");
     }
