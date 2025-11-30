@@ -4,7 +4,7 @@ use account::address::{ChainAddrBytes};
 use chain::block::{Block, BlockHeader};
 use contract::contract::{Contract, ContractWire};
 use primitives::hash::Hash32;
-use apps::ctr_io::{NamespaceKey, ValueSnapShot};
+use apps::ctr_io::{NamespaceKey, ValueSnapshot};
 use crate::error::DBError;
 use crate::runtime::dbh;
 use crate::error::Result;
@@ -47,11 +47,11 @@ impl DBHandle {
         match self.load_data_entry(ns_key)? {
             Some(snap) => {
                 let version = snap.version + 1;
-                let new_snap = ValueSnapShot { version, value };
+                let new_snap = ValueSnapshot { version, value };
                 batch.put_cf(self.cf_data(), ns_key.encode_bcs(), new_snap.encode_bcs());
             },
             None => {
-                let new_snap = ValueSnapShot { version: 0, value };
+                let new_snap = ValueSnapshot { version: 0, value };
                 batch.put_cf(self.cf_data(), ns_key.encode_bcs(), new_snap.encode_bcs());
             }
         }
@@ -59,12 +59,12 @@ impl DBHandle {
         Ok(())
     }
 
-    pub fn load_data_entry(&self, ns_key: &NamespaceKey) -> Result<Option<ValueSnapShot>> {
+    pub fn load_data_entry(&self, ns_key: &NamespaceKey) -> Result<Option<ValueSnapshot>> {
         let data = self.dbh.get_cf(self.cf_data(), ns_key.encode_bcs())
             .map_err(DBError::DBGet)?;
         Ok(match data {
             Some(snap_bytes) => {
-                let snap = ValueSnapShot::try_decode_bcs(&snap_bytes)?;
+                let snap = ValueSnapshot::try_decode_bcs(&snap_bytes)?;
                 Some(snap)
             }
             None => None
