@@ -123,7 +123,7 @@ impl Debug for CommittedBlock {
             writeln!(f, "    {:?},", TxAttestation::try_from(tx.clone()).unwrap())?;
         }
         writeln!(f, "  ]")?;
-        writeln!(f, "{:?}", self.tx_codes)?;
+        writeln!(f, "  tx_codes: {:?}", self.tx_codes)?;
         write!(f, "}}")
     }
 }

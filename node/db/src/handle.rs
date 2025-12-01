@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use rocksdb::{ColumnFamily, WriteBatch, DB};
 use account::address::{ChainAddrBytes};
-use chain::block::{Block, BlockHeader, CommittedBlock};
+use chain::block::{BlockHeader, CommittedBlock};
 use contract::contract::{Contract, ContractWire};
 use primitives::hash::Hash32;
 use apps::ctr_io::{NamespaceKey, ReadSet, ValueSnapshot, WriteSet};

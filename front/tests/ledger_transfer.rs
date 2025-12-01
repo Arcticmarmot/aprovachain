@@ -1,6 +1,6 @@
 use clap::Parser;
 use front::bootstrap::{init_env, init_logging};
-use front::handler::{build_envelope_wire, parse_tx_args, parse_tx_args_with, send_envelope, TxArgs};
+use front::handler::{build_envelope_wire, parse_tx_args_with, send_envelope, TxArgs};
 use ledger::call::{generate_access_set, LedgerCall};
 use server::context::SubmitTxResponse;
 use spec::chain::ChainId;
@@ -10,7 +10,7 @@ const SMOLENSK: &'static str = "main1guwa5cdjvwtc8m86tmrjtkknqtee759k77j7qz";
 const KOL_SERVER: &'static str = "main16n6z9xz7j5nled2neqsj8qtmcwdnqz6gwsks9f";
 
 #[tokio::test]
-pub async fn ledger_mint() {
+pub async fn ledger_transfer() {
     // Init
     init_logging().unwrap();
     init_env().unwrap();
@@ -23,7 +23,7 @@ pub async fn ledger_mint() {
 
     tracing::info!(target:"apps::init", "TxArgs: {:?}", args);
 
-    let mint = LedgerCall::QueryBalance { addr: KOL_SERVER.to_string() };
+    let mint = LedgerCall::Transfer { from: SMOLENSK.to_string(), to: KOL_SERVER.to_string(), amount: 10 };
     let input = mint.encode_bcs();
     let access_set = generate_access_set(ChainId(args.chain_id), input.clone()).unwrap();
 

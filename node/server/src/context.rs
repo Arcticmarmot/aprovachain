@@ -5,7 +5,6 @@ use network::handle::{P2pCmdHandle};
 use account::keypair::{AccountSigningKey};
 use db::handle::DBHandle;
 use primitives::hash::Hash32;
-use tx::intent::TxPayload;
 
 #[derive(Debug, Clone)]
 pub struct AppState {
@@ -34,22 +33,23 @@ pub enum SubmitTxResponse {
 
 impl Debug for SubmitTxResponse {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "SubmitTxResponse {{ ")?;
+        writeln!(f, "")?;
+        writeln!(f, "SubmitTxResponse {{ ")?;
         match self {
             SubmitTxResponse::Deploy { ctr_addr_str, image_id, elf_hash } => {
-                write!(f, "ctr_addr_str: {}", ctr_addr_str)?;
-                write!(f, "image_id: {}, ", image_id.to_string())?;
-                write!(f, "elf_hash: {:?}, ", hex::encode(elf_hash))?;
+                writeln!(f, "  ctr_addr_str: {}, ", ctr_addr_str)?;
+                writeln!(f, "  image_id: {}, ", image_id.to_string())?;
+                writeln!(f, "  elf_hash: {:?}, ", hex::encode(elf_hash))?;
             },
             SubmitTxResponse::Exec { ctr_addr_str, image_id, elf_hash,
                 input, receipt, answer  } => {
-                write!(f, "ctr_addr_str: {}", ctr_addr_str)?;
-                write!(f, "image_id: {}, ", image_id.to_string())?;
-                write!(f, "elf_hash: {:?}, ", hex::encode(elf_hash))?;
-                write!(f, "input: {:?}", input)?;
-                write!(f, "receipt: {:?}, ", receipt)?;
-                write!(f, "answer: {:?}, ", answer)?;
+                writeln!(f, "  ctr_addr_str: {}", ctr_addr_str)?;
+                writeln!(f, "  image_id: {}, ", image_id.to_string())?;
+                writeln!(f, "  elf_hash: {:?}, ", hex::encode(elf_hash))?;
+                writeln!(f, "  input: {:?}", input)?;
+                writeln!(f, "  receipt: {:?}, ", receipt)?;
+                writeln!(f, "  answer: {:?}, ", answer)?;
             }
         }
-        write!(f, " }}")    }
+        writeln!(f, " }}")    }
 }

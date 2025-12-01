@@ -29,7 +29,7 @@ pub async fn ledger_mint() {
     let input = mint.encode_bcs();
     let access_set = generate_access_set(ChainId(args.chain_id), input.clone()).unwrap();
 
-    let ctr_addr_str = "mainctr1m3z7ntng5ww43kj9e7pwm4lx24rlffa8md5r89".to_string();
+    let ctr_addr_str = "mainctr1742kmqg2t5lqx3slqmenzq2t0yna4c6rke35wc".to_string();
     let payload = TxPayload::Exec {
         ctr_addr_str,
         input,
