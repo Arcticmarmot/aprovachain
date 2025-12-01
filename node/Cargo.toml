@@ -19,3 +19,4 @@ primitives = { workspace = true }
 chain = { workspace = true }
 contract = { workspace = true }
 platform = { workspace = true }
+account = { workspace = true }

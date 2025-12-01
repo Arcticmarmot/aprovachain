@@ -4,6 +4,7 @@ use axum::response::{IntoResponse, Response};
 use thiserror::Error;
 use tx::error::TxError;
 use account::error::AccountError;
+use apps::error::AppError;
 use contract::error::ContractError;
 use db::error::DBError;
 use network::error::PeerError;
@@ -12,6 +13,8 @@ use network::error::PeerError;
 pub enum ServerError {
     #[error(transparent)]
     Tx(#[from] TxError),
+    #[error(transparent)]
+    App(#[from] AppError),
     #[error(transparent)]
     Peer(#[from] PeerError),
     #[error(transparent)]
@@ -34,6 +37,8 @@ pub enum ServerError {
     ElfFileNotFound,
     #[error("contract not found")]
     ContractNotFound,
+    #[error("receipt decode failed")]
+    ReceiptDecode(#[from] risc0_zkvm::serde::Error)
 }
 
 impl IntoResponse for ServerError {

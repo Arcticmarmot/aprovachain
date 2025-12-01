@@ -5,10 +5,15 @@ use server::context::SubmitTxResponse;
 
 #[tokio::test]
 pub async fn exec_by_json() {
+    // Init
     init_logging().unwrap();
     init_env().unwrap();
+
+    // Deploy Contract
     unsafe { std::env::remove_var("DEPLOY_ELF"); }
+    unsafe { std::env::remove_var("DEPLOY_JSON"); }
     unsafe { std::env::remove_var("EXEC_JSON"); }
+    
     let args = TxArgs::try_parse_from([
         "apps",
         "--chain-id", "1000",
@@ -21,7 +26,7 @@ pub async fn exec_by_json() {
 
     let tx_envelope_wire = build_envelope_wire(tx_build_spec).unwrap();
 
-    let response =send_envelope(tx_envelope_wire).await.unwrap();
+    let response = send_envelope(tx_envelope_wire).await.unwrap();
     let json = response.json::<SubmitTxResponse>().await;
     tracing::info!(target:"apps::resp", "Response: {:?}", json);
 }

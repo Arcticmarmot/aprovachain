@@ -21,19 +21,19 @@ pub struct TxBuildSpec {
 #[clap(author, version, about, long_about=None)]
 pub struct TxArgs {
     #[clap(long, env, next_help_heading = "The Chain Id of the Tx")]
-    chain_id: u64,
+    pub chain_id: u64,
 
     #[clap(long, env, next_help_heading = "The payload type of TxPayload")]
-    payload_type: String,
+    pub payload_type: String,
 
     #[clap(long, env, next_help_heading = "The deploy json of TxPayload")]
-    deploy_json: Option<PathBuf>,
+    pub deploy_json: Option<PathBuf>,
 
     #[clap(long, env, next_help_heading = "The deploy elf of TxPayload")]
-    deploy_elf: Option<PathBuf>,
+    pub deploy_elf: Option<PathBuf>,
 
     #[clap(long, env, next_help_heading = "The exec json of TxPayload")]
-    exec_json: Option<PathBuf>,
+    pub exec_json: Option<PathBuf>,
 }
 
 /// 从命令行参数解析出 TxEnvelopeWire

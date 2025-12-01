@@ -1,5 +1,6 @@
 use thiserror::Error;
 use rocksdb::Error as RocksDBError;
+use apps::error::AppError;
 use chain::error::ChainError;
 use contract::error::ContractError;
 use spec::error::SpecError;
@@ -12,6 +13,8 @@ pub enum DBError {
     Contract(#[from] ContractError),
     #[error(transparent)]
     Spec(#[from] SpecError),
+    #[error(transparent)]
+    App(#[from] AppError),
     #[error("DB not init")]
     DBNotInit,
     #[error("fixed dir create failed")]

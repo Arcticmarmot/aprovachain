@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use spec::chain::ChainId;
-use spec::error::Result;
+use crate::error::Result;
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct NamespaceKey {

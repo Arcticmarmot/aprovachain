@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use tx::envelope::{TxEnvelopeWire, TxEnvelope};
 use axum::body::{Bytes};
 use axum::extract::State;
@@ -6,11 +7,11 @@ use risc0_zkvm::{default_prover, Digest, ExecutorEnv, Prover};
 use tx::intent::{TxIntent, TxPayload};
 use crate::error::{ApiResult, ServerError, Result};
 use primitives::hash::{sha256, Hash32};
-use account::address::ChainAddrBytes;
+use account::address::{ContractAddress};
 use account::keypair::AccountVerifyingKey;
 use contract::contract::{Contract};
 use db::handle::DBHandle;
-use apps::ctr_io::AccessSet;
+use apps::ctr_io::{AccessSet, CtrInput, CtrOutput, EnvContext, ReadSet};
 use tx::outcome::{TxOutcome};
 use tx::attestation::TxAttestation;
 use crate::context::{AppState, SubmitTxResponse};
@@ -61,8 +62,8 @@ pub fn handle_intent(db_handle: DBHandle, vk: &AccountVerifyingKey, intent: &TxI
         TxPayload::Deploy{ image_id, elf, elf_hash } => {
             handle_deploy_tx(db_handle, intent, vk, image_id, elf, elf_hash)
         },
-        TxPayload::Exec { ctr_addr_bytes, input, access_set} => {
-            handle_exec_tx(db_handle, intent, ctr_addr_bytes, input, access_set)
+        TxPayload::Exec { ctr_addr_str, input, access_set} => {
+            handle_exec_tx(db_handle, intent, ctr_addr_str, input, access_set)
         }
     }
 }
@@ -104,11 +105,13 @@ pub fn handle_deploy_tx(_: DBHandle, intent: &TxIntent, vk: &AccountVerifyingKey
     })
 }
 
-pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_bytes: &ChainAddrBytes,
+pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_str: &String,
                       input: &Vec<u8>, access_set: &AccessSet) -> Result<SubmitTxResponse> {
     tracing::info!(target: "node::handle", tx_id=?intent.tx_id());
     // 根据合约地址查找合约 BCS 编码向量
-    let ctr = match db_handle.load_contract(ctr_addr_bytes)? {
+    let ctr_addr = ContractAddress::parse_bech32m_with_id(intent.chain_id, ctr_addr_str)?;
+    let ctr_addr_bytes = ctr_addr.to_bytes();
+    let ctr = match db_handle.load_contract(&ctr_addr_bytes)? {
         Some(ctr) => ctr,
         None => return {
             tracing::warn!(target: "node::server", "Contract not found");
@@ -132,14 +135,24 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_bytes: &C
     };
     tracing::info!("Elf file len: {}", elf.len());
 
+    let mut read_set: ReadSet = BTreeMap::new();
     // TODO: 加载 access_set 数据
-    for entry in access_set {
-
+    for ns_key in access_set {
+        let snap = db_handle.load_data_entry(ns_key)?;
+        read_set.insert(ns_key.clone(), snap);
     }
+    tracing::info!(target: "node::server", read_set=?read_set);
+    let ctr_input = CtrInput {
+        chain_id: intent.chain_id,
+        input: input.clone(),
+        context: EnvContext {
+            read_set
+        }
+    };
 
     // 搭建虚拟机环境传入 input
     let env = ExecutorEnv::builder()
-        .write(&input)
+        .write(&ctr_input.encode_bcs())
         .unwrap()
         .build().map_err(ServerError::ExecutorEnvBuild)?;
 
@@ -148,10 +161,11 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_bytes: &C
     let proof = prover.prove(env, &elf).map_err(ServerError::ProofGenerate)?;
     tracing::info!(target: "node::server", ?proof);
     let receipt = proof.receipt;
-    let output: Vec<u8> = receipt.journal.decode().unwrap();
-    tracing::info!(target: "node::server", ?output);
+    let ctr_output_bytes: Vec<u8> = receipt.journal.decode()?;
+    let ctr_output = CtrOutput::try_decode_bcs(&ctr_output_bytes)?;
+    tracing::info!(target: "node::server", ?ctr_output);
     Ok(SubmitTxResponse::Exec {
-        ctr_addr_bytes: ctr_addr_bytes.clone(),
+        ctr_addr_bytes,
         image_id,
         elf_hash,
         input: input.clone(),

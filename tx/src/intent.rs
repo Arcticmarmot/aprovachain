@@ -1,7 +1,6 @@
 use std::fmt::{Debug, Formatter};
 use risc0_zkvm::{Digest};
 use serde::{Deserialize, Serialize};
-use account::address::{ChainAddrBytes, ContractAddress};
 use spec::chain::{ChainId};
 use platform::rand::random_u128;
 use platform::clock::unix_time_millis;
@@ -14,7 +13,7 @@ use crate::id::{TxIntentId};
 #[derive(Clone, Serialize, Deserialize)]
 pub enum TxPayload {
     Exec {
-        ctr_addr_bytes: ChainAddrBytes,
+        ctr_addr_str: String,
         input: Vec<u8>,
         access_set: AccessSet
     },
@@ -41,9 +40,9 @@ impl Debug for TxPayload {
                 write!(f, "image_id: {}, ", image_id.to_string())?;
                 write!(f, "elf_hash: {:?}, ", elf_hash)?;
             },
-            TxPayload::Exec { ctr_addr_bytes, input, ..  } => {
+            TxPayload::Exec { ctr_addr_str, input, ..  } => {
                 write!(f, "type: exec, ")?;
-                write!(f, "ctr_addr: {:?}, ", ContractAddress::from_bytes(ctr_addr_bytes.clone()))?;
+                write!(f, "ctr_addr: {}, ", ctr_addr_str)?;
                 write!(f, "input: {:?}", input)?;
             }
         }

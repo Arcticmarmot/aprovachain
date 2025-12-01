@@ -1,4 +1,5 @@
 use anyhow::{ensure, Context, Result, anyhow};
+use account::address::ContractAddress;
 use chain::block::Block;
 use contract::contract::Contract;
 use db::handle::DBHandle;
@@ -48,7 +49,9 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
         let payload = &envelope.intent.payload;
 
         match payload {
-            TxPayload::Exec { ctr_addr_bytes, input, .. } => {
+            TxPayload::Exec { ctr_addr_str, input, .. } => {
+                let ctr_addr = ContractAddress::parse_bech32m_with_id(intent.chain_id, ctr_addr_str)?;
+                let ctr_addr_bytes = ctr_addr.to_bytes();
                 let ctr = db_handle.load_contract(&ctr_addr_bytes)?
                     .ok_or_else(|| anyhow!("invalid contract address"))?;
                 let image_id = ctr.image_id;
