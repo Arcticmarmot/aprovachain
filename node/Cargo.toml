@@ -20,3 +20,4 @@ chain = { workspace = true }
 contract = { workspace = true }
 platform = { workspace = true }
 account = { workspace = true }
+apps = { workspace = true }
