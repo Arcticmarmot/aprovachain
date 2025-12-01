@@ -2531,10 +2531,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "apps",
- "bcs",
  "ledger",
  "primitives",
  "risc0-zkvm",
+ "spec",
 ]
 
 [[package]]

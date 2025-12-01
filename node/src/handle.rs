@@ -1,9 +1,11 @@
+use std::collections::BTreeMap;
 use anyhow::{ensure, Context, Result, anyhow};
 use account::address::ContractAddress;
-use apps::ctr_io::{CtrOutput, CtrResult};
+use apps::ctr_io::{CtrInput, CtrOutput, CtrResult, EnvContext, ReadSet};
 use chain::block::Block;
 use contract::contract::Contract;
 use db::handle::DBHandle;
+use primitives::hash::sha256;
 use tx::attestation::TxAttestation;
 use tx::intent::TxPayload;
 
@@ -39,92 +41,7 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
         .collect::<Result<Vec<TxAttestation>>>()?;
 
     // 每条 tx 的业务层校验交易
-    for tx in &txs {
-        // 检查节点签名
-        tx.self_verify()?;
-        // 检查用户签名
-        let envelope = &tx.outcome.envelope;
-        envelope.self_verify()?;
-        let receipt_opt = tx.outcome.receipt_opt.clone();
-        let intent = &envelope.intent;
-        let payload = &envelope.intent.payload;
-
-        match payload {
-            TxPayload::Exec { ctr_addr_str, input, .. } => {
-                let ctr_addr = ContractAddress::parse_bech32m_with_id(intent.chain_id, ctr_addr_str)?;
-                let ctr_addr_bytes = ctr_addr.to_bytes();
-                let ctr = db_handle.load_contract(&ctr_addr_bytes)?
-                    .ok_or_else(|| anyhow!("invalid contract address"))?;
-                let image_id = ctr.image_id;
-                let receipt = receipt_opt.ok_or_else(|| anyhow!("exec tx must have receipt"))?;
-                receipt.verify(image_id).context("verify receipt failed")?;
-                // 简单的 ELF 文件， input == output
-                let ctr_output_bytes: Vec<u8> = receipt.journal.decode().context("receipt decode failed")?;
-                let ctr_output = CtrOutput::try_decode_bcs(&ctr_output_bytes).context("output decode failed")?;
-                let input_hash = &ctr_output.input_hash;
-                match &ctr_output.ctr_result {
-                    CtrResult::Ok { outcome } => {
-                        let mut is_valid = true;
-                        let read_set = &outcome.effects.read_set;
-                        let write_set = &outcome.effects.write_set;
-                        for (ns_key, snap) in read_set {
-                            match snap {
-                                Some(snap) => {
-                                    let read_ver = snap.version;
-                                    match db_handle.load_data_entry(&ns_key)? {
-                                        Some(curr_snap) => {
-                                            if curr_snap.version > read_ver {
-                                                is_valid = false;
-                                                break;
-                                            }
-                                        },
-                                        // 读集中有内容，数据库中已经删除
-                                        None => {
-                                            is_valid = false;
-                                            break;
-                                        }
-                                    }
-                                },
-                                // 读集中没有读到内容，交易仍然成功执行，跳过检查
-                                None => { }
-                            }
-                        }
-                        // read_set 检查完毕，开始写入 write_set 到数据库
-                        if is_valid {
-                            // TODO: 写入应该是 Option<Vec<u8>> 类型，版本由 db_handle 决定，应用层不应该关注其内部细节
-                            for (ns_key, snap_opt) in write_set {
-                                match snap_opt {
-                                    Some(snap) => {
-                                        let val = &snap.value;
-                                        db_handle.save_data_entry(ns_key, val.clone())?;
-                                    },
-                                    None => { }
-                                }
-                            }
-                        } else {
-                            tracing::info!(target: "node::event", tx_id=%tx.tx_id, "invalid tx")
-                        }
-                    },
-                    CtrResult::Err { message } => {
-                        tracing::error!(target: "node::event", %message, "ctr exec failed");
-                    }
-                };
-                tracing::info!(target:"node::event", input=?input, output=?ctr_output);
-            },
-            TxPayload::Deploy { image_id, elf_hash, elf } => {
-                let ctr = Contract::create(intent.chain_id, elf_hash, image_id,
-                                           &envelope.verifying_key, intent.nonce);
-                let ctr_addr_bytes = ctr.addr.to_bytes();
-                // key: 合约的 addr 字节数组
-                // value: 合约的BCS编码
-                db_handle.save_contract(&ctr_addr_bytes, &ctr.to_canonical_bytes())?;
-                // key: ELF文件哈希
-                // value: ELF文件字节数组
-                db_handle.save_elf(ctr.elf_hash, elf)?;
-                tracing::info!(target:"node::event", contract_addr=?ctr.addr, "contract deployed");
-            }
-        }
-    }
+    handle_tx(txs, &db_handle)?;
 
     // 存储 block
     db_handle.save_block(&block)?;
@@ -137,4 +54,73 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
         tracing::info!(target: "node::block", ?block, "=======BLOCK=======\r\n");
     }
     Ok(())
+}
+
+pub fn handle_tx(txs: Vec<TxAttestation>, db_handle: &DBHandle) -> Result<Vec<bool>> {
+    // tx_code 代表是否改变了世界状态
+    let mut tx_codes: Vec<bool> = Vec::with_capacity(txs.len());
+
+    for tx in txs {
+        // 检查节点签名
+        tx.self_verify().context("invalid node signature")?;
+        let outcome = tx.outcome;
+        // 检查用户签名
+        let envelope = outcome.envelope;
+        envelope.self_verify().context("invalid user signature")?;
+
+        let receipt_opt = outcome.receipt_opt;
+        let intent = envelope.intent;
+        let payload = intent.payload;
+
+        let mut tx_code = false;
+        match payload {
+            TxPayload::Exec { ctr_addr_str, input, .. } => {
+                let ctr_addr = ContractAddress::parse_bech32m_with_id(intent.chain_id, &ctr_addr_str)?;
+                let ctr_addr_bytes = ctr_addr.to_bytes();
+                let ctr = db_handle.load_contract(&ctr_addr_bytes)?
+                    .ok_or_else(|| anyhow!("invalid contract address"))?;
+                let image_id = ctr.image_id;
+                let receipt = receipt_opt.ok_or_else(|| anyhow!("exec tx must have receipt"))?;
+                receipt.verify(image_id).context("verify receipt failed")?;
+
+                let ctr_output_bytes: Vec<u8> = receipt.journal.decode().context("receipt decode failed")?;
+                let ctr_output = CtrOutput::try_decode_bcs(&ctr_output_bytes).context("output decode failed")?;
+                tracing::info!(target:"node::event", input=?input, output=?ctr_output);
+                let input_hash = ctr_output.input_hash;
+                let ctr_input = CtrInput {
+                    chain_id: intent.chain_id,
+                    input,
+                    context: ctr_output.context.clone()
+                };
+                ensure!(input_hash == sha256(ctr_input.encode_bcs()), "input hash mismatched");
+
+                let read_set = ctr_output.context.read_set;
+                match &ctr_output.ctr_result {
+                    CtrResult::Ok { outcome } => {
+                        tx_code = db_handle.apply_rw_set(&read_set, &outcome.write_set)?;
+                    },
+                    CtrResult::Err { message } => {
+                        tx_code = false;
+                        tracing::error!(target: "node::event", %message, "ctr exec failed");
+                    }
+                };
+            },
+            TxPayload::Deploy { image_id, elf_hash, elf } => {
+                let ctr = Contract::create(intent.chain_id, &elf_hash, &image_id,
+                                           &envelope.verifying_key, intent.nonce);
+                let ctr_addr_bytes = ctr.addr.to_bytes();
+                // key: 合约的 addr 字节数组
+                // value: 合约的BCS编码
+                db_handle.save_contract(&ctr_addr_bytes, &ctr.to_canonical_bytes())?;
+                // key: ELF文件哈希
+                // value: ELF文件字节数组
+                db_handle.save_elf(ctr.elf_hash, &elf)?;
+                tx_code = true;
+                tracing::info!(target:"node::event", contract_addr=?ctr.addr, "contract deployed");
+            }
+        }
+        tx_codes.push(tx_code);
+    }
+    tracing::info!(target: "node::event", ?tx_codes);
+    Ok(tx_codes)
 }

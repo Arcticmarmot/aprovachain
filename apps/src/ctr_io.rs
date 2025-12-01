@@ -36,7 +36,7 @@ impl ValueSnapshot {
 }
 
 pub type ReadSet = BTreeMap<NamespaceKey, Option<ValueSnapshot>>;
-pub type WriteSet = BTreeMap<NamespaceKey, Option<ValueSnapshot>>;
+pub type WriteSet = BTreeMap<NamespaceKey, Option<Vec<u8>>>;
 pub type AccessSet = BTreeSet<NamespaceKey>;
 
 
@@ -63,6 +63,11 @@ pub struct EnvContext {
 }
 
 impl EnvContext {
+    pub fn new() -> Self {
+        Self {
+            read_set: ReadSet::new()
+        }
+    }
     pub fn encode_bcs(&self) -> Vec<u8> {
         bcs::to_bytes(self).expect("BCS should be infallible by design")
     }
@@ -75,6 +80,7 @@ impl EnvContext {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CtrOutput {
     pub input_hash: [u8; 32],
+    pub context: EnvContext,
     pub ctr_result: CtrResult
 }
 
@@ -89,14 +95,8 @@ pub enum CtrResult {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CtrOutcome {
-    pub effects: CtrEffects,
+    pub write_set: WriteSet,
     pub answer: Vec<u8>
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CtrEffects {
-    pub read_set: ReadSet,
-    pub write_set: WriteSet
 }
 
 impl CtrOutput {

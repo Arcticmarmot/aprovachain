@@ -7,6 +7,6 @@ edition = "2024"
 risc0-zkvm = { workspace = true }
 apps = { workspace = true }
 ledger = { workspace = true }
-bcs = { workspace = true }
 anyhow = { workspace = true }
 primitives = { workspace = true }
+spec = { workspace = true }

@@ -4,7 +4,7 @@ use account::address::{ChainAddrBytes};
 use chain::block::{Block, BlockHeader};
 use contract::contract::{Contract, ContractWire};
 use primitives::hash::Hash32;
-use apps::ctr_io::{NamespaceKey, ValueSnapshot};
+use apps::ctr_io::{NamespaceKey, ReadSet, ValueSnapshot, WriteSet};
 use crate::error::DBError;
 use crate::runtime::dbh;
 use crate::error::Result;
@@ -42,6 +42,40 @@ impl DBHandle {
         self.dbh.cf_handle("elfs").expect("cf 'elfs' must be exist")
     }
 
+    pub fn apply_rw_set(&self, read_set: &ReadSet, write_set: &WriteSet) -> Result<bool> {
+        // 检查 read_set 视图是否和当前执行过程中一致
+        for (ns_key, read_snap_opt) in read_set {
+            match (read_snap_opt, self.load_data_entry(&ns_key)?) {
+                (Some(read_snap), Some(curr_snap)) => {
+                    if read_snap.version != curr_snap.version
+                        || read_snap.value != curr_snap.value {
+                        return Ok(false);
+                    }
+                },
+                (None, Some(_)) => {
+                    return Ok(false)
+                },
+                (Some(_), None) => {
+                    return Ok(false)
+                }
+                // 读集中没有读到内容，交易仍然成功执行，跳过检查
+                (None, None) => { }
+            }
+        }
+        // read_set 检查完毕，开始写入 write_set 到数据库
+        for (ns_key, val_opt) in write_set {
+            match val_opt {
+                Some(val) => {
+                    self.save_data_entry(ns_key, val.clone())?;
+                },
+                None => {
+                    self.delete_data_entry(ns_key)?;
+                }
+            }
+        }
+        Ok(true)
+    }
+
     pub fn save_data_entry(&self, ns_key: &NamespaceKey, value: Vec<u8>) -> Result<()> {
         let mut batch = WriteBatch::default();
         match self.load_data_entry(ns_key)? {
@@ -55,6 +89,13 @@ impl DBHandle {
                 batch.put_cf(self.cf_data(), ns_key.encode_bcs(), new_snap.encode_bcs());
             }
         }
+        self.dbh.write(batch).map_err(DBError::DBPut)?;
+        Ok(())
+    }
+
+    pub fn delete_data_entry(&self, ns_key: &NamespaceKey) -> Result<()> {
+        let mut batch = WriteBatch::default();
+        batch.delete_cf(self.cf_data(), ns_key.encode_bcs());
         self.dbh.write(batch).map_err(DBError::DBPut)?;
         Ok(())
     }

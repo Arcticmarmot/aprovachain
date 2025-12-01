@@ -1,6 +1,4 @@
-use std::time::Duration;
 use clap::Parser;
-use tokio::time::sleep;
 use front::bootstrap::{init_env, init_logging};
 use front::handler::{build_envelope_wire, parse_tx_args, parse_tx_args_with, send_envelope, TxArgs};
 use ledger::call::{generate_access_set, LedgerCall};
@@ -23,14 +21,13 @@ pub async fn ledger_mint() {
         "--chain-id", "1000",
     ]).expect("parse args");
 
-    sleep(Duration::from_secs(20)).await;
     tracing::info!(target:"apps::init", "TxArgs: {:?}", args);
 
     let mint = LedgerCall::QueryBalance { addr: SMOLENSK.to_string() };
     let input = mint.encode_bcs();
     let access_set = generate_access_set(ChainId(args.chain_id), input.clone()).unwrap();
 
-    let ctr_addr_str = "mainctr1alvlmpl8ws7cqp257mt8cteny2wwmuw2m3l23k".to_string();
+    let ctr_addr_str = "mainctr1m3z7ntng5ww43kj9e7pwm4lx24rlffa8md5r89".to_string();
     let payload = TxPayload::Exec {
         ctr_addr_str,
         input,
