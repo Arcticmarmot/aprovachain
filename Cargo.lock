@@ -4829,6 +4829,7 @@ dependencies = [
  "axum",
  "contract",
  "db",
+ "hex",
  "network",
  "primitives",
  "risc0-zkvm",

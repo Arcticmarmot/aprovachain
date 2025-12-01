@@ -38,6 +38,6 @@ pub async fn ledger_mint() {
     let tx_envelope_wire = build_envelope_wire(tx_build_spec).unwrap();
 
     let response = send_envelope(tx_envelope_wire).await.unwrap();
-    let json = response.json::<SubmitTxResponse>().await;
+    let json = response.json::<SubmitTxResponse>().await.unwrap();
     tracing::info!(target:"apps::resp", "Response: {:?}", json);
 }

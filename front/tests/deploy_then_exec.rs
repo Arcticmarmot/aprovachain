@@ -6,6 +6,7 @@ use account::address::ContractAddress;
 use front::bootstrap::{init_env, init_logging};
 use front::handler::{build_envelope_wire, parse_tx_args, parse_tx_args_with, send_envelope, TxArgs};
 use server::context::SubmitTxResponse;
+use spec::chain::ChainId;
 use tx::intent::TxPayload;
 
 #[tokio::test]
@@ -35,11 +36,12 @@ pub async fn deploy_then_exec() {
     let json = response.json::<SubmitTxResponse>().await.unwrap();
     tracing::info!(target:"apps::resp", "Response: {:?}", json);
     let ctr_addr_str = match json {
-        SubmitTxResponse::Deploy { ctr_addr_bytes, .. } => {
-            Some(ContractAddress::from_bytes(ctr_addr_bytes).to_bech32m().unwrap())
-        },
-        _ => None
-    }.unwrap();
+        SubmitTxResponse::Deploy { ctr_addr_str, .. } => ctr_addr_str,
+        _ => { 
+            tracing::error!(target: "front::resp", "contract deploy failed");
+            return;
+        }
+    };
 
     // Exec Contract
     let args = TxArgs::try_parse_from([

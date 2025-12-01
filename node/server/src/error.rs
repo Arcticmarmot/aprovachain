@@ -38,7 +38,9 @@ pub enum ServerError {
     #[error("contract not found")]
     ContractNotFound,
     #[error("receipt decode failed")]
-    ReceiptDecode(#[from] risc0_zkvm::serde::Error)
+    ReceiptDecode(#[from] risc0_zkvm::serde::Error),
+    #[error("contract exec failed: {message}")]
+    ContractExec { message: String },
 }
 
 impl IntoResponse for ServerError {

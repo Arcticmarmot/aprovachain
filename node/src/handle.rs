@@ -1,8 +1,7 @@
-use std::collections::BTreeMap;
 use anyhow::{ensure, Context, Result, anyhow};
 use account::address::ContractAddress;
-use apps::ctr_io::{CtrInput, CtrOutput, CtrResult, EnvContext, ReadSet};
-use chain::block::Block;
+use apps::ctr_io::{CtrInput, CtrOutput, CtrResult, ReadSet};
+use chain::block::{Block, CommittedBlock};
 use contract::contract::Contract;
 use db::handle::DBHandle;
 use primitives::hash::sha256;
@@ -41,17 +40,17 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
         .collect::<Result<Vec<TxAttestation>>>()?;
 
     // 每条 tx 的业务层校验交易
-    handle_tx(txs, &db_handle)?;
-
+    let tx_codes = handle_tx(txs, &db_handle)?;
+    let committed_block = CommittedBlock::new(block.header, block.txs, tx_codes);
     // 存储 block
-    db_handle.save_block(&block)?;
+    db_handle.save_block(&committed_block)?;
 
     // 更新 chain_state
     db_handle.save_chain_state(&header)?;
 
     // TODO: delete tracing info
     if let Some(block) = db_handle.load_block(header.height)? {
-        tracing::info!(target: "node::block", ?block, "=======BLOCK=======\r\n");
+        tracing::info!(target: "node::block", ?block, "=======COMMITTED_BLOCK=======\r\n");
     }
     Ok(())
 }

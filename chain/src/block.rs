@@ -103,3 +103,45 @@ impl Block {
         bcs::to_bytes(self).expect("BCS should be infallible by design")
     }
 }
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct CommittedBlock {
+    pub header: BlockHeader,
+    pub txs: Vec<TxAttestationWire>,
+    pub tx_codes: Vec<bool>
+}
+
+impl Debug for CommittedBlock {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        // header 直接用派生 Debug
+        writeln!(f, "Block {{")?;
+        writeln!(f, "  header: {:?},", self.header)?;
+
+        // txs 用你自己的格式
+        writeln!(f, "  txs: [")?;
+        for tx in &self.txs {
+            writeln!(f, "    {:?},", TxAttestation::try_from(tx.clone()).unwrap())?;
+        }
+        writeln!(f, "  ]")?;
+        writeln!(f, "{:?}", self.tx_codes)?;
+        write!(f, "}}")
+    }
+}
+
+impl CommittedBlock {
+    pub fn new(header: BlockHeader, txs: Vec<TxAttestationWire>, tx_codes: Vec<bool>) -> Self {
+        Self {
+            header,
+            txs,
+            tx_codes
+        }
+    }
+
+    pub fn try_decode_bcs(bytes: &[u8]) -> Result<Self> {
+        Ok(bcs::from_bytes(bytes)?)
+    }
+
+    pub fn encode_bcs(&self) -> Vec<u8> {
+        bcs::to_bytes(self).expect("BCS should be infallible by design")
+    }
+}

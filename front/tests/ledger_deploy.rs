@@ -29,8 +29,7 @@ pub async fn ledger_deploy() {
     let json = response.json::<SubmitTxResponse>().await.unwrap();
     tracing::info!(target:"apps::resp", "Response: {:?}", json);
     match json {
-        SubmitTxResponse::Deploy { ctr_addr_bytes, .. } => {
-            let ctr_addr_str = ContractAddress::from_bytes(ctr_addr_bytes).to_bech32m().unwrap();
+        SubmitTxResponse::Deploy { ctr_addr_str, .. } => {
             tracing::info!(target: "front::resp", %ctr_addr_str, "ctr addr: ");
         },
         _ => {}

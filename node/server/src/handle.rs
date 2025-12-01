@@ -11,7 +11,7 @@ use account::address::{ContractAddress};
 use account::keypair::AccountVerifyingKey;
 use contract::contract::{Contract};
 use db::handle::DBHandle;
-use apps::ctr_io::{AccessSet, CtrInput, CtrOutput, EnvContext, ReadSet};
+use apps::ctr_io::{AccessSet, CtrInput, CtrOutput, CtrResult, EnvContext, ReadSet};
 use tx::outcome::{TxOutcome};
 use tx::attestation::TxAttestation;
 use crate::context::{AppState, SubmitTxResponse};
@@ -25,14 +25,15 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
     let tx_envelope_wire: TxEnvelopeWire = TxEnvelopeWire::try_decode_bcs(tx_bytes.as_ref())?;
     let tx_envelope = TxEnvelope::try_from(tx_envelope_wire)?;
     tracing::info!(target:"node::server", tx_envelope_id=%tx_envelope.tx_id(), "tx envelope id");
-    // 验证交易签名是否有效
+    
     // TODO: 重放交易攻击，拒绝重复的 nonce
+    // 验证交易签名是否有效
     verify_tx_sig(&tx_envelope)?;
     
     // 执行交易
     let response = handle_intent(db_handle, &tx_envelope.verifying_key, &tx_envelope.intent)?;
-    match response.clone() {
-        SubmitTxResponse::Deploy{ .. } => {
+    match &response {
+        SubmitTxResponse::Deploy { .. } => {
             let tx_outcome = TxOutcome {
                 envelope: tx_envelope,
                 receipt_opt: None
@@ -45,7 +46,7 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
         SubmitTxResponse::Exec {receipt, ..} => {
             let tx_outcome = TxOutcome {
                 envelope: tx_envelope,
-                receipt_opt: Some(receipt),
+                receipt_opt: Some(receipt.clone()),
             };
             tracing::info!(target: "node::server", len=?tx_outcome.envelope.to_canonical_bytes().len(), "tx envelope size");
             tracing::info!(target: "node::server", len=?tx_outcome.to_canonical_bytes().len(), "tx outcome size");
@@ -94,12 +95,11 @@ pub fn handle_deploy_tx(_: DBHandle, intent: &TxIntent, vk: &AccountVerifyingKey
     // 模拟创建合约
     let ctr = Contract::create(intent.chain_id, elf_hash, image_id, vk, intent.nonce);
     // 获取合约Bech32m编码
-    let ctr_bech32m =  ctr.addr.to_bech32m()?;
-    tracing::info!("{}", ctr_bech32m);
-    let ctr_addr_bytes = ctr.addr.to_bytes();
+    let ctr_addr_str =  ctr.addr.to_bech32m()?;
+    tracing::info!("{}", ctr_addr_str);
 
     Ok(SubmitTxResponse::Deploy {
-        ctr_addr_bytes,
+        ctr_addr_str,
         image_id: computed_image_id,
         elf_hash: computed_elf_hash
     })
@@ -164,11 +164,19 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_str: &Str
     let ctr_output_bytes: Vec<u8> = receipt.journal.decode()?;
     let ctr_output = CtrOutput::try_decode_bcs(&ctr_output_bytes)?;
     tracing::info!(target: "node::server", ?ctr_output);
-    Ok(SubmitTxResponse::Exec {
-        ctr_addr_bytes,
-        image_id,
-        elf_hash,
-        input: input.clone(),
-        receipt
-    })
+    match ctr_output.ctr_result {
+        CtrResult::Ok { outcome } => {
+            Ok(SubmitTxResponse::Exec {
+                ctr_addr_str: ctr_addr_str.clone(),
+                image_id,
+                elf_hash,
+                input: input.clone(),
+                receipt,
+                answer: outcome.answer
+            })
+        },
+        CtrResult::Err { message } => {
+            Err(ServerError::ContractExec { message })
+        }
+    }
 }

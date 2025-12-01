@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use rocksdb::{ColumnFamily, WriteBatch, DB};
 use account::address::{ChainAddrBytes};
-use chain::block::{Block, BlockHeader};
+use chain::block::{Block, BlockHeader, CommittedBlock};
 use contract::contract::{Contract, ContractWire};
 use primitives::hash::Hash32;
 use apps::ctr_io::{NamespaceKey, ReadSet, ValueSnapshot, WriteSet};
@@ -160,21 +160,21 @@ impl DBHandle {
         Ok(elf)
     }
 
-    pub fn save_block(&self, block: &Block) -> Result<()> {
+    pub fn save_block(&self, comm_block: &CommittedBlock) -> Result<()> {
         let mut batch = WriteBatch::default();
-        let height_key: [u8; 16] = block.header.height.to_be_bytes();
-        batch.put_cf(self.cf_blocks(), height_key, block.encode_bcs());
+        let height_key: [u8; 16] = comm_block.header.height.to_be_bytes();
+        batch.put_cf(self.cf_blocks(), height_key, comm_block.encode_bcs());
         self.dbh.write(batch).map_err(DBError::DBPut)?;
         Ok(())
     }
 
-    pub fn load_block(&self, height: u128) -> Result<Option<Block>> {
+    pub fn load_block(&self, height: u128) -> Result<Option<CommittedBlock>> {
         let height_key: [u8; 16] = height.to_be_bytes();
         let block_opt = self.dbh.get_cf(self.cf_blocks(), height_key)
             .map_err(DBError::DBGet)?;
         Ok(match block_opt{
             Some(block_bytes) => {
-                Some(Block::try_decode_bcs(&block_bytes)?)
+                Some(CommittedBlock::try_decode_bcs(&block_bytes)?)
             },
             None => None
         })
