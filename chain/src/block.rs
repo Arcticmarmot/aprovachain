@@ -48,12 +48,12 @@ impl BlockHeader {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct Block {
+pub struct OrderedBlock {
     pub header: BlockHeader,
     pub txs: Vec<TxAttestationWire>
 }
 
-impl Debug for Block {
+impl Debug for OrderedBlock {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         // header 直接用派生 Debug
         writeln!(f, "Block {{")?;
@@ -69,7 +69,7 @@ impl Debug for Block {
     }
 }
 
-impl Block {
+impl OrderedBlock {
     pub fn new(header: BlockHeader, txs: Vec<TxAttestationWire>) -> Self {
         Self {
             header,
@@ -105,13 +105,13 @@ impl Block {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct CommittedBlock {
+pub struct LedgerBlock {
     pub header: BlockHeader,
     pub txs: Vec<TxAttestationWire>,
     pub tx_codes: Vec<bool>
 }
 
-impl Debug for CommittedBlock {
+impl Debug for LedgerBlock {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         // header 直接用派生 Debug
         writeln!(f, "Block {{")?;
@@ -128,7 +128,7 @@ impl Debug for CommittedBlock {
     }
 }
 
-impl CommittedBlock {
+impl LedgerBlock {
     pub fn new(header: BlockHeader, txs: Vec<TxAttestationWire>, tx_codes: Vec<bool>) -> Self {
         Self {
             header,

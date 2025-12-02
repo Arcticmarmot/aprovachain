@@ -1,7 +1,7 @@
 use anyhow::{ensure, Context, Result, anyhow};
 use account::address::ContractAddress;
-use apps::ctr_io::{CtrInput, CtrOutput, CtrResult, ReadSet};
-use chain::block::{Block, CommittedBlock};
+use apps::ctr_io::{CtrInput, CtrOutput, CtrResult};
+use chain::block::{OrderedBlock, LedgerBlock};
 use contract::contract::Contract;
 use db::handle::DBHandle;
 use primitives::hash::sha256;
@@ -14,7 +14,7 @@ pub fn handle_tx_received(_: Vec<u8>) -> Result<()> {
 
 pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
     // 解码 block
-    let block = Block::try_decode_bcs(&block_bytes)?;
+    let block = OrderedBlock::try_decode_bcs(&block_bytes)?;
     let header = block.header;
     tracing::info!(target:"node::event", ?header, "new block header");
     let db_handle = DBHandle::new()?;
@@ -41,7 +41,7 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
 
     // 每条 tx 的业务层校验交易
     let tx_codes = handle_tx(txs, &db_handle)?;
-    let committed_block = CommittedBlock::new(block.header, block.txs, tx_codes);
+    let committed_block = LedgerBlock::new(block.header, block.txs, tx_codes);
     // 存储 block
     db_handle.save_block(&committed_block)?;
 
@@ -71,7 +71,7 @@ pub fn handle_tx(txs: Vec<TxAttestation>, db_handle: &DBHandle) -> Result<Vec<bo
         let intent = envelope.intent;
         let payload = intent.payload;
 
-        let mut tx_code = false;
+        let tx_code;
         match payload {
             TxPayload::Exec { ctr_addr_str, input, .. } => {
                 let ctr_addr = ContractAddress::parse_bech32m_with_id(intent.chain_id, &ctr_addr_str)?;

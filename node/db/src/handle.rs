@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use rocksdb::{ColumnFamily, WriteBatch, DB};
 use account::address::{ChainAddrBytes};
-use chain::block::{BlockHeader, CommittedBlock};
+use chain::block::{BlockHeader, LedgerBlock};
 use contract::contract::{Contract, ContractWire};
 use primitives::hash::Hash32;
 use apps::ctr_io::{NamespaceKey, ReadSet, ValueSnapshot, WriteSet};
@@ -160,7 +160,7 @@ impl DBHandle {
         Ok(elf)
     }
 
-    pub fn save_block(&self, comm_block: &CommittedBlock) -> Result<()> {
+    pub fn save_block(&self, comm_block: &LedgerBlock) -> Result<()> {
         let mut batch = WriteBatch::default();
         let height_key: [u8; 16] = comm_block.header.height.to_be_bytes();
         batch.put_cf(self.cf_blocks(), height_key, comm_block.encode_bcs());
@@ -168,13 +168,13 @@ impl DBHandle {
         Ok(())
     }
 
-    pub fn load_block(&self, height: u128) -> Result<Option<CommittedBlock>> {
+    pub fn load_block(&self, height: u128) -> Result<Option<LedgerBlock>> {
         let height_key: [u8; 16] = height.to_be_bytes();
         let block_opt = self.dbh.get_cf(self.cf_blocks(), height_key)
             .map_err(DBError::DBGet)?;
         Ok(match block_opt{
             Some(block_bytes) => {
-                Some(CommittedBlock::try_decode_bcs(&block_bytes)?)
+                Some(LedgerBlock::try_decode_bcs(&block_bytes)?)
             },
             None => None
         })

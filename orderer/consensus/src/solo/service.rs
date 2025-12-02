@@ -3,7 +3,7 @@ use libp2p::PeerId;
 use tokio::spawn;
 use tokio::sync::mpsc::{UnboundedReceiver};
 use tokio::time::sleep;
-use chain::block::{Block, BlockHeader};
+use chain::block::{OrderedBlock, BlockHeader};
 use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
 use crate::error::Result;
@@ -31,14 +31,14 @@ impl SoloService {
         }
     }
 
-    pub fn pack_block(&mut self) -> Result<Block> {
+    pub fn pack_block(&mut self) -> Result<OrderedBlock> {
         match self.chain_state.tip_header_opt {
             Some(tip_header) => {
                 let block = self.mempool_handle.pack_block(&tip_header, 2)?;
                 Ok(block)
             },
             None => {
-                let genesis = Block::genesis()?;
+                let genesis = OrderedBlock::genesis()?;
                 Ok(genesis)
             }
         }

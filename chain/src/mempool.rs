@@ -5,7 +5,7 @@ use platform::clock::unix_time_millis;
 use primitives::hash::Hash32;
 use tx::attestation::{TxAttestation, TxAttestationWire};
 use tx::id::TxAttestationId;
-use crate::block::{Block, BlockHeader};
+use crate::block::{OrderedBlock, BlockHeader};
 use crate::error::Result;
 use sha2::{Digest, Sha256};
 
@@ -66,10 +66,10 @@ impl MempoolHandle {
         Ok(())
     }
 
-    pub fn pack_block(&mut self, parent: &BlockHeader, count: usize) -> Result<Block> {
+    pub fn pack_block(&mut self, parent: &BlockHeader, count: usize) -> Result<OrderedBlock> {
         // 1. mempool为空，出空块
         if self.mempool.count() == 0 {
-            let empty_block = Block::empty(parent)?;
+            let empty_block = OrderedBlock::empty(parent)?;
             return Ok(empty_block)
         }
         // 2. 复制 + 排序 交易
@@ -96,7 +96,7 @@ impl MempoolHandle {
             tx_root,
             timestamp
         };
-        Ok(Block::new(header, candidate_wires))
+        Ok(OrderedBlock::new(header, candidate_wires))
     }
 
     pub fn clear_pending(&mut self) {

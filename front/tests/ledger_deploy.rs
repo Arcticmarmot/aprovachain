@@ -1,5 +1,4 @@
 use clap::Parser;
-use account::address::ContractAddress;
 use front::bootstrap::{init_env, init_logging};
 use front::handler::{build_envelope_wire, parse_tx_args, send_envelope, TxArgs};
 use server::context::SubmitTxResponse;
