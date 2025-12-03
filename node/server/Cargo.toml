@@ -8,7 +8,7 @@ db = { workspace = true }
 network = { workspace = true }
 contract = { workspace = true }
 account = { workspace = true }
-risc0-zkvm = { workspace = true }
+risc0-zkvm = { workspace = true, features = ["prove"] }
 tx = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }

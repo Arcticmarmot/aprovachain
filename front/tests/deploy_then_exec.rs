@@ -2,11 +2,9 @@ use std::collections::BTreeSet;
 use std::time::Duration;
 use clap::Parser;
 use tokio::time::sleep;
-use account::address::ContractAddress;
 use front::bootstrap::{init_env, init_logging};
 use front::handler::{build_envelope_wire, parse_tx_args, parse_tx_args_with, send_envelope, TxArgs};
 use server::context::SubmitTxResponse;
-use spec::chain::ChainId;
 use tx::intent::TxPayload;
 
 #[tokio::test]

@@ -48,7 +48,7 @@ pub async fn ledger_deploy_then_exec() {
         }
     };
 
-    sleep(Duration::from_secs(20)).await;
+    sleep(Duration::from_secs(16)).await;
 
     let mint = LedgerCall::Mint { to: SMOLENSK.to_string(), amount: 100 };
     let input = mint.encode_bcs();

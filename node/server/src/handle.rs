@@ -158,10 +158,11 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_str: &Str
         .build().map_err(ServerError::ExecutorEnvBuild)?;
 
     // opts 里选 succinct
-    let opt = ProverOpts::succinct();
+    let opt = ProverOpts::fast();
 
     // 根据虚拟机环境和 ELF 文件生成证明
     let prover = default_prover();
+
     let proof = prover.prove_with_opts(env, &elf, &opt).map_err(ProofGenerate)?;
 
     tracing::info!(target: "node::server", ?proof);
