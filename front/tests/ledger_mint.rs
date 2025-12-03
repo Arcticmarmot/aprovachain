@@ -1,6 +1,4 @@
-use std::time::Duration;
 use clap::Parser;
-use tokio::time::sleep;
 use front::bootstrap::{init_env, init_logging};
 use front::handler::{build_envelope_wire, parse_tx_args_with, send_envelope, TxArgs};
 use ledger::call::{generate_access_set, LedgerCall};
@@ -29,7 +27,7 @@ pub async fn ledger_mint() {
     let input = mint.encode_bcs();
     let access_set = generate_access_set(ChainId(args.chain_id), input.clone()).unwrap();
 
-    let ctr_addr_str = "mainctr1htc34awp0zvmfyj8rmanngvtyfecj92v7vuava".to_string();
+    let ctr_addr_str = "mainctr1nnhwm33wvepxsnrkqtqckkt4w7m4js92qk703p".to_string();
     let payload = TxPayload::Exec {
         ctr_addr_str,
         input,

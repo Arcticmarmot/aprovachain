@@ -3,7 +3,7 @@ use tx::envelope::{TxEnvelopeWire, TxEnvelope};
 use axum::body::{Bytes};
 use axum::extract::State;
 use axum::Json;
-use risc0_zkvm::{default_prover, Digest, ExecutorEnv, Prover};
+use risc0_zkvm::{default_prover, Digest, ExecutorEnv, ProverOpts, Prover};
 use tx::intent::{TxIntent, TxPayload};
 use crate::error::{ApiResult, ServerError, Result};
 use primitives::hash::{sha256, Hash32};
@@ -15,6 +15,7 @@ use apps::ctr_io::{AccessSet, CtrInput, CtrOutput, CtrResult, EnvContext, ReadSe
 use tx::outcome::{TxOutcome};
 use tx::attestation::TxAttestation;
 use crate::context::{AppState, SubmitTxResponse};
+use crate::error::ServerError::ProofGenerate;
 
 /// 交易提交处理函数
 pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiResult<SubmitTxResponse> {
@@ -135,8 +136,8 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_str: &Str
     };
     tracing::info!("Elf file len: {}", elf.len());
 
+    // 加载 access_set 数据
     let mut read_set: ReadSet = BTreeMap::new();
-    // TODO: 加载 access_set 数据
     for ns_key in access_set {
         let snap = db_handle.load_data_entry(ns_key)?;
         read_set.insert(ns_key.clone(), snap);
@@ -156,9 +157,13 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_str: &Str
         .unwrap()
         .build().map_err(ServerError::ExecutorEnvBuild)?;
 
+    // opts 里选 succinct
+    let opt = ProverOpts::succinct();
+
     // 根据虚拟机环境和 ELF 文件生成证明
     let prover = default_prover();
-    let proof = prover.prove(env, &elf).map_err(ServerError::ProofGenerate)?;
+    let proof = prover.prove_with_opts(env, &elf, &opt).map_err(ProofGenerate)?;
+
     tracing::info!(target: "node::server", ?proof);
     let receipt = proof.receipt;
     let ctr_output_bytes: Vec<u8> = receipt.journal.decode()?;

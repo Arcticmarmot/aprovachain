@@ -10,6 +10,7 @@ use crate::error::Result;
 use crate::solo::handle::{handle_new_slot, handle_submit_tx, SoloCmd, SoloCmdHandle, SoloEventHandle};
 
 pub const TICK_INTERVAL: Duration = Duration::from_secs(15);
+pub const PACK_TX_COUNT: usize = 100;
 
 pub struct SoloService {
     pub local_id: PeerId,
@@ -34,7 +35,7 @@ impl SoloService {
     pub fn pack_block(&mut self) -> Result<OrderedBlock> {
         match self.chain_state.tip_header_opt {
             Some(tip_header) => {
-                let block = self.mempool_handle.pack_block(&tip_header, 2)?;
+                let block = self.mempool_handle.pack_block(&tip_header, PACK_TX_COUNT)?;
                 Ok(block)
             },
             None => {
