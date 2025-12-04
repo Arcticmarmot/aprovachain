@@ -8,7 +8,9 @@ db = { workspace = true }
 network = { workspace = true }
 contract = { workspace = true }
 account = { workspace = true }
-risc0-zkvm = { workspace = true, features = ["prove"] }
+bcs = { workspace = true }
+risc0-zkvm = { workspace = true, features = ["disable-dev-mode", "prove"] }
+# risc0-zkvm = { workspace = true}
 tx = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }
@@ -19,3 +21,11 @@ tracing = { workspace = true }
 primitives = { workspace = true }
 serde = { workspace = true }
 apps = { workspace = true }
+
+[profile.dev]
+opt-level = 3   # 完全不优化
+debug = true
+
+[profile.release]
+opt-level = 3   # 最大优化
+debug = false
