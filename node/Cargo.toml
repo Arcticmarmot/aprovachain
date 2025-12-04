@@ -21,3 +21,14 @@ contract = { workspace = true }
 platform = { workspace = true }
 account = { workspace = true }
 apps = { workspace = true }
+
+[profile.dev]
+opt-level = 3  # 完全不优化
+debug = false
+debug-assertions = false
+overflow-checks = false
+
+
+[profile.release]
+opt-level = 3   # 最大优化
+debug = false
