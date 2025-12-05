@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use spec::chain::ChainId;
+use primitives::hash::{sha256, Hash32};
 use crate::error::Result;
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
@@ -19,35 +20,24 @@ impl NamespaceKey {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
-pub struct ValueSnapshot {
-    pub version: u128,
-    pub value: Vec<u8>
-}
-
-impl ValueSnapshot {
-    pub fn encode_bcs(&self) -> Vec<u8> {
-        bcs::to_bytes(self).expect("BCS should be infallible by design")
-    }
-
-    pub fn try_decode_bcs(b: &[u8]) -> Result<Self> {
-        Ok(bcs::from_bytes(b)?)
-    }
-}
-
-pub type ReadSet = BTreeMap<NamespaceKey, Option<ValueSnapshot>>;
+pub type ReadSet = BTreeMap<NamespaceKey, Option<Vec<u8>>>;
 pub type WriteSet = BTreeMap<NamespaceKey, Option<Vec<u8>>>;
 pub type AccessSet = BTreeSet<NamespaceKey>;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CtrInput {
-    pub chain_id: ChainId,
-    pub input: Vec<u8>,
-    pub context: EnvContext
+    pub context: CtrContext,
+    pub ctx_hash: Hash32
 }
 
-impl CtrInput {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CtrContext {
+    pub chain_id: ChainId,
+    pub input: Vec<u8>,
+    pub read_set: ReadSet
+}
+
+impl CtrContext {
     pub fn encode_bcs(&self) -> Vec<u8> {
         bcs::to_bytes(self).expect("BCS should be infallible by design")
     }
@@ -57,15 +47,11 @@ impl CtrInput {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EnvContext {
-    pub read_set: ReadSet
-}
-
-impl EnvContext {
-    pub fn new() -> Self {
+impl CtrInput {
+    pub fn create(ctx: &CtrContext) -> Self {
         Self {
-            read_set: ReadSet::new()
+            context: ctx.clone(),
+            ctx_hash: sha256(ctx.encode_bcs())
         }
     }
     pub fn encode_bcs(&self) -> Vec<u8> {
@@ -79,8 +65,8 @@ impl EnvContext {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CtrOutput {
-    pub input_hash: [u8; 32],
-    pub context: EnvContext,
+    pub ctx_hash: Hash32,
+    pub read_set: ReadSet,
     pub ctr_result: CtrResult
 }
 

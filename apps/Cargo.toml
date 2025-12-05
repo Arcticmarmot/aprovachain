@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+primitives = { workspace = true }
 bcs = { workspace = true }
 spec = { workspace = true }
 thiserror = { workspace = true }

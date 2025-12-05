@@ -11,7 +11,7 @@ use account::address::{ContractAddress};
 use account::keypair::AccountVerifyingKey;
 use contract::contract::{Contract};
 use db::handle::DBHandle;
-use apps::ctr_io::{AccessSet, CtrInput, CtrOutput, CtrResult, EnvContext, ReadSet};
+use apps::ctr_io::{AccessSet, CtrContext, CtrInput, CtrOutput, CtrResult, ReadSet};
 use tx::outcome::{TxOutcome};
 use tx::attestation::TxAttestation;
 use crate::context::{AppState, SubmitTxResponse};
@@ -143,13 +143,12 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_str: &Str
         read_set.insert(ns_key.clone(), snap);
     }
     tracing::info!(target: "node::server", read_set=?read_set);
-    let ctr_input = CtrInput {
+    let ctr_ctx = CtrContext {
         chain_id: intent.chain_id,
         input: input.clone(),
-        context: EnvContext {
-            read_set
-        }
+        read_set,
     };
+    let ctr_input = CtrInput::create(&ctr_ctx);
 
     // 搭建虚拟机环境传入 input
     let env = ExecutorEnv::builder()
@@ -164,7 +163,6 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_str: &Str
     let prover = default_prover();
 
     let proof = prover.prove_with_opts(env, &elf, &opt).map_err(ProofGenerate)?;
-    tracing::info!(target: "node::proof", len=?bcs::to_bytes(&proof).unwrap());
 
     tracing::info!(target: "node::server", ?proof);
     let receipt = proof.receipt;

@@ -4,7 +4,7 @@ use account::address::{ChainAddrBytes};
 use chain::block::{BlockHeader, LedgerBlock};
 use contract::contract::{Contract, ContractWire};
 use primitives::hash::Hash32;
-use apps::ctr_io::{NamespaceKey, ReadSet, ValueSnapshot, WriteSet};
+use apps::ctr_io::{NamespaceKey, ReadSet, WriteSet};
 use crate::error::DBError;
 use crate::runtime::dbh;
 use crate::error::Result;
@@ -44,11 +44,10 @@ impl DBHandle {
 
     pub fn apply_rw_set(&self, read_set: &ReadSet, write_set: &WriteSet) -> Result<bool> {
         // 检查 read_set 视图是否和当前执行过程中一致
-        for (ns_key, read_snap_opt) in read_set {
-            match (read_snap_opt, self.load_data_entry(&ns_key)?) {
-                (Some(read_snap), Some(curr_snap)) => {
-                    if read_snap.version != curr_snap.version
-                        || read_snap.value != curr_snap.value {
+        for (ns_key, read_value_opt) in read_set {
+            match (read_value_opt, self.load_data_entry(&ns_key)?) {
+                (Some(read_value), Some(curr_value)) => {
+                    if read_value != &curr_value {
                         return Ok(false);
                     }
                 },
@@ -78,17 +77,7 @@ impl DBHandle {
 
     pub fn save_data_entry(&self, ns_key: &NamespaceKey, value: Vec<u8>) -> Result<()> {
         let mut batch = WriteBatch::default();
-        match self.load_data_entry(ns_key)? {
-            Some(snap) => {
-                let version = snap.version + 1;
-                let new_snap = ValueSnapshot { version, value };
-                batch.put_cf(self.cf_data(), ns_key.encode_bcs(), new_snap.encode_bcs());
-            },
-            None => {
-                let new_snap = ValueSnapshot { version: 0, value };
-                batch.put_cf(self.cf_data(), ns_key.encode_bcs(), new_snap.encode_bcs());
-            }
-        }
+        batch.put_cf(self.cf_data(), ns_key.encode_bcs(), value);
         self.dbh.write(batch).map_err(DBError::DBPut)?;
         Ok(())
     }
@@ -100,16 +89,8 @@ impl DBHandle {
         Ok(())
     }
 
-    pub fn load_data_entry(&self, ns_key: &NamespaceKey) -> Result<Option<ValueSnapshot>> {
-        let data = self.dbh.get_cf(self.cf_data(), ns_key.encode_bcs())
-            .map_err(DBError::DBGet)?;
-        Ok(match data {
-            Some(snap_bytes) => {
-                let snap = ValueSnapshot::try_decode_bcs(&snap_bytes)?;
-                Some(snap)
-            }
-            None => None
-        })
+    pub fn load_data_entry(&self, ns_key: &NamespaceKey) -> Result<Option<Vec<u8>>> {
+        Ok(self.dbh.get_cf(self.cf_data(), ns_key.encode_bcs()).map_err(DBError::DBGet)?)
     }
 
     pub fn save_chain_state(&self, header: &BlockHeader) -> Result<()> {

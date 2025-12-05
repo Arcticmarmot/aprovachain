@@ -150,6 +150,7 @@ version = "0.1.0"
 dependencies = [
  "bcs",
  "bech32",
+ "primitives",
  "serde",
  "spec",
  "thiserror 2.0.17",

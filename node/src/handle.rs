@@ -1,6 +1,6 @@
 use anyhow::{ensure, Context, Result, anyhow};
 use account::address::ContractAddress;
-use apps::ctr_io::{CtrInput, CtrOutput, CtrResult};
+use apps::ctr_io::{CtrContext, CtrInput, CtrOutput, CtrResult};
 use chain::block::{OrderedBlock, LedgerBlock};
 use contract::contract::Contract;
 use db::handle::DBHandle;
@@ -85,15 +85,16 @@ pub fn handle_tx(txs: Vec<TxAttestation>, db_handle: &DBHandle) -> Result<Vec<bo
                 let ctr_output_bytes: Vec<u8> = receipt.journal.decode().context("receipt decode failed")?;
                 let ctr_output = CtrOutput::try_decode_bcs(&ctr_output_bytes).context("output decode failed")?;
                 tracing::info!(target:"node::event", input=?input, output=?ctr_output);
-                let input_hash = ctr_output.input_hash;
-                let ctr_input = CtrInput {
+                let ctx_hash = ctr_output.ctx_hash;
+                let read_set = ctr_output.read_set;
+                let ctr_ctx = CtrContext {
                     chain_id: intent.chain_id,
                     input,
-                    context: ctr_output.context.clone()
+                    read_set: read_set.clone()
                 };
-                ensure!(input_hash == sha256(ctr_input.encode_bcs()), "input hash mismatched");
+                
+                ensure!(ctx_hash == sha256(ctr_ctx.encode_bcs()), "input hash mismatched");
 
-                let read_set = ctr_output.context.read_set;
                 match &ctr_output.ctr_result {
                     CtrResult::Ok { outcome } => {
                         tx_code = db_handle.apply_rw_set(&read_set, &outcome.write_set)?;
