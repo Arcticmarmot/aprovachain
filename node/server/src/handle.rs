@@ -158,7 +158,7 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_str: &Str
         .build().map_err(ServerError::ExecutorEnvBuild)?;
 
     // opts 里选 succinct
-    let opt = ProverOpts::succinct();
+    let opt = ProverOpts::fast();
 
     // 根据虚拟机环境和 ELF 文件生成证明
     let prover = default_prover();

@@ -9,8 +9,7 @@ network = { workspace = true }
 contract = { workspace = true }
 account = { workspace = true }
 bcs = { workspace = true }
-risc0-zkvm = { workspace = true, features = ["disable-dev-mode", "prove"] }
-# risc0-zkvm = { workspace = true}
+risc0-zkvm = { workspace = true }
 tx = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }

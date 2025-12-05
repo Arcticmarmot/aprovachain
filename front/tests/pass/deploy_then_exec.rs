@@ -47,7 +47,7 @@ pub async fn deploy_then_exec() {
         "--chain-id", "1000",
     ]).expect("parse args");
 
-    sleep(Duration::from_secs(20)).await;
+    sleep(Duration::from_secs(16)).await;
     tracing::info!(target:"apps::init", "TxArgs: {:?}", args);
     let payload = TxPayload::Exec {
         ctr_addr_str,
