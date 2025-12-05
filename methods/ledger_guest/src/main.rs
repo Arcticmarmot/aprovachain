@@ -5,21 +5,19 @@ extern crate alloc;
 use alloc::format;
 use alloc::vec::Vec;
 use risc0_zkvm::guest::env;
-use apps::ctr_io::{CtrInput, CtrOutcome, CtrOutput, CtrResult, NamespaceKey, WriteSet, CtrContext, ReadSet, find_entry};
+use apps::ctr_io::{CtrInput, CtrOutcome, CtrOutput, CtrResult, NamespaceKey, WriteSet, ReadSet, find_entry};
 use ledger::call::{address_to_entry_key, LedgerCall};
 use anyhow::{anyhow, ensure, Result};
-use primitives::hash::{Hash32};
+use primitives::hash::{sha256};
 use primitives::trans::{u64_from_be_slice, u64_to_be_vec};
 
 risc0_zkvm::guest::entry!(main);
 fn main() {
     let ctr_input_bytes: Vec<u8> = env::read();
-    let mut ctx_hash: Hash32 = [0u8; 32];
+    let input_hash = sha256(&ctr_input_bytes);
     let ctr_output: CtrOutput = match CtrInput::try_decode_bcs(&ctr_input_bytes) {
         Ok(ctr_input) => {
-            ctx_hash = ctr_input.ctx_hash;
-            let context = ctr_input.context;
-            let ctr_result = match handle_ledger_call(&context) {
+            let ctr_result = match handle_ledger_call(&ctr_input) {
                 Ok(ctr_outcome) => {
                     CtrResult::Ok { outcome: ctr_outcome }
                 },
@@ -28,14 +26,14 @@ fn main() {
                 }
             };
             CtrOutput {
-                ctx_hash,
-                read_set: context.read_set,
+                input_hash,
+                read_set: ctr_input.read_set,
                 ctr_result
             }
         },
         Err(err) => {
             CtrOutput {
-                ctx_hash,
+                input_hash,
                 read_set: ReadSet::new(),
                 ctr_result: CtrResult::Err {
                     message: format!("{:#}", err)
@@ -46,10 +44,10 @@ fn main() {
     env::commit(&ctr_output.encode_bcs());
 }
 
-fn handle_ledger_call(context: &CtrContext) -> Result<CtrOutcome> {
-    let chain_id = context.chain_id;
-    let input = &context.input;
-    let read_set = &context.read_set;
+fn handle_ledger_call(ctr_input: &CtrInput) -> Result<CtrOutcome> {
+    let chain_id = ctr_input.chain_id;
+    let input = &ctr_input.input;
+    let read_set = &ctr_input.read_set;
     let call = LedgerCall::try_decode_bcs(input)?;
     let mut write_set = WriteSet::new();
     let mut answer: Vec<u8> = Vec::new();

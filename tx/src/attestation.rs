@@ -38,7 +38,8 @@ impl Ord for TxAttestation {
         fn pri(payload: &TxPayload) -> u8 {
             match payload {
                 TxPayload::Deploy { .. } => 0,
-                TxPayload::Exec { .. } => 1,
+                TxPayload::Update { .. } => 1,
+                TxPayload::Exec { .. } => 2,
             }
         }
         let self_key = (pri(&self.outcome.envelope.intent.payload), &self.tx_id);

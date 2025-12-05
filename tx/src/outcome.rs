@@ -24,11 +24,11 @@ impl TryFrom<TxOutcomeWire> for TxOutcome {
 }
 
 impl TxOutcome {
-    pub fn create(envelope: TxEnvelope, receipt_opt: Option<Receipt>) -> Result<Self> {
-        Ok(Self {
+    pub fn create(envelope: TxEnvelope, receipt_opt: Option<Receipt>) -> Self { 
+        Self {
             envelope,
             receipt_opt,
-        })
+        }
     }
     
     pub fn to_canonical_bytes(&self) -> Vec<u8> {

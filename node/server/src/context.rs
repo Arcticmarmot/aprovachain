@@ -16,11 +16,6 @@ pub struct AppState {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SubmitTxResponse {
-    Deploy {
-        ctr_addr_str: String,
-        image_id: Digest,
-        elf_hash: Hash32
-    },
     Exec {
         ctr_addr_str: String,
         image_id: Digest,
@@ -28,6 +23,16 @@ pub enum SubmitTxResponse {
         input: Vec<u8>,
         receipt: Receipt,
         answer: Vec<u8>
+    },
+    Deploy {
+        ctr_addr_str: String,
+        image_id: Digest,
+        elf_hash: Hash32
+    },
+    Update {
+        ctr_addr_str: String,
+        image_id: Digest,
+        elf_hash: Hash32
     }
 }
 
@@ -36,11 +41,6 @@ impl Debug for SubmitTxResponse {
         writeln!(f, "")?;
         writeln!(f, "SubmitTxResponse {{ ")?;
         match self {
-            SubmitTxResponse::Deploy { ctr_addr_str, image_id, elf_hash } => {
-                writeln!(f, "  ctr_addr_str: {}, ", ctr_addr_str)?;
-                writeln!(f, "  image_id: {}, ", image_id.to_string())?;
-                writeln!(f, "  elf_hash: {:?}, ", hex::encode(elf_hash))?;
-            },
             SubmitTxResponse::Exec { ctr_addr_str, image_id, elf_hash,
                 input, receipt, answer  } => {
                 writeln!(f, "  ctr_addr_str: {}", ctr_addr_str)?;
@@ -49,7 +49,17 @@ impl Debug for SubmitTxResponse {
                 writeln!(f, "  input: {:?}", input)?;
                 writeln!(f, "  receipt: {:?}, ", receipt)?;
                 writeln!(f, "  answer: {:?}, ", answer)?;
-            }
+            },
+            SubmitTxResponse::Deploy { ctr_addr_str, image_id, elf_hash } => {
+                writeln!(f, "  ctr_addr_str: {}, ", ctr_addr_str)?;
+                writeln!(f, "  image_id: {}, ", image_id.to_string())?;
+                writeln!(f, "  elf_hash: {:?}, ", hex::encode(elf_hash))?;
+            },
+            SubmitTxResponse::Update { ctr_addr_str, image_id, elf_hash } => {
+                writeln!(f, "  ctr_addr_str: {}, ", ctr_addr_str)?;
+                writeln!(f, "  image_id: {}, ", image_id.to_string())?;
+                writeln!(f, "  elf_hash: {:?}, ", hex::encode(elf_hash))?;
+            },
         }
         writeln!(f, " }}")    }
 }

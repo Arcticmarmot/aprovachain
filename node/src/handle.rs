@@ -1,6 +1,6 @@
 use anyhow::{ensure, Context, Result, anyhow};
 use account::address::ContractAddress;
-use apps::ctr_io::{CtrContext, CtrOutput, CtrResult};
+use apps::ctr_io::{CtrInput, CtrOutput, CtrResult};
 use chain::block::{OrderedBlock, LedgerBlock};
 use contract::contract::Contract;
 use db::handle::DBHandle;
@@ -85,15 +85,15 @@ pub fn handle_tx(txs: Vec<TxAttestation>, db_handle: &DBHandle) -> Result<Vec<bo
                 let ctr_output_bytes: Vec<u8> = receipt.journal.decode().context("receipt decode failed")?;
                 let ctr_output = CtrOutput::try_decode_bcs(&ctr_output_bytes).context("output decode failed")?;
                 tracing::info!(target:"node::event", input=?input, output=?ctr_output);
-                let ctx_hash = ctr_output.ctx_hash;
+                let input_hash = ctr_output.input_hash;
                 let read_set = ctr_output.read_set;
-                let ctr_ctx = CtrContext {
+                let ctr_input = CtrInput {
                     chain_id: intent.chain_id,
                     input,
                     read_set: read_set.clone()
                 };
 
-                ensure!(ctx_hash == sha256(ctr_ctx.encode_bcs()), "input hash mismatched");
+                ensure!(input_hash == sha256(ctr_input.encode_bcs()), "input hash mismatched");
 
                 match &ctr_output.ctr_result {
                     CtrResult::Ok { outcome } => {
@@ -117,7 +117,20 @@ pub fn handle_tx(txs: Vec<TxAttestation>, db_handle: &DBHandle) -> Result<Vec<bo
                 db_handle.save_elf(ctr.elf_hash, &elf)?;
                 tx_code = true;
                 tracing::info!(target:"node::event", contract_addr=?ctr.addr, "contract deployed");
-            }
+            },
+            TxPayload::Update { ctr_addr_str,  image_id, elf_hash, elf } => {
+                let ctr = Contract::create(intent.chain_id, &elf_hash, &image_id,
+                                           &envelope.verifying_key, intent.nonce);
+                let ctr_addr_bytes = ctr.addr.to_bytes();
+                // key: 合约的 addr 字节数组
+                // value: 合约的BCS编码
+                db_handle.save_contract(&ctr_addr_bytes, &ctr.to_canonical_bytes())?;
+                // key: ELF文件哈希
+                // value: ELF文件字节数组
+                db_handle.save_elf(ctr.elf_hash, &elf)?;
+                tx_code = true;
+                tracing::info!(target:"node::event", contract_addr=?ctr.addr, "contract deployed");
+            },
         }
         tx_codes.push(tx_code);
     }

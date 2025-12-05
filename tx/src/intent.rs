@@ -22,28 +22,33 @@ pub enum TxPayload {
         elf: Vec<u8>,
         elf_hash: Hash32
     },
-    // TODO: 更新合约
-    // Update {
-    //     ctr_addr: ChainAddrBytes,
-    //     image_id: Digest,
-    //     elf: Vec<u8>,
-    //     elf_hash: Hash32
-    // }
+    Update {
+        ctr_addr_str: String,
+        image_id: Digest,
+        elf: Vec<u8>,
+        elf_hash: Hash32
+    }
 }
 
 impl Debug for TxPayload {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "TxPayload {{ ")?;
         match self {
+            TxPayload::Exec { ctr_addr_str, input, ..  } => {
+                write!(f, "type: exec, ")?;
+                write!(f, "ctr_addr: {}, ", ctr_addr_str)?;
+                write!(f, "input: {:?}", input)?;
+            },
             TxPayload::Deploy { image_id, elf_hash, .. } => {
                 write!(f, "type: deploy, ")?;
                 write!(f, "image_id: {}, ", image_id.to_string())?;
                 write!(f, "elf_hash: {:?}, ", elf_hash)?;
             },
-            TxPayload::Exec { ctr_addr_str, input, ..  } => {
-                write!(f, "type: exec, ")?;
-                write!(f, "ctr_addr: {}, ", ctr_addr_str)?;
-                write!(f, "input: {:?}", input)?;
+            TxPayload::Update { ctr_addr_str, image_id, elf_hash, ..  } => {
+                write!(f, "type: update, ")?;
+                write!(f, "ctr_addr: {}", ctr_addr_str)?;
+                write!(f, "image_id: {}, ", image_id.to_string())?;
+                write!(f, "elf_hash: {:?}, ", elf_hash)?;
             }
         }
         write!(f, " }}")
