@@ -5,11 +5,11 @@ extern crate alloc;
 use alloc::format;
 use alloc::vec::Vec;
 use risc0_zkvm::guest::env;
-use apps::ctr_io::{CtrInput, CtrOutcome, CtrOutput, CtrResult, NamespaceKey, WriteSet, CtrContext, ReadSet};
+use apps::ctr_io::{CtrInput, CtrOutcome, CtrOutput, CtrResult, NamespaceKey, WriteSet, CtrContext, ReadSet, find_entry};
 use ledger::call::{address_to_entry_key, LedgerCall};
 use anyhow::{anyhow, ensure, Result};
 use primitives::hash::{Hash32};
-use primitives::trans::{u128_from_be_slice, u128_to_be_vec};
+use primitives::trans::{u64_from_be_slice, u64_to_be_vec};
 
 risc0_zkvm::guest::entry!(main);
 fn main() {
@@ -59,7 +59,7 @@ fn handle_ledger_call(context: &CtrContext) -> Result<CtrOutcome> {
             let ns_key = address_to_entry_key(chain_id, &to)?;
             let old_bal = load_bal_or_zero(&ns_key, read_set);
             let new_bal = old_bal + amount;
-            write_set.insert(ns_key, Some(u128_to_be_vec(new_bal)));
+            write_set.push((ns_key, Some(u64_to_be_vec(new_bal))));
         },
         LedgerCall::Burn { from, amount } => {
             // 读取用户地址账户数据
@@ -68,7 +68,7 @@ fn handle_ledger_call(context: &CtrContext) -> Result<CtrOutcome> {
             ensure!(old_bal >= amount, "insufficient balance");
             
             let new_bal = old_bal - amount ;
-            write_set.insert(ns_key, Some(u128_to_be_vec(new_bal)));
+            write_set.push((ns_key, Some(u64_to_be_vec(new_bal))));
         },
         LedgerCall::Transfer { from, to, amount} => {
             let from_key = address_to_entry_key(chain_id, &from)?;
@@ -81,13 +81,13 @@ fn handle_ledger_call(context: &CtrContext) -> Result<CtrOutcome> {
             let from_new_bal = from_old_bal - amount;
             let to_new_bal = to_old_bal + amount;
 
-            write_set.insert(from_key, Some(u128_to_be_vec(from_new_bal)));
-            write_set.insert(to_key, Some(u128_to_be_vec(to_new_bal)));
+            write_set.push((from_key, Some(u64_to_be_vec(from_new_bal))));
+            write_set.push((to_key, Some(u64_to_be_vec(to_new_bal))));
         },
         LedgerCall::QueryBalance { addr} => {
             let ns_key = address_to_entry_key(chain_id, &addr)?;
             let old_val = load_bal_must_exist(&ns_key, read_set)?;
-            answer = u128_to_be_vec(old_val);
+            answer = u64_to_be_vec(old_val);
         },
     }
     let ctr_outcome = CtrOutcome {
@@ -97,18 +97,18 @@ fn handle_ledger_call(context: &CtrContext) -> Result<CtrOutcome> {
     Ok(ctr_outcome)
 }
 
-fn load_bal_or_zero(key: &NamespaceKey, read_set: &ReadSet) -> u128 {
-    match read_set.get(&key) {
-        Some(Some(value)) => { u128_from_be_slice(&value) },
+fn load_bal_or_zero(key: &NamespaceKey, read_set: &ReadSet) -> u64 {
+    match find_entry(key, read_set) {
+        Some(Some(value)) => { u64_from_be_slice(value) },
         Some(None) | None => { 0 }
     }
 }
 
-fn load_bal_must_exist(key: &NamespaceKey, read_set: &ReadSet) -> Result<u128> {
-    let value = read_set.get(&key)
+fn load_bal_must_exist(key: &NamespaceKey, read_set: &ReadSet) -> Result<u64> {
+    let value = find_entry(key, read_set)
         .ok_or_else(|| anyhow!("invalid ns_key"))?
         .as_ref()
         .ok_or_else(|| anyhow!("value is None"))?;
-    let bal = u128_from_be_slice(&value);
+    let bal = u64_from_be_slice(value);
     Ok(bal)
 }

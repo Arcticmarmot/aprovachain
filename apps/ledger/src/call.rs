@@ -4,14 +4,15 @@ use spec::chain::ChainId;
 use apps::ctr_io::{AccessSet, NamespaceKey};
 use crate::error::Result;
 
-pub const APP_NAME: &'static str = "ledger";
+// TODO: 改成可读性更好的 APP_NAME
+pub const APP_NAME: &'static str = "l";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LedgerCall {
-    Transfer { from: String, to: String, amount: u128 },
+    Transfer { from: String, to: String, amount: u64 },
     QueryBalance { addr: String },
-    Mint { to: String, amount: u128 },
-    Burn { from: String, amount: u128 }
+    Mint { to: String, amount: u64 },
+    Burn { from: String, amount: u64 }
 }
 
 impl LedgerCall {

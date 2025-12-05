@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeSet};
 use serde::{Deserialize, Serialize};
 use spec::chain::ChainId;
 use primitives::hash::{sha256, Hash32};
@@ -20,9 +20,14 @@ impl NamespaceKey {
     }
 }
 
-pub type ReadSet = BTreeMap<NamespaceKey, Option<Vec<u8>>>;
-pub type WriteSet = BTreeMap<NamespaceKey, Option<Vec<u8>>>;
+pub type ReadSet = Vec<(NamespaceKey, Option<Vec<u8>>)>;
+pub type WriteSet = Vec<(NamespaceKey, Option<Vec<u8>>)>;
 pub type AccessSet = BTreeSet<NamespaceKey>;
+
+pub fn find_entry<'a>(ns_key: &NamespaceKey, read_set: &'a ReadSet) -> Option<&'a Option<Vec<u8>>> {
+    read_set.iter()
+        .find_map(|(key,value)| if key == ns_key { Some(value) } else { None })
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CtrInput {

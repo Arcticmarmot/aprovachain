@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use tx::envelope::{TxEnvelopeWire, TxEnvelope};
 use axum::body::{Bytes};
 use axum::extract::State;
@@ -137,10 +136,10 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_str: &Str
     tracing::info!("Elf file len: {}", elf.len());
 
     // 加载 access_set 数据
-    let mut read_set: ReadSet = BTreeMap::new();
+    let mut read_set: ReadSet = ReadSet::new();
     for ns_key in access_set {
-        let snap = db_handle.load_data_entry(ns_key)?;
-        read_set.insert(ns_key.clone(), snap);
+        let value = db_handle.load_data_entry(ns_key)?;
+        read_set.push((ns_key.clone(), value));
     }
     tracing::info!(target: "node::server", read_set=?read_set);
     let ctr_ctx = CtrContext {
@@ -157,7 +156,7 @@ pub fn handle_exec_tx(db_handle: DBHandle, intent: &TxIntent, ctr_addr_str: &Str
         .build().map_err(ServerError::ExecutorEnvBuild)?;
 
     // opts 里选 succinct
-    let opt = ProverOpts::fast();
+    let opt = ProverOpts::groth16();
 
     // 根据虚拟机环境和 ELF 文件生成证明
     let prover = default_prover();

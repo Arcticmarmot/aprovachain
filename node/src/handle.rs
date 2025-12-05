@@ -1,6 +1,6 @@
 use anyhow::{ensure, Context, Result, anyhow};
 use account::address::ContractAddress;
-use apps::ctr_io::{CtrContext, CtrInput, CtrOutput, CtrResult};
+use apps::ctr_io::{CtrContext, CtrOutput, CtrResult};
 use chain::block::{OrderedBlock, LedgerBlock};
 use contract::contract::Contract;
 use db::handle::DBHandle;
@@ -92,7 +92,7 @@ pub fn handle_tx(txs: Vec<TxAttestation>, db_handle: &DBHandle) -> Result<Vec<bo
                     input,
                     read_set: read_set.clone()
                 };
-                
+
                 ensure!(ctx_hash == sha256(ctr_ctx.encode_bcs()), "input hash mismatched");
 
                 match &ctr_output.ctr_result {
