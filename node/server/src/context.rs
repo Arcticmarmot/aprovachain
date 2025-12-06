@@ -3,6 +3,7 @@ use risc0_zkvm::{Digest, Receipt};
 use serde::{Deserialize, Serialize};
 use network::handle::{P2pCmdHandle};
 use account::keypair::{AccountSigningKey};
+use apps::ctr_io::AccessSet;
 use db::handle::DBHandle;
 use primitives::hash::Hash32;
 
@@ -18,8 +19,7 @@ pub struct AppState {
 pub enum SubmitTxResponse {
     Exec {
         ctr_addr_str: String,
-        image_id: Digest,
-        elf_hash: Hash32,
+        access_set: AccessSet,
         input: Vec<u8>,
         receipt: Receipt,
         answer: Vec<u8>
@@ -41,11 +41,10 @@ impl Debug for SubmitTxResponse {
         writeln!(f, "")?;
         writeln!(f, "SubmitTxResponse {{ ")?;
         match self {
-            SubmitTxResponse::Exec { ctr_addr_str, image_id, elf_hash,
+            SubmitTxResponse::Exec { ctr_addr_str, access_set,
                 input, receipt, answer  } => {
                 writeln!(f, "  ctr_addr_str: {}", ctr_addr_str)?;
-                writeln!(f, "  image_id: {}, ", image_id.to_string())?;
-                writeln!(f, "  elf_hash: {:?}, ", hex::encode(elf_hash))?;
+                writeln!(f, "  access_set: {:?}, ", access_set)?;
                 writeln!(f, "  input: {:?}", input)?;
                 writeln!(f, "  receipt: {:?}, ", receipt)?;
                 writeln!(f, "  answer: {:?}, ", answer)?;

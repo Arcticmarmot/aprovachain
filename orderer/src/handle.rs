@@ -13,7 +13,7 @@ pub fn handle_tx_received(tx_bytes: Vec<u8>, solo_cmd_hdl: &SoloCmdHandle) -> Re
 }
 
 /// Orderer P2pEvent::BlockReceived 处理
-pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
+pub fn handle_block_received(_: Vec<u8>) -> Result<()> {
     Ok(())
 }
 

@@ -106,7 +106,7 @@ pub fn handle_tx(txs: Vec<TxAttestation>, db_handle: &DBHandle) -> Result<Vec<bo
                 };
             },
             TxPayload::Deploy { image_id, elf_hash, elf } => {
-                let ctr = Contract::create(intent.chain_id, &elf_hash, &image_id,
+                let ctr = Contract::create(intent.chain_id, &image_id, &elf_hash,
                                            &envelope.verifying_key, intent.nonce);
                 let ctr_addr_bytes = ctr.addr.to_bytes();
                 // key: 合约的 addr 字节数组
@@ -115,21 +115,27 @@ pub fn handle_tx(txs: Vec<TxAttestation>, db_handle: &DBHandle) -> Result<Vec<bo
                 // key: ELF文件哈希
                 // value: ELF文件字节数组
                 db_handle.save_elf(ctr.elf_hash, &elf)?;
+
                 tx_code = true;
+
                 tracing::info!(target:"node::event", contract_addr=?ctr.addr, "contract deployed");
             },
             TxPayload::Update { ctr_addr_str,  image_id, elf_hash, elf } => {
-                let ctr = Contract::create(intent.chain_id, &elf_hash, &image_id,
+                let ctr = Contract::create(intent.chain_id, &image_id, &elf_hash,
                                            &envelope.verifying_key, intent.nonce);
-                let ctr_addr_bytes = ctr.addr.to_bytes();
+                // ctr_addr 保持不变，由传入的决定
+                let ctr_addr = ContractAddress::parse_bech32m_with_id(intent.chain_id, &ctr_addr_str)?;
+
                 // key: 合约的 addr 字节数组
                 // value: 合约的BCS编码
-                db_handle.save_contract(&ctr_addr_bytes, &ctr.to_canonical_bytes())?;
+                db_handle.save_contract(&ctr_addr.to_bytes(), &ctr.to_canonical_bytes())?;
                 // key: ELF文件哈希
                 // value: ELF文件字节数组
                 db_handle.save_elf(ctr.elf_hash, &elf)?;
+
                 tx_code = true;
-                tracing::info!(target:"node::event", contract_addr=?ctr.addr, "contract deployed");
+
+                tracing::info!(target:"node::event", contract_addr=?ctr_addr, "contract update");
             },
         }
         tx_codes.push(tx_code);

@@ -37,6 +37,8 @@ pub enum ServerError {
     ElfFileNotFound,
     #[error("contract not found")]
     ContractNotFound,
+    #[error("receipt not found")]
+    ReceiptNotFound,
     #[error("receipt decode failed")]
     ReceiptDecode(#[from] risc0_zkvm::serde::Error),
     #[error("contract exec failed: {message}")]

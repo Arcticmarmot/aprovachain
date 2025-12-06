@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
-use anyhow::{bail};
+use anyhow::{anyhow, bail};
 use clap::{Parser};
 use reqwest::{Client, Response};
 use account::keypair::{AccountSigningKey, AccountSigningKeyBytes};
@@ -26,11 +26,17 @@ pub struct TxArgs {
     #[clap(long, env, next_help_heading = "The payload type of TxPayload")]
     pub payload_type: String,
 
+    #[clap(long, env, next_help_heading = "The payload type of TxPayload")]
+    pub ctr_addr_str: Option<String>,
+
     #[clap(long, env, next_help_heading = "The deploy json of TxPayload")]
     pub deploy_json: Option<PathBuf>,
 
     #[clap(long, env, next_help_heading = "The deploy elf of TxPayload")]
     pub deploy_elf: Option<PathBuf>,
+
+    #[clap(long, env, next_help_heading = "The update elf of TxPayload")]
+    pub update_elf: Option<PathBuf>,
 
     #[clap(long, env, next_help_heading = "The exec json of TxPayload")]
     pub exec_json: Option<PathBuf>,
@@ -91,14 +97,26 @@ pub async fn send_envelope(wire: TxEnvelopeWire) -> anyhow::Result<Response> {
 
 fn generate_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
     match args.payload_type.as_str() {
-        "Deploy" => {
-            generate_deploy_payload(args)
-        },
         "Exec" => {
             generate_exec_payload(args)
         },
+        "Deploy" => {
+            generate_deploy_payload(args)
+        },
+        "Update" => {
+            generate_update_payload(args)
+        },
         _ => bail!("payload type mismatched")
     }
+}
+
+fn generate_exec_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
+    if let Some(json) = &args.exec_json {
+        let exec_bytes = fs::read(json)?;
+        let payload = serde_json::from_slice(&exec_bytes)?;
+        return Ok(payload)
+    }
+    bail!("deploy need at least one input")
 }
 
 fn generate_deploy_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
@@ -123,10 +141,21 @@ fn generate_deploy_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
     bail!("deploy need at least one input")
 }
 
-fn generate_exec_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
-    if let Some(json) = &args.exec_json {
-        let exec_bytes = fs::read(json)?;
-        let payload = serde_json::from_slice(&exec_bytes)?;
+
+fn generate_update_payload(args: &TxArgs) -> anyhow::Result<TxPayload> {
+    let ctr_addr_str = args.ctr_addr_str.as_ref().ok_or_else(|| anyhow!("must have ctr_addr_str"))?;
+    if let Some(elf_path) = &args.update_elf {
+        let elf_bytes = fs::read(elf_path)?;
+        let image_id = risc0_zkvm::compute_image_id(&elf_bytes)?;
+        tracing::info!("{:?}", image_id);
+        let elf_hash = sha256(&elf_bytes);
+        tracing::info!("{:?}", elf_hash);
+        let payload = TxPayload::Update {
+            ctr_addr_str: ctr_addr_str.clone(),
+            image_id,
+            elf: elf_bytes,
+            elf_hash
+        };
         return Ok(payload)
     }
     bail!("deploy need at least one input")

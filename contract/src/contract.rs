@@ -16,7 +16,7 @@ pub struct Contract {
 }
 
 impl Contract {
-    pub fn create(chain_id: ChainId, elf_hash: &Hash32, image_id: &Digest,
+    pub fn create(chain_id: ChainId,  image_id: &Digest, elf_hash: &Hash32,
                   vk: &AccountVerifyingKey, nonce: u128) -> Self {
         Self {
             addr: ContractAddress::create(chain_id, vk, nonce),
