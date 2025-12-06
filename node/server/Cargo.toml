@@ -8,7 +8,7 @@ db = { workspace = true }
 network = { workspace = true }
 contract = { workspace = true }
 account = { workspace = true }
-risc0-zkvm = { workspace = true, features = ["cuda"] }
+risc0-zkvm = { workspace = true}
 tx = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }
@@ -19,3 +19,7 @@ tracing = { workspace = true }
 primitives = { workspace = true }
 serde = { workspace = true }
 apps = { workspace = true }
+
+[features]
+default = []
+cuda = ["risc0-zkvm/cuda", "risc0-zkvm/prove"]

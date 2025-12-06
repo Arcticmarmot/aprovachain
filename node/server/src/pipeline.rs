@@ -10,6 +10,8 @@ use crate::error::ServerError;
 use crate::error::ServerError::ProofGenerate;
 
 pub fn generate_receipt(ctr_input: CtrInput, elf: Vec<u8>) -> crate::error::Result<Receipt> {
+    #[cfg(feature = "cuda")]
+    tracing::info!("server: CUDA feature ENABLED (will use GPU backend if possible)");
     // 搭建虚拟机环境传入 input
     let env = ExecutorEnv::builder()
         .write(&ctr_input.encode_bcs())

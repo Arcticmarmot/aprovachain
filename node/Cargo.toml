@@ -13,7 +13,6 @@ anyhow = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 tracing-appender = { workspace = true }
-risc0-zkvm = { workspace = true, features = ["cuda"] }
 clap = { workspace = true }
 dotenvy = { workspace = true }
 primitives = { workspace = true }
@@ -22,3 +21,7 @@ contract = { workspace = true }
 platform = { workspace = true }
 account = { workspace = true }
 apps = { workspace = true }
+
+[features]
+default = []                         # 看你需不需要默认 feature
+cuda = ["server/cuda"]

@@ -22,7 +22,6 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
     let db_handle = state.db_handle;
     let cmd_handle = state.cmd_handle;
     let sk = state.sk;
-
     // 从字节数组构造 TxEnvelope
     let wire: TxEnvelopeWire = TxEnvelopeWire::try_decode_bcs(tx_bytes.as_ref())?;
     let envelope = TxEnvelope::try_from(wire)?;
