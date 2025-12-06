@@ -5,13 +5,14 @@ edition = "2024"
 authors = ["marmot"]
 
 [workspace]
-members = ["account", "front", "spec", "keygen", "methods", "methods/pass", "methods/ledger_guest", "apps", "apps/ledger", "node", "node/db", "node/server", "orderer", "orderer/consensus", "primitives", "tx", "contract", "network", "chain", "platform"]
+members = ["account", "schedule", "front", "spec", "keygen", "methods", "methods/pass", "methods/ledger_guest", "apps", "apps/ledger", "node", "node/db", "node/server", "orderer", "orderer/consensus", "primitives", "tx", "contract", "network", "chain", "platform", "schedule"]
 
 [dependencies]
 
 [workspace.dependencies]
 account = { path="account" }
 apps = { path = "apps" }
+schedule = { path = "schedule" }
 tx = { path="tx" }
 primitives = { path="primitives" }
 spec = { path = "spec" }

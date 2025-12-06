@@ -1,3 +1,7 @@
 [env]
 ROCKSDB_INCLUDE_DIR = { value = "vendor/rocksdb-v10.4.2/include", relative = true }
 ROCKSDB_LIB_DIR = { value = "vendor/rocksdb-v10.4.2/lib", relative = true}
+CUDA_HOME = "/usr/local/cuda-12"
+NVCC = "/usr/local/cuda-12/bin/nvcc"
+NVCC_x86_64_unknown_linux_gnu = "/usr/local/cuda-12/bin/nvcc"
+HOST_NVCC = "/usr/local/cuda-12/bin/nvcc"
