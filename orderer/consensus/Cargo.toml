@@ -5,8 +5,8 @@ edition = "2024"
 
 [dependencies]
 tokio = { workspace = true }
-anyhow = { workspace = true }
 libp2p = { workspace = true }
 chain = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+primitives = { workspace = true }

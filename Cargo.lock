@@ -1277,9 +1277,9 @@ dependencies = [
 name = "consensus"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "chain",
  "libp2p",
+ "primitives",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -6170,6 +6170,7 @@ dependencies = [
  "primitives",
  "risc0-zkvm",
  "serde",
+ "spec",
  "thiserror 2.0.17",
  "tokio",
  "tracing",

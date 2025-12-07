@@ -8,9 +8,6 @@ use server::context::SubmitTxResponse;
 use spec::chain::ChainId;
 use tx::intent::TxPayload;
 
-const SMOLENSK: &'static str = "main1guwa5cdjvwtc8m86tmrjtkknqtee759k77j7qz";
-const KOL_SERVER: &'static str = "main16n6z9xz7j5nled2neqsj8qtmcwdnqz6gwsks9f";
-
 #[tokio::test]
 pub async fn ledger_deploy_then_update() {
     // Init
@@ -25,7 +22,7 @@ pub async fn ledger_deploy_then_update() {
         "apps",
         "--chain-id", "1000",
         "--payload-type", "Deploy",
-        "--deploy-elf", concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/elf/pass.bin"),
+        "--deploy-elf", concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/elf/ledger_guest.bin"),
     ]).expect("parse args");
     tracing::info!(target:"apps::init", "TxArgs: {:?}", args);
 
@@ -58,7 +55,7 @@ pub async fn ledger_deploy_then_update() {
         "--chain-id", "1000",
         "--payload-type", "Update",
         "--ctr-addr-str", &ctr_addr_str,
-        "--update-elf",  concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/elf/ledger_guest.bin"),
+        "--update-elf",  concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/elf/pass.bin"),
     ]).expect("parse args");
     tracing::info!(target:"apps::init", "TxArgs: {:?}", args);
 

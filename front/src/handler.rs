@@ -69,6 +69,18 @@ where
     })
 }
 
+pub fn create_build_spec(chain_id: ChainId, payload: TxPayload) -> anyhow::Result<TxBuildSpec> {
+    // build sk from Args
+    let sk_bytes = load_user_sk_bytes()?;
+    let sk = AccountSigningKey::from_bytes(&sk_bytes);
+    
+    Ok(TxBuildSpec {
+        chain_id,
+        sk,
+        payload
+    })
+}
+
 pub fn load_user_sk_bytes() -> anyhow::Result<AccountSigningKeyBytes> {
     let sk_path = load_user_sk_path();
     let sk_hex = fs::read(sk_path)?;

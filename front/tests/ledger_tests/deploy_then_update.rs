@@ -8,11 +8,8 @@ use server::context::SubmitTxResponse;
 use spec::chain::ChainId;
 use tx::intent::TxPayload;
 
-const SMOLENSK: &'static str = "main1guwa5cdjvwtc8m86tmrjtkknqtee759k77j7qz";
-const KOL_SERVER: &'static str = "main16n6z9xz7j5nled2neqsj8qtmcwdnqz6gwsks9f";
-
 #[tokio::test]
-pub async fn ledger_deploy_then_exec_dev() {
+pub async fn ledger_deploy_then_update() {
     // Init
     init_logging().unwrap();
     init_env().unwrap();
@@ -25,7 +22,7 @@ pub async fn ledger_deploy_then_exec_dev() {
         "apps",
         "--chain-id", "1000",
         "--payload-type", "Deploy",
-        "--deploy-elf", "/home/woolf/aprova/aprova/target/riscv-guest/methods/ledger_guest/riscv32im-risc0-zkvm-elf/release/ledger_guest.bin",
+        "--deploy-elf", concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/elf/pass.bin"),
     ]).expect("parse args");
     tracing::info!(target:"apps::init", "TxArgs: {:?}", args);
 
@@ -50,7 +47,28 @@ pub async fn ledger_deploy_then_exec_dev() {
 
     sleep(Duration::from_secs(16)).await;
 
-    let mint = LedgerCall::Transfer { from: SMOLENSK.to_string(), to: KOL_SERVER.to_string(), amount: 10 };
+    unsafe { std::env::remove_var("DEPLOY_ELF"); }
+    unsafe { std::env::remove_var("DEPLOY_JSON"); }
+    unsafe { std::env::remove_var("EXEC_JSON"); }
+    let args = TxArgs::try_parse_from([
+        "apps",
+        "--chain-id", "1000",
+        "--payload-type", "Update",
+        "--ctr-addr-str", &ctr_addr_str,
+        "--update-elf",  concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/elf/ledger_guest.bin"),
+    ]).expect("parse args");
+    tracing::info!(target:"apps::init", "TxArgs: {:?}", args);
+
+    let tx_build_spec = parse_tx_args(&args).unwrap();
+    let tx_envelope_wire = build_envelope_wire(tx_build_spec).unwrap();
+
+    let response = send_envelope(tx_envelope_wire).await.unwrap();
+    let json = response.json::<SubmitTxResponse>().await.unwrap();
+    tracing::info!(target:"apps::resp", "Response: {:?}", json);
+
+    sleep(Duration::from_secs(16)).await;
+
+    let mint = LedgerCall::Mint { to: SMOLENSK.to_string(), amount: 100 };
     let input = mint.encode_bcs();
     let access_set = generate_access_set(ChainId(args.chain_id), input.clone()).unwrap();
 

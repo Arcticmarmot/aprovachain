@@ -29,6 +29,8 @@ pub enum ServerError {
     ExecutorEnvBuild(#[source] anyhow::Error),
     #[error("proof generate failed")]
     ProofGenerate(#[source] anyhow::Error),
+    #[error("execute elf failed")]
+    ExecuteElf(#[source] anyhow::Error),
     #[error("image_id mismatched")]
     ImageIdMismatch,
     #[error("elf_hash mismatched")]
