@@ -1,3 +1,4 @@
+use std::time::Instant;
 use risc0_zkvm::{default_executor, default_prover, Digest, ExecutorEnv, ProverOpts, Receipt};
 use account::address::ContractAddress;
 use apps::ctr_io::{AccessSet, CtrInput, CtrOutput, CtrResult, ReadSet};
@@ -23,7 +24,10 @@ pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<Receipt> 
     let opt = ProverOpts::fast();
     // 根据虚拟机环境和 ELF 文件生成证明
     let prover = default_prover();
+    let start_prove = Instant::now();
     let proof = prover.prove_with_opts(env, &elf, &opt).map_err(ProofGenerate)?;
+    let end_prove = Instant::now();
+    tracing::info!(target: "node::server", prove_time=?(end_prove - start_prove));
     tracing::info!(target: "node::server", ?proof);
     let receipt = proof.receipt;
     Ok(receipt)
