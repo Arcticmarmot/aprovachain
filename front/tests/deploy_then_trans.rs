@@ -14,7 +14,7 @@ pub async fn ledger_deploy_then_trans() {
     let args = TxArgs::try_parse_from([
         "apps",
         "--chain-id", "1000",
-        "--scale", "2",
+        "--scale", "17",
         "--payload-type", "Deploy",
         "--deploy-elf", concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/elf/ledger_guest.bin"),
     ]).expect("parse args");

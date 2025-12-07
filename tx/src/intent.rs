@@ -64,17 +64,29 @@ pub enum TxScale {
     Tiny
 }
 
-impl TryFrom<usize> for TxScale {
+impl TryFrom<u32> for TxScale {
     type Error = TxError;
 
-    fn try_from(value: usize) -> std::result::Result<Self, Self::Error> {
+    fn try_from(value: u32) -> std::result::Result<Self, Self::Error> {
         match value {
-            1 => Ok(TxScale::Tiny),
-            2 => Ok(TxScale::Small),
-            3 => Ok(TxScale::Medium),
-            4 => Ok(TxScale::Large),
-            5 => Ok(TxScale::Huge),
+            16 => Ok(TxScale::Tiny),
+            17 => Ok(TxScale::Small),
+            18 => Ok(TxScale::Medium),
+            19 => Ok(TxScale::Large),
+            20 => Ok(TxScale::Huge),
             _ => Err(TxError::TxScaleParse)
+        }
+    }
+}
+
+impl From<TxScale> for u32 {
+    fn from(scale: TxScale) -> Self {
+        match scale {
+            TxScale::Tiny   => 16,
+            TxScale::Small  => 17,
+            TxScale::Medium => 18,
+            TxScale::Large  => 19,
+            TxScale::Huge   => 20,
         }
     }
 }

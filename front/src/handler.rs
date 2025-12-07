@@ -25,7 +25,7 @@ pub struct TxArgs {
     pub chain_id: u64,
 
     #[clap(long, env, next_help_heading = "The Chain Id of the Tx")]
-    pub scale: usize,
+    pub scale: u32,
 
     #[clap(long, env, next_help_heading = "The payload type of TxPayload")]
     pub payload_type: String,
@@ -61,7 +61,7 @@ where
 
     // build scale from Args
     let scale = TxScale::try_from(args.scale)?;
-    
+
     // build sk from Args
     let sk_bytes = load_user_sk_bytes()?;
     let sk = AccountSigningKey::from_bytes(&sk_bytes);
@@ -77,7 +77,7 @@ where
     })
 }
 
-pub fn create_build_spec(chain_id: ChainId, scale: usize, payload: TxPayload) -> anyhow::Result<TxBuildSpec> {
+pub fn create_build_spec(chain_id: ChainId, scale: u32, payload: TxPayload) -> anyhow::Result<TxBuildSpec> {
     // build sk from Args
     let sk_bytes = load_user_sk_bytes()?;
     let sk = AccountSigningKey::from_bytes(&sk_bytes);

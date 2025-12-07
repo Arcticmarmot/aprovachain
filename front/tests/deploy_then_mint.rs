@@ -1,7 +1,7 @@
 mod common;
 
 use clap::Parser;
-use front::handler::{build_envelope_wire, create_build_spec, parse_tx_args, parse_tx_args_with, send_envelope, TxArgs};
+use front::handler::{build_envelope_wire, create_build_spec, TxArgs};
 use ledger::call::{generate_access_set, LedgerCall};
 use server::context::SubmitTxResponse;
 use spec::chain::ChainId;
@@ -14,7 +14,7 @@ pub async fn ledger_deploy_then_mint() {
     let args = TxArgs::try_parse_from([
         "apps",
         "--chain-id", "1000",
-        "--scale", "2",
+        "--scale", "17",
         "--payload-type", "Deploy",
         "--deploy-elf", concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/elf/ledger_guest.bin"),
     ]).expect("parse args");

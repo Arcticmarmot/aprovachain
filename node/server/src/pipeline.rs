@@ -117,6 +117,10 @@ pub fn exec_tx(db_handle: &DBHandle, envelope: &TxEnvelope, ctr_addr_str: &Strin
 
     let total_po2 = cycles_by_pre_exec(&ctr_input, &elf)?;
     tracing::info!(target: "node::server", %total_po2);
+    // 如果用户谎称 scale 更小，返回错误 InvalidScale
+    if u32::from(intent.scale) < total_po2 {
+        return Err(ServerError::InvalidScale)
+    }
 
     let receipt = generate_receipt(&ctr_input, &elf)?;
 
