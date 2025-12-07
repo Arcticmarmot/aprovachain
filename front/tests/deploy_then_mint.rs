@@ -1,16 +1,15 @@
-use std::time::Duration;
+mod common;
+
 use clap::Parser;
-use tokio::time::sleep;
 use front::handler::{build_envelope_wire, create_build_spec, parse_tx_args, parse_tx_args_with, send_envelope, TxArgs};
 use ledger::call::{generate_access_set, LedgerCall};
-use primitives::constant::SLOT_TIME;
 use server::context::SubmitTxResponse;
 use spec::chain::ChainId;
 use tx::intent::TxPayload;
-use crate::ledger_tests::common::{init_test, req_by_args, req_by_wire, KOL_SERVER, SMOLENSK};
+use common::setup::{init_test, req_by_args, req_by_wire, sleep_slot, SMOLENSK};
 
 #[tokio::test]
-pub async fn ledger_deploy_then_trans() {
+pub async fn ledger_deploy_then_mint() {
     init_test();
     let args = TxArgs::try_parse_from([
         "apps",
@@ -32,10 +31,10 @@ pub async fn ledger_deploy_then_trans() {
         }
     };
 
-    sleep(Duration::from_secs(SLOT_TIME + 1)).await;
-
+    sleep_slot().await;
+    
     let chain_id = ChainId(args.chain_id);
-    let mint = LedgerCall::Transfer { from: SMOLENSK.to_string(), to: KOL_SERVER.to_string(), amount: 10 };
+    let mint = LedgerCall::Mint { to: SMOLENSK.to_string(), amount: 100 };
     let input = mint.encode_bcs();
     let access_set = generate_access_set(chain_id, input.clone()).unwrap();
 
