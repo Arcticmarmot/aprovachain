@@ -55,11 +55,36 @@ impl Debug for TxPayload {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum TxScale {
+    Huge,
+    Large,
+    Medium,
+    Small,
+    Tiny
+}
+
+impl TryFrom<usize> for TxScale {
+    type Error = TxError;
+
+    fn try_from(value: usize) -> std::result::Result<Self, Self::Error> {
+        match value {
+            1 => Ok(TxScale::Tiny),
+            2 => Ok(TxScale::Small),
+            3 => Ok(TxScale::Medium),
+            4 => Ok(TxScale::Large),
+            5 => Ok(TxScale::Huge),
+            _ => Err(TxError::TxScaleParse)
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct TxIntent {
     pub chain_id: ChainId,
     pub nonce: u128,
     pub timestamp: u128,
+    pub scale: TxScale,
     pub payload: TxPayload,
 }
 
@@ -72,6 +97,7 @@ impl TryFrom<TxIntentWire> for TxIntent {
             chain_id,
             nonce: wire.nonce,
             timestamp: wire.timestamp,
+            scale: wire.scale,
             payload: wire.payload
         })
     }
@@ -79,13 +105,14 @@ impl TryFrom<TxIntentWire> for TxIntent {
 
 
 impl TxIntent {
-    pub fn create(chain_id: ChainId, payload: TxPayload) -> Result<Self> {
+    pub fn create(chain_id: ChainId, scale: TxScale, payload: TxPayload) -> Result<Self> {
         let nonce = random_u128()?;
         let timestamp = unix_time_millis()?;
         Ok(Self {
             chain_id,
             nonce,
             timestamp,
+            scale,
             payload,
         })
     }
@@ -104,6 +131,7 @@ pub struct TxIntentWire {
     pub chain_id: u64,
     pub nonce: u128,
     pub timestamp: u128,
+    pub scale: TxScale,
     pub payload: TxPayload
 }
 
@@ -125,6 +153,7 @@ impl From<&TxIntent> for TxIntentWire {
             chain_id: intent.chain_id.0,
             nonce: intent.nonce,
             timestamp: intent.timestamp,
+            scale: intent.scale,
             payload: intent.payload.clone()
         }
     }

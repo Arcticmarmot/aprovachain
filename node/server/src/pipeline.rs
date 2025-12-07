@@ -27,7 +27,8 @@ pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<Receipt> 
     let start_prove = Instant::now();
     let proof = prover.prove_with_opts(env, &elf, &opt).map_err(ProofGenerate)?;
     let end_prove = Instant::now();
-    tracing::info!(target: "node::server", prove_time=?(end_prove - start_prove));
+    let elapsed = end_prove - start_prove;
+    tracing::info!(target: "node::server", ?elapsed, "prove time: ");
     tracing::info!(target: "node::server", ?proof);
     let receipt = proof.receipt;
     Ok(receipt)
@@ -74,7 +75,7 @@ pub fn build_tx_outcome(db_handle: &DBHandle, envelope: TxEnvelope) -> Result<Tx
 }
 
 pub fn exec_tx(db_handle: &DBHandle, envelope: &TxEnvelope, ctr_addr_str: &String,
-               input: &Vec<u8>, access_set: &AccessSet) -> crate::error::Result<Receipt> {
+               input: &Vec<u8>, access_set: &AccessSet) -> Result<Receipt> {
     // 根据合约地址查找合约
     let intent = &envelope.intent;
     let ctr_addr = ContractAddress::parse_bech32m_with_id(intent.chain_id, ctr_addr_str)?;
@@ -167,7 +168,7 @@ pub fn update_ctr(db_handle: &DBHandle, envelope: &TxEnvelope, ctr_addr_str: &St
     Ok(())
 }
 
-pub fn resp_from_outcome(outcome: &TxOutcome) -> crate::error::Result<SubmitTxResponse> {
+pub fn resp_from_outcome(outcome: &TxOutcome) -> Result<SubmitTxResponse> {
     let payload = &outcome.envelope.intent.payload;
     match payload {
         TxPayload::Exec { ctr_addr_str, input, access_set } => {

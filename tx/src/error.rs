@@ -16,6 +16,8 @@ pub enum TxError {
     TxIdPrefix,
     #[error("bcs parse failed")]
     BcsParse(#[from] bcs::Error),
+    #[error("invalid scale number")]
+    TxScaleParse
 }
 
 pub type Result<T> = std::result::Result<T, TxError>;

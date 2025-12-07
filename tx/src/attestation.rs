@@ -58,6 +58,7 @@ impl Debug for TxAttestation {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Tx {{")?;
         write!(f, " id: {} ", self.tx_id)?;
+        write!(f, " scale: {:?} ", self.outcome.envelope.intent.scale)?;
         write!(f, " payload: {:?} ", self.outcome.envelope.intent.payload)?;
         write!(f, "}}")
     }

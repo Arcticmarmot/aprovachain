@@ -14,6 +14,7 @@ pub async fn ledger_deploy_then_mint() {
     let args = TxArgs::try_parse_from([
         "apps",
         "--chain-id", "1000",
+        "--scale", "2",
         "--payload-type", "Deploy",
         "--deploy-elf", concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/elf/ledger_guest.bin"),
     ]).expect("parse args");
@@ -34,6 +35,7 @@ pub async fn ledger_deploy_then_mint() {
     sleep_slot().await;
     
     let chain_id = ChainId(args.chain_id);
+    let scale = args.scale;
     let mint = LedgerCall::Mint { to: SMOLENSK.to_string(), amount: 100 };
     let input = mint.encode_bcs();
     let access_set = generate_access_set(chain_id, input.clone()).unwrap();
@@ -44,7 +46,7 @@ pub async fn ledger_deploy_then_mint() {
         access_set
     };
 
-    let tx_build_spec = create_build_spec(chain_id, payload).unwrap();
+    let tx_build_spec = create_build_spec(chain_id, scale, payload).unwrap();
     let tx_envelope_wire = build_envelope_wire(tx_build_spec).unwrap();
 
     req_by_wire(tx_envelope_wire).await;

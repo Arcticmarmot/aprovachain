@@ -8,12 +8,13 @@ use platform::file::{load_user_sk_path};
 use spec::chain::ChainId;
 use primitives::hash::sha256;
 use tx::envelope::{TxEnvelope, TxEnvelopeWire};
-use tx::intent::{TxIntent, TxPayload};
+use tx::intent::{TxIntent, TxPayload, TxScale};
 
 #[derive(Debug)]
 pub struct TxBuildSpec {
     chain_id: ChainId,
     sk: AccountSigningKey,
+    scale: TxScale,
     payload: TxPayload
 }
 
@@ -22,6 +23,9 @@ pub struct TxBuildSpec {
 pub struct TxArgs {
     #[clap(long, env, next_help_heading = "The Chain Id of the Tx")]
     pub chain_id: u64,
+
+    #[clap(long, env, next_help_heading = "The Chain Id of the Tx")]
+    pub scale: usize,
 
     #[clap(long, env, next_help_heading = "The payload type of TxPayload")]
     pub payload_type: String,
@@ -55,6 +59,9 @@ where
     // build chain id from Args
     let chain_id = ChainId(args.chain_id);
 
+    // build scale from Args
+    let scale = TxScale::try_from(args.scale)?;
+    
     // build sk from Args
     let sk_bytes = load_user_sk_bytes()?;
     let sk = AccountSigningKey::from_bytes(&sk_bytes);
@@ -65,18 +72,21 @@ where
     Ok(TxBuildSpec {
         chain_id,
         sk,
+        scale,
         payload
     })
 }
 
-pub fn create_build_spec(chain_id: ChainId, payload: TxPayload) -> anyhow::Result<TxBuildSpec> {
+pub fn create_build_spec(chain_id: ChainId, scale: usize, payload: TxPayload) -> anyhow::Result<TxBuildSpec> {
     // build sk from Args
     let sk_bytes = load_user_sk_bytes()?;
     let sk = AccountSigningKey::from_bytes(&sk_bytes);
-    
+    let scale = TxScale::try_from(scale)?;
+
     Ok(TxBuildSpec {
         chain_id,
         sk,
+        scale,
         payload
     })
 }
@@ -90,7 +100,7 @@ pub fn load_user_sk_bytes() -> anyhow::Result<AccountSigningKeyBytes> {
 }
 
 pub fn build_envelope_wire(spec: TxBuildSpec) -> anyhow::Result<TxEnvelopeWire> {
-    let tx_intent = TxIntent::create(spec.chain_id, spec.payload)?;
+    let tx_intent = TxIntent::create(spec.chain_id, spec.scale, spec.payload)?;
     let tx_envelope = TxEnvelope::create(tx_intent, spec.sk);
     let tx_envelope_wire = TxEnvelopeWire::from(&tx_envelope);
     Ok(tx_envelope_wire)
