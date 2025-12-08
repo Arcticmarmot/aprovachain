@@ -24,12 +24,14 @@ pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<Receipt> 
     let opt = ProverOpts::fast();
     // 根据虚拟机环境和 ELF 文件生成证明
     let prover = default_prover();
+
     let start_prove = Instant::now();
     let proof = prover.prove_with_opts(env, &elf, &opt).map_err(ProofGenerate)?;
     let end_prove = Instant::now();
     let elapsed = end_prove - start_prove;
     tracing::info!(target: "node::server", ?elapsed, "prove time: ");
     tracing::info!(target: "node::server", ?proof);
+
     let receipt = proof.receipt;
     Ok(receipt)
 }
@@ -115,12 +117,12 @@ pub fn exec_tx(db_handle: &DBHandle, envelope: &TxEnvelope, ctr_addr_str: &Strin
         read_set,
     };
 
-    let total_po2 = cycles_by_pre_exec(&ctr_input, &elf)?;
-    tracing::info!(target: "node::server", %total_po2);
-    // 如果用户谎称 scale 更小，返回错误 InvalidScale
-    if u32::from(intent.scale) < total_po2 {
-        return Err(ServerError::InvalidScale)
-    }
+    // NOTE: 如果用户谎称 scale 更小，返回错误 InvalidScale
+    // let total_po2 = cycles_by_pre_exec(&ctr_input, &elf)?;
+    // tracing::info!(target: "node::server", %total_po2);
+    // if u32::from(intent.scale) < total_po2 {
+    //     return Err(ServerError::InvalidScale)
+    // }
 
     let receipt = generate_receipt(&ctr_input, &elf)?;
 
