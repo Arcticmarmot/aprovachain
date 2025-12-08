@@ -27,6 +27,8 @@ pub enum DBError {
     DBPut(#[source] RocksDBError),
     #[error("DB get failed")]
     DBGet(#[source] RocksDBError),
+    #[error("DB lack integrity")]
+    DBIntegrity
 }
 
 pub type Result<T> = std::result::Result<T, DBError>;

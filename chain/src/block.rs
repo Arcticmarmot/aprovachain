@@ -1,15 +1,10 @@
-use std::collections::BTreeMap;
 use std::fmt::{Debug, Formatter};
 use serde::{Deserialize, Serialize};
-use account::executor::ExecutorId;
 use platform::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32, HASH32_ZERO};
 use tx::attestation::{TxAttestation, TxAttestationWire};
-use tx::code::TxServiceCode;
-use tx::id::{TxId};
+use tx::code::TxServiceCodeMap;
 use crate::error::Result;
-
-pub type TxServiceCodeMap = BTreeMap<TxId, (ExecutorId, TxServiceCode)>;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct BlockHeader {

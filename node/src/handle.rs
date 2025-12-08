@@ -2,14 +2,14 @@ use anyhow::{ensure, Context, Result};
 use account::address::ContractAddress;
 use account::executor::ExecutorId;
 use apps::ctr_io::{CtrInput, CtrOutput, CtrResult};
-use chain::block::{OrderedBlock, LedgerBlock, TxServiceCodeMap};
+use chain::block::{OrderedBlock, LedgerBlock};
 use contract::contract::Contract;
 use db::handle::DBHandle;
 use platform::clock::unix_time_millis;
 use primitives::constant::{SLOT_SECS};
 use primitives::hash::sha256;
 use tx::attestation::TxAttestation;
-use tx::code::TxServiceCode;
+use tx::code::{TxServiceCode, TxServiceCodeMap};
 use tx::intent::TxPayload;
 
 pub fn handle_tx_received(_: Vec<u8>) -> Result<()> {

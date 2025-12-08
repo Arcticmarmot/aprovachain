@@ -19,11 +19,11 @@ pub type AccountVerifyingKeyBytes = [u8; PUBLIC_KEY_LENGTH];
 pub type AccountSignature = Signature;
 
 /// 账户私钥
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AccountSigningKey(SigningKey);
 
 /// 账户公钥
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AccountVerifyingKey(VerifyingKey);
 
 impl AccountSigningKey {

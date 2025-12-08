@@ -1,3 +1,4 @@
 pub mod timeliness;
 pub mod integrity;
-mod dispatch;
+pub mod dispatch;
+mod error;

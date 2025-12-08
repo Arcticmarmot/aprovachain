@@ -5,6 +5,7 @@ use chain::block::{BlockHeader, LedgerBlock};
 use contract::contract::{Contract, ContractWire};
 use primitives::hash::Hash32;
 use apps::ctr_io::{NamespaceKey, ReadSet, WriteSet};
+use tx::code::TxServiceCodeMap;
 use crate::error::DBError;
 use crate::runtime::dbh;
 use crate::error::Result;
@@ -40,6 +41,26 @@ impl DBHandle {
 
     pub fn cf_elfs(&self) -> &ColumnFamily {
         self.dbh.cf_handle("elfs").expect("cf 'elfs' must be exist")
+    }
+
+    pub fn load_stats_window(&self, window_size: usize) -> Result<Vec<TxServiceCodeMap>> {
+        match self.load_chain_state()? {
+            Some(chain_state) => {
+                let tip_height = chain_state.height;
+                let start_height= tip_height.saturating_sub(window_size as u128);
+                let mut stats = Vec::with_capacity(window_size);
+                for height in start_height..tip_height {
+                    match self.load_block(height)? {
+                        Some(block) => {
+                            stats.push(block.tx_codes)
+                        },
+                        None => { return Err(DBError::DBIntegrity) }
+                    }
+                }
+                Ok(stats)
+            },
+            None => Ok(Vec::new())
+        }
     }
 
     pub fn apply_rw_set(&self, read_set: &ReadSet, write_set: &WriteSet) -> Result<bool> {
