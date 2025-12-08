@@ -1,11 +1,15 @@
-use anyhow::{ensure, Context, Result, anyhow};
+use anyhow::{ensure, Context, Result};
 use account::address::ContractAddress;
+use account::executor::ExecutorId;
 use apps::ctr_io::{CtrInput, CtrOutput, CtrResult};
-use chain::block::{OrderedBlock, LedgerBlock};
+use chain::block::{OrderedBlock, LedgerBlock, TxServiceCodeMap};
 use contract::contract::Contract;
 use db::handle::DBHandle;
+use platform::clock::unix_time_millis;
+use primitives::constant::{SLOT_SECS};
 use primitives::hash::sha256;
 use tx::attestation::TxAttestation;
+use tx::code::TxServiceCode;
 use tx::intent::TxPayload;
 
 pub fn handle_tx_received(_: Vec<u8>) -> Result<()> {
@@ -55,91 +59,159 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
     Ok(())
 }
 
-pub fn handle_tx(txs: Vec<TxAttestation>, db_handle: &DBHandle) -> Result<Vec<bool>> {
+pub fn handle_tx(txs: Vec<TxAttestation>, db_handle: &DBHandle) -> Result<TxServiceCodeMap> {
     // tx_code 代表是否改变了世界状态
-    let mut tx_codes: Vec<bool> = Vec::with_capacity(txs.len());
+    let mut tx_codes: TxServiceCodeMap = TxServiceCodeMap::new();
 
     for tx in txs {
-        // 检查节点签名
-        tx.self_verify().context("invalid node signature")?;
-        let outcome = tx.outcome;
-        // 检查用户签名
-        let envelope = outcome.envelope;
-        envelope.self_verify().context("invalid user signature")?;
-
-        let receipt_opt = outcome.receipt_opt;
-        let intent = envelope.intent;
-        let payload = intent.payload;
-
-        let tx_code;
-        match payload {
-            TxPayload::Exec { ctr_addr_str, input, .. } => {
-                let ctr_addr = ContractAddress::parse_bech32m_with_id(intent.chain_id, &ctr_addr_str)?;
-                let ctr_addr_bytes = ctr_addr.to_bytes();
-                let ctr = db_handle.load_contract(&ctr_addr_bytes)?
-                    .ok_or_else(|| anyhow!("invalid contract address"))?;
-                let image_id = ctr.image_id;
-                let receipt = receipt_opt.ok_or_else(|| anyhow!("exec tx must have receipt"))?;
-                receipt.verify(image_id).context("verify receipt failed")?;
-
-                let ctr_output_bytes: Vec<u8> = receipt.journal.decode().context("receipt decode failed")?;
-                let ctr_output = CtrOutput::try_decode_bcs(&ctr_output_bytes).context("output decode failed")?;
-                tracing::info!(target:"node::event", input=?input, output=?ctr_output);
-                let input_hash = ctr_output.input_hash;
-                let read_set = ctr_output.read_set;
-                let ctr_input = CtrInput {
-                    chain_id: intent.chain_id,
-                    input,
-                    read_set: read_set.clone()
-                };
-
-                ensure!(input_hash == sha256(ctr_input.encode_bcs()), "input hash mismatched");
-
-                match &ctr_output.ctr_result {
-                    CtrResult::Ok { outcome } => {
-                        tx_code = db_handle.apply_rw_set(&read_set, &outcome.write_set)?;
-                    },
-                    CtrResult::Err { message } => {
-                        tx_code = false;
-                        tracing::error!(target: "node::event", %message, "ctr exec failed");
-                    }
-                };
-            },
-            TxPayload::Deploy { image_id, elf_hash, elf } => {
-                let ctr = Contract::create(intent.chain_id, &image_id, &elf_hash,
-                                           &envelope.verifying_key, intent.nonce);
-                let ctr_addr_bytes = ctr.addr.to_bytes();
-                // key: 合约的 addr 字节数组
-                // value: 合约的BCS编码
-                db_handle.save_contract(&ctr_addr_bytes, &ctr.to_canonical_bytes())?;
-                // key: ELF文件哈希
-                // value: ELF文件字节数组
-                db_handle.save_elf(ctr.elf_hash, &elf)?;
-
-                tx_code = true;
-
-                tracing::info!(target:"node::event", contract_addr=?ctr.addr, "contract deployed");
-            },
-            TxPayload::Update { ctr_addr_str,  image_id, elf_hash, elf } => {
-                let ctr = Contract::create(intent.chain_id, &image_id, &elf_hash,
-                                           &envelope.verifying_key, intent.nonce);
-                // ctr_addr 保持不变，由传入的决定
-                let ctr_addr = ContractAddress::parse_bech32m_with_id(intent.chain_id, &ctr_addr_str)?;
-
-                // key: 合约的 addr 字节数组
-                // value: 合约的BCS编码
-                db_handle.save_contract(&ctr_addr.to_bytes(), &ctr.to_canonical_bytes())?;
-                // key: ELF文件哈希
-                // value: ELF文件字节数组
-                db_handle.save_elf(ctr.elf_hash, &elf)?;
-
-                tx_code = true;
-
-                tracing::info!(target:"node::event", contract_addr=?ctr_addr, "contract update");
-            },
-        }
-        tx_codes.push(tx_code);
+        let tx_id = tx.tx_id;
+        let executor_id = ExecutorId(tx.verifying_key.clone());
+        let code = apply_tx(db_handle, tx)?;
+        tx_codes.insert(tx_id, (executor_id, code));
     }
     tracing::info!(target: "node::event", ?tx_codes);
     Ok(tx_codes)
+}
+
+pub fn apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<TxServiceCode> {
+    // 检查节点签名
+    if let Err(err) = tx.self_verify() {
+        tracing::error!(target: "node::event", %err, "invalid node signature");
+        return Ok(TxServiceCode::InvalidTx)
+    }
+
+    let outcome = tx.outcome;
+    // 检查用户签名
+    let envelope = outcome.envelope;
+
+    if let Err(err) = envelope.self_verify() {
+        tracing::error!(target: "node::event", %err, "invalid user signature");
+        return Ok(TxServiceCode::InvalidTx)
+    }
+
+    let receipt_opt = outcome.receipt_opt;
+    let intent = envelope.intent;
+    let payload = intent.payload;
+
+    match payload {
+        TxPayload::Exec { ctr_addr_str, input, .. } => {
+            let ctr_addr = match ContractAddress::parse_bech32m_with_id(intent.chain_id, &ctr_addr_str) {
+                Ok(addr) => addr,
+                Err(err) => {
+                    tracing::error!(target:"node::event", %err, ctr_addr_str, "invalid ctr_addr_str for exec tx");
+                    return Ok(TxServiceCode::InvalidTx);
+                }
+            };
+            let ctr_addr_bytes = ctr_addr.to_bytes();
+            let ctr_opt = db_handle.load_contract(&ctr_addr_bytes)?;
+            let ctr = match ctr_opt {
+                Some(ctr) => ctr,
+                None => {
+                    tracing::error!(target:"node::event", contract_addr=?ctr_addr, "contract not found");
+                    return Ok(TxServiceCode::InvalidTx);
+                }
+            };
+
+            let image_id = ctr.image_id;
+            let receipt = match receipt_opt {
+                Some(receipt) => receipt,
+                None => {
+                    tracing::error!(target:"node::event", "exec tx without receipt");
+                    return Ok(TxServiceCode::InvalidTx);
+                }
+            };
+            if let Err(err) = receipt.verify(image_id) {
+                tracing::error!(target:"node::event", %err, "fake receipt");
+                return Ok(TxServiceCode::FakeReceipt);
+            }
+
+            let ctr_output_bytes: Vec<u8> = match receipt.journal.decode() {
+                Ok(bytes) => bytes,
+                Err(err) => {
+                    tracing::error!(target:"node::event", %err, "receipt journal decode failed");
+                    return Ok(TxServiceCode::InvalidTx);
+                }
+            };
+
+            let ctr_output = match CtrOutput::try_decode_bcs(&ctr_output_bytes) {
+                Ok(output) => output,
+                Err(err) => {
+                    tracing::error!(target:"node::event", %err, "output decode failed");
+                    return Ok(TxServiceCode::InvalidTx);
+                }
+            };
+            tracing::info!(target:"node::event", input=?input, output=?ctr_output);
+
+            let input_hash = ctr_output.input_hash;
+            let read_set = ctr_output.read_set;
+            let ctr_input = CtrInput {
+                chain_id: intent.chain_id,
+                input,
+                read_set: read_set.clone()
+            };
+
+            if input_hash != sha256(ctr_input.encode_bcs()) {
+                return Ok(TxServiceCode::FakeInput);
+            }
+
+            match &ctr_output.ctr_result {
+                CtrResult::Ok { outcome } => {
+                    let is_conflict = db_handle.apply_rw_set(&read_set, &outcome.write_set)?;
+                    if is_conflict {
+                        return Ok(TxServiceCode::Conflict);
+                    }
+                },
+                CtrResult::Err { message } => {
+                    tracing::error!(target: "node::event", %message, "ctr exec failed");
+                    return Ok(TxServiceCode::BadRequest);
+                }
+            };
+            // Timeout 判断
+            let now = unix_time_millis()?;
+            let elapsed = now - intent.timestamp;
+            let allow_elapsed: u128 = SLOT_SECS as u128 * intent.scale.to_slot_count() as u128 * 1000;
+
+            if elapsed > allow_elapsed {
+                Ok(TxServiceCode::Timeout)
+            } else {
+                Ok(TxServiceCode::Success)
+            }
+        },
+        TxPayload::Deploy { image_id, elf_hash, elf } => {
+            let ctr = Contract::create(intent.chain_id, &image_id, &elf_hash,
+                                       &envelope.verifying_key, intent.nonce);
+            let ctr_addr_bytes = ctr.addr.to_bytes();
+            // key: 合约的 addr 字节数组
+            // value: 合约的BCS编码
+            db_handle.save_contract(&ctr_addr_bytes, &ctr.to_canonical_bytes())?;
+            // key: ELF文件哈希
+            // value: ELF文件字节数组
+            db_handle.save_elf(ctr.elf_hash, &elf)?;
+            tracing::info!(target:"node::event", contract_addr=?ctr.addr, "contract deployed");
+
+            Ok(TxServiceCode::Success)
+        },
+        TxPayload::Update { ctr_addr_str,  image_id, elf_hash, elf } => {
+            let ctr = Contract::create(intent.chain_id, &image_id, &elf_hash,
+                                       &envelope.verifying_key, intent.nonce);
+            // ctr_addr 保持不变，由传入的决定
+            let ctr_addr = match ContractAddress::parse_bech32m_with_id(intent.chain_id, &ctr_addr_str) {
+                Ok(addr) => addr,
+                Err(err) => {
+                    tracing::error!(target:"node::event", %err, ctr_addr_str, "invalid ctr_addr_str for update tx");
+                    return Ok(TxServiceCode::InvalidTx);
+                }
+            };
+
+            // key: 合约的 addr 字节数组
+            // value: 合约的BCS编码
+            db_handle.save_contract(&ctr_addr.to_bytes(), &ctr.to_canonical_bytes())?;
+            // key: ELF文件哈希
+            // value: ELF文件字节数组
+            db_handle.save_elf(ctr.elf_hash, &elf)?;
+            tracing::info!(target:"node::event", contract_addr=?ctr_addr, "contract update");
+
+            Ok(TxServiceCode::Success)
+        },
+    }
 }

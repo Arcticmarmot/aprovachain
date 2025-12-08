@@ -48,14 +48,14 @@ impl DBHandle {
             match (read_value_opt, self.load_data_entry(&ns_key)?) {
                 (Some(read_value), Some(curr_value)) => {
                     if read_value != &curr_value {
-                        return Ok(false);
+                        return Ok(true);
                     }
                 },
                 (None, Some(_)) => {
-                    return Ok(false)
+                    return Ok(true)
                 },
                 (Some(_), None) => {
-                    return Ok(false)
+                    return Ok(true)
                 }
                 // 读集中没有读到内容，交易仍然成功执行，跳过检查
                 (None, None) => { }
@@ -72,7 +72,7 @@ impl DBHandle {
                 }
             }
         }
-        Ok(true)
+        Ok(false)
     }
 
     pub fn save_data_entry(&self, ns_key: &NamespaceKey, value: Vec<u8>) -> Result<()> {

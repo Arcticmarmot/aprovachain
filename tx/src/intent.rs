@@ -64,6 +64,18 @@ pub enum TxScale {
     Tiny
 }
 
+impl TxScale {
+    pub fn to_slot_count(&self) -> u32 {
+        match self {
+            TxScale::Tiny   => 1,
+            TxScale::Small  => 2,
+            TxScale::Medium => 3,
+            TxScale::Large  => 4,
+            TxScale::Huge   => 5,
+        }
+    }
+}
+
 impl TryFrom<u32> for TxScale {
     type Error = TxError;
 

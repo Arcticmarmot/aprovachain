@@ -6,7 +6,7 @@ use tokio::time::sleep;
 use chain::block::{OrderedBlock, BlockHeader};
 use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
-use primitives::constant::SLOT_TIME;
+use primitives::constant::SLOT_SECS;
 use crate::error::Result;
 use crate::solo::handle::{handle_new_slot, handle_submit_tx, SoloCmd, SoloCmdHandle, SoloEventHandle};
 
@@ -57,7 +57,7 @@ impl SoloService {
 
 pub async fn slot_loop(solo_cmd_handle: SoloCmdHandle) {
     loop {
-        sleep(Duration::from_secs(SLOT_TIME)).await;
+        sleep(Duration::from_secs(SLOT_SECS)).await;
         let _ = solo_cmd_handle.new_slot();
     }
 }

@@ -1,9 +1,15 @@
+use std::collections::BTreeMap;
 use std::fmt::{Debug, Formatter};
 use serde::{Deserialize, Serialize};
+use account::executor::ExecutorId;
 use platform::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32, HASH32_ZERO};
 use tx::attestation::{TxAttestation, TxAttestationWire};
+use tx::code::TxServiceCode;
+use tx::id::{TxId};
 use crate::error::Result;
+
+pub type TxServiceCodeMap = BTreeMap<TxId, (ExecutorId, TxServiceCode)>;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct BlockHeader {
@@ -108,16 +114,13 @@ impl OrderedBlock {
 pub struct LedgerBlock {
     pub header: BlockHeader,
     pub txs: Vec<TxAttestationWire>,
-    pub tx_codes: Vec<bool>
+    pub tx_codes: TxServiceCodeMap
 }
 
 impl Debug for LedgerBlock {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // header 直接用派生 Debug
         writeln!(f, "Block {{")?;
         writeln!(f, "  header: {:?},", self.header)?;
-
-        // txs 用你自己的格式
         writeln!(f, "  txs: [")?;
         for tx in &self.txs {
             writeln!(f, "    {:?},", TxAttestation::try_from(tx.clone()).unwrap())?;
@@ -129,7 +132,8 @@ impl Debug for LedgerBlock {
 }
 
 impl LedgerBlock {
-    pub fn new(header: BlockHeader, txs: Vec<TxAttestationWire>, tx_codes: Vec<bool>) -> Self {
+    pub fn new(header: BlockHeader, txs: Vec<TxAttestationWire>,
+               tx_codes: TxServiceCodeMap) -> Self {
         Self {
             header,
             txs,

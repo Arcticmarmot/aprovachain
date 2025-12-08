@@ -1,2 +1,2 @@
 
-pub const SLOT_TIME: u64 = 5;
+pub const SLOT_SECS: u64 = 7;

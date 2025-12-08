@@ -5,6 +5,7 @@ use ed25519_dalek::{SigningKey, VerifyingKey, Signature};
 use ed25519_dalek::ed25519::SignatureBytes;
 use ed25519_dalek::PUBLIC_KEY_LENGTH;
 use rand_core::OsRng;
+use serde::{Deserialize, Serialize};
 use spec::chain::ChainId;
 use crate::address::{UserAddress};
 use crate::error::AccountError;
@@ -18,11 +19,11 @@ pub type AccountVerifyingKeyBytes = [u8; PUBLIC_KEY_LENGTH];
 pub type AccountSignature = Signature;
 
 /// 账户私钥
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccountSigningKey(SigningKey);
 
 /// 账户公钥
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccountVerifyingKey(VerifyingKey);
 
 impl AccountSigningKey {
