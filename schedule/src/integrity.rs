@@ -1,7 +1,7 @@
 
 #[derive(Debug)]
 pub struct Integrity {
-    pub score: u32
+    pub score: u128
 }
 
 impl Default for Integrity {

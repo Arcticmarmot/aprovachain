@@ -24,7 +24,7 @@ impl DBHandle {
     }
 
     pub fn cf_data(&self) -> &ColumnFamily {
-        self.dbh.cf_handle("data").expect(&format!("cf 'data' must be exist"))
+        self.dbh.cf_handle("data").expect("cf 'data' must be exist")
     }
     
     pub fn cf_chain(&self) -> &ColumnFamily {
@@ -54,7 +54,10 @@ impl DBHandle {
                         Some(block) => {
                             stats.push(block.tx_codes)
                         },
-                        None => { return Err(DBError::DBIntegrity) }
+                        None => {
+                            // TODO: 数据完整性保证
+                            // return Err(DBError::DBIntegrity)
+                        }
                     }
                 }
                 Ok(stats)

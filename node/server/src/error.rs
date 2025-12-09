@@ -8,6 +8,7 @@ use apps::error::AppError;
 use contract::error::ContractError;
 use db::error::DBError;
 use network::error::PeerError;
+use schedule::error::ScheduleError;
 
 #[derive(Debug, Error)]
 pub enum ServerError {
@@ -17,6 +18,8 @@ pub enum ServerError {
     App(#[from] AppError),
     #[error(transparent)]
     Peer(#[from] PeerError),
+    #[error(transparent)]
+    Schedule(#[from] ScheduleError),
     #[error(transparent)]
     Account(#[from] AccountError),
     #[error(transparent)]

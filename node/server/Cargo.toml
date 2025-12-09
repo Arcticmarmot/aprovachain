@@ -12,6 +12,7 @@ risc0-zkvm = { workspace = true}
 tx = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }
+schedule = { workspace = true }
 hex = { workspace = true }
 anyhow = { workspace = true }
 spec = { workspace = true }

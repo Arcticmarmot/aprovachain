@@ -2,8 +2,11 @@ use tx::envelope::{TxEnvelopeWire, TxEnvelope};
 use axum::body::{Bytes};
 use axum::extract::State;
 use axum::Json;
+use schedule::dispatch::{assign_executor_for_tx, compute_scores_by_window, select_executor_for_tx, WINDOW_SIZE};
+use schedule::error::ScheduleError;
 use crate::error::{ApiResult};
 use tx::attestation::TxAttestation;
+use tx::id::TxEnvelopeId;
 use crate::context::{AppState, SubmitTxResponse};
 use crate::pipeline::{build_tx_outcome, resp_from_outcome};
 
@@ -16,6 +19,18 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
     // 从字节数组构造 TxEnvelope
     let wire: TxEnvelopeWire = TxEnvelopeWire::try_decode_bcs(tx_bytes.as_ref())?;
     let envelope = TxEnvelope::try_from(wire)?;
+    let tx_id = envelope.tx_id();
+    tracing::info!(target:"node::server", ?tx_id, "tx id");
+    let stats_window = db_handle.load_stats_window(WINDOW_SIZE)?;
+    let scores = compute_scores_by_window(&stats_window);
+    match select_executor_for_tx(&tx_id, &scores) {
+        Some(exec_id) => {
+            tracing::info!(target:"node::server", ?exec_id, "executor id");
+        }
+        None => {
+            tracing::info!(target:"node::server", "first executor id");
+        }
+    };
 
     // TODO: 重放交易攻击，拒绝重复的 nonce
     // 验证交易签名是否有效

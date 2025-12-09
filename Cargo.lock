@@ -5965,6 +5965,8 @@ version = "0.1.0"
 dependencies = [
  "account",
  "db",
+ "primitives",
+ "sha2",
  "thiserror 2.0.17",
  "tx",
 ]
@@ -6170,6 +6172,7 @@ dependencies = [
  "network",
  "primitives",
  "risc0-zkvm",
+ "schedule",
  "serde",
  "spec",
  "thiserror 2.0.17",
