@@ -50,6 +50,10 @@ impl<T> TxCommonId<T> {
     pub fn new(hash: Hash32) -> Self {
         Self(hash, PhantomData)
     }
+
+    pub fn hash(&self) -> Hash32 {
+        self.0
+    }
 }
 
 
