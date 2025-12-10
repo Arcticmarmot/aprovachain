@@ -121,7 +121,9 @@ impl Debug for LedgerBlock {
             writeln!(f, "    {:?},", TxAttestation::try_from(tx.clone()).unwrap())?;
         }
         writeln!(f, "  ]")?;
-        writeln!(f, "  tx_codes: {:?}", self.tx_codes)?;
+        for (tx_id, (exec_id, code)) in &self.tx_codes {
+            writeln!(f, "  tx_id: {tx_id}, exec_id: {exec_id}, code: {code:?}")?;
+        }
         write!(f, "}}")
     }
 }

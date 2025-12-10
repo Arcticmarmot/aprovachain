@@ -55,6 +55,11 @@ pub async fn run_p2p(
         tokio::select! {
             Some(cmd) = cmd_rx.recv() => {
                 match cmd {
+                    P2pCmd::PublishEnvelope(envelope_bytes) => {
+                        if let Err(err) = swarm.behaviour_mut().publish_envelope(envelope_bytes) {
+                            tracing::warn!(target: "net::cmd", %err, "publish envelope cmd")
+                        }
+                    }
                     P2pCmd::PublishTx(tx_bytes) => {
                         if let Err(err) = swarm.behaviour_mut().publish_tx(tx_bytes) {
                             tracing::warn!(target: "net::cmd", %err, "publish tx cmd")
@@ -100,6 +105,11 @@ pub async fn run_p2p(
                         let topic = message.topic;
                         let bytes = message.data;
                         match GossipTopic::from_hash(&topic) {
+                            Some(GossipTopic::Envelope) => {
+                                if let Err(err) = event_handle.received_envelope(bytes) {
+                                    tracing::info!(target: "net::event", %peer_id, %message_id, %err, "receive tx envelope")
+                                }
+                            }
                             Some(GossipTopic::Tx) => {
                                 if let Err(err) = event_handle.received_tx(bytes) {
                                     tracing::info!(target: "net::event", %peer_id, %message_id, %err, "receive tx event")

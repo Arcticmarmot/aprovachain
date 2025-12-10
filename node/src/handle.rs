@@ -12,6 +12,11 @@ use tx::attestation::TxAttestation;
 use tx::code::{TxServiceCode, TxServiceCodeMap};
 use tx::intent::TxPayload;
 
+
+pub fn handle_envelope_received(_: Vec<u8>) -> Result<()> {
+    Ok(())
+}
+
 pub fn handle_tx_received(_: Vec<u8>) -> Result<()> {
     Ok(())
 }
@@ -69,7 +74,6 @@ pub fn handle_tx(txs: Vec<TxAttestation>, db_handle: &DBHandle) -> Result<TxServ
         let code = apply_tx(db_handle, tx)?;
         tx_codes.insert(tx_id, (executor_id, code));
     }
-    tracing::info!(target: "node::event", ?tx_codes);
     Ok(tx_codes)
 }
 

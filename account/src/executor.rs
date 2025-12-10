@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
-use std::hash::{Hash, Hasher};
+use std::hash::{Hash};
 use serde::{Deserialize, Serialize};
 use crate::keypair::AccountVerifyingKey;
 

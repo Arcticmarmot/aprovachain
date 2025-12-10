@@ -1,1 +1,1 @@
-pub const SLOT_SECS: u64 = 7;
+pub const SLOT_SECS: u64 = 8;

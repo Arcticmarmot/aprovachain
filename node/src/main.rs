@@ -8,7 +8,7 @@ use network::runtime::{init_p2p, run_p2p};
 use node::bootstrap::{init_env, init_logging};
 use tokio::sync::mpsc;
 use db::handle::DBHandle;
-use node::handle::{handle_block_received, handle_tx_received};
+use node::handle::{handle_block_received, handle_envelope_received, handle_tx_received};
 use server::runtime::run_server;
 
 #[derive(Parser, Debug)]
@@ -60,6 +60,12 @@ async fn main() -> Result<()> {
         tokio::select! {
             Some(cmd) = p2p_event_rx.recv() => {
                 match cmd {
+                    P2pEvent::EnvelopeReceived(envelope_bytes) => {
+                        tracing::info!(target:"node::event", "node received tx");
+                        if let Err(err) = handle_envelope_received(envelope_bytes) {
+                            tracing::warn!(target:"node::event", %err);
+                        }
+                    }
                     P2pEvent::TxReceived(tx_bytes) => {
                         tracing::info!(target:"node::event", "node received tx");
                         if let Err(err) = handle_tx_received(tx_bytes) {

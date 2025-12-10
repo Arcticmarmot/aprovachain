@@ -187,8 +187,10 @@ impl PeerBehaviour {
             gossipsub_cfg
         ).expect("gossipsub build");
 
+        let envelope = GossipTopic::Envelope.ident();
         let tx_topic = GossipTopic::Tx.ident();
         let block_topic = GossipTopic::Block.ident();
+        gossipsub.subscribe(&envelope).expect("subscribe tx");
         gossipsub.subscribe(&tx_topic).expect("subscribe tx");
         gossipsub.subscribe(&block_topic).expect("subscribe block");
 
@@ -199,6 +201,13 @@ impl PeerBehaviour {
             kademlia,
             gossipsub
         }
+    }
+
+    pub fn publish_envelope(&mut self, envelope_bytes: Vec<u8>) -> Result<()> {
+        tracing::info!(target:"network::gossip", len=%envelope_bytes.len(), "tx size: ");
+        let topic = GossipTopic::Tx.ident();
+        self.gossipsub.publish(topic, envelope_bytes)?;
+        Ok(())
     }
 
     pub fn publish_tx(&mut self, tx_bytes: Vec<u8>) -> Result<()> {

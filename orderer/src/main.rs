@@ -73,6 +73,9 @@ async fn main() -> Result<()> {
         tokio::select! {
             Some(cmd) = p2p_event_rx.recv() => {
                 match cmd {
+                    P2pEvent::EnvelopeReceived(_) => {
+                        tracing::info!(target:"orderer::event", "orderer received envelope");
+                    }
                     P2pEvent::TxReceived(tx_bytes) => {
                         tracing::info!(target:"orderer::event", "orderer received tx");
                         if let Err(err) = handle_tx_received(tx_bytes, &solo_cmd_hdl) {

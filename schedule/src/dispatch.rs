@@ -3,17 +3,20 @@ use account::executor::ExecutorId;
 use db::handle::DBHandle;
 use tx::code::{TxServiceCode, TxServiceCodeMap};
 use tx::id::{TxEnvelopeId};
-use crate::error::{Result, ScheduleError};
+use crate::error::{Result};
+use crate::event::EventRecord;
 use crate::metrics::*;
+use crate::weight::{metrics_to_weights, total_weights};
 
+/// 定义窗口大小
 pub const WINDOW_SIZE: usize = 16;
+
 /// 根据一定大小窗口的区块数据计算指标
 pub fn compute_metrics_by_window(stats_window: &[TxServiceCodeMap]) -> Metrics {
     let mut metrics = Metrics::new();
-
     for block_stats in stats_window {
         // 记录每个事件的数量
-        let mut event_records: BTreeMap<ExecutorId, BlockEventRecord> = BTreeMap::new();
+        let mut event_records: BTreeMap<ExecutorId, EventRecord> = BTreeMap::new();
         for (_, (exec_id, code)) in block_stats {
             match code {
                 TxServiceCode::Success | TxServiceCode::Conflict => {
@@ -29,13 +32,13 @@ pub fn compute_metrics_by_window(stats_window: &[TxServiceCodeMap]) -> Metrics {
             }
         }
         for (exec_id, record) in event_records {
-            // TODO: total_event_num() 为 0 的情况
-            if record.total_event_num() == 0 { break; }
-            let (integrity, timeliness): &mut (Integrity, Timeliness) = metrics.entry(exec_id.clone()).or_default();
-            let igt_score = integrity.score;
-            let tln_score = timeliness.score;
-            integrity.score = ema_new_val(igt_score, record.compute_integrity_event());
-            timeliness.score = ema_new_val(tln_score, record.compute_timeliness_event());
+            let (integrity, timeliness): &mut (Integrity, Timeliness) = metrics.entry(exec_id).or_default();
+            if let Some(itg_event) = record.compute_integrity_event() {
+                integrity.apply_event(itg_event);
+            }
+            if let Some(tln_event) = record.compute_timeliness_event() {
+                timeliness.apply_event(tln_event);
+            }
         }
     }
     metrics
@@ -43,39 +46,28 @@ pub fn compute_metrics_by_window(stats_window: &[TxServiceCodeMap]) -> Metrics {
 
 pub fn select_executor_for_tx(tx_id: &TxEnvelopeId, metrics: &Metrics) -> Option<ExecutorId> {
     if metrics.is_empty() { return None }
-    let weighted: Vec<(ExecutorId, u128)> = metrics
-        .iter()
-        .map(|(exec_id, (integ, timeli))| {
-            let w = weight_from_metrics(integ, timeli);
-            (exec_id.clone(), w)
-        })
-        .collect();
-    if weighted.is_empty() { return None; }
+    let weights = metrics_to_weights(&metrics);
     let rand = pseudo_random_u128(tx_id);
-    let mut total_weight = 0;
-    for (_, w) in &weighted {
-        total_weight += *w;
-    }
+    let total_weight = total_weights(&weights);
     let ticket = rand % total_weight;
     let mut acc = 0;
-    for (exec_id, w) in weighted {
-        acc += w;
-        if acc > ticket {
-            return Some(exec_id)
-        }
+    for (exec_id, weight) in weights {
+        acc += weight;
+        if acc >= ticket { return Some(exec_id) }
     }
     None
 }
 
-pub fn assign_executor_for_tx(db_handle: &DBHandle, tx_id: &TxEnvelopeId) -> Result<ExecutorId> {
+pub fn assign_executor_for_tx(db_handle: &DBHandle, tx_id: &TxEnvelopeId) -> Result<Option<ExecutorId>> {
     let stats_window = db_handle.load_stats_window(WINDOW_SIZE)?;
     let scores = compute_metrics_by_window(&stats_window);
-    match select_executor_for_tx(tx_id, &scores) {
-        Some(exec_id) => Ok(exec_id),
-        None => {
-            Err(ScheduleError::EmptyStats)
-        }
-    }
+    Ok(select_executor_for_tx(tx_id, &scores))
 }
 
+/// 根据 tx_id 的哈希生成随机数
+fn pseudo_random_u128(tx_id: &TxEnvelopeId) -> u128 {
+    let mut out = [0u8; 16];
+    out.copy_from_slice(&tx_id.hash()[0..16]);
+    u128::from_be_bytes(out)
+}
 

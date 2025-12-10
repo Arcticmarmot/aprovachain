@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Formatter};
 use risc0_zkvm::{Digest, Receipt};
 use serde::{Deserialize, Serialize};
+use account::executor::ExecutorId;
 use network::handle::{P2pCmdHandle};
 use account::keypair::{AccountSigningKey};
 use apps::ctr_io::AccessSet;
@@ -33,6 +34,12 @@ pub enum SubmitTxResponse {
         ctr_addr_str: String,
         image_id: Digest,
         elf_hash: Hash32
+    },
+    Submitted {
+        executor_id: ExecutorId,
+    },
+    Invalid {
+        message: String,
     }
 }
 
@@ -59,6 +66,12 @@ impl Debug for SubmitTxResponse {
                 writeln!(f, "  image_id: {}, ", image_id.to_string())?;
                 writeln!(f, "  elf_hash: {:?}, ", hex::encode(elf_hash))?;
             },
+            SubmitTxResponse::Submitted { executor_id } => {
+                writeln!(f, "  executor_id: {}, ", executor_id)?;
+            },
+            SubmitTxResponse::Invalid { message } => {
+                writeln!(f, "  message: {}, ", message)?;
+            }
         }
         writeln!(f, " }}")    }
 }

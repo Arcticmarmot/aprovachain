@@ -1,6 +1,7 @@
 use libp2p::gossipsub::{IdentTopic, TopicHash};
 
 pub enum GossipTopic {
+    Envelope,
     Tx,
     Block
 }
@@ -8,6 +9,7 @@ pub enum GossipTopic {
 impl GossipTopic {
     pub fn name(&self) -> String {
         match self {
+            GossipTopic::Envelope => "/aprova/envelope".to_string(),
             GossipTopic::Tx => "/aprova/tx".to_string(),
             GossipTopic::Block => "/aprova/block".to_string(),
         }
