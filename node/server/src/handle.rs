@@ -7,7 +7,9 @@ use axum::body::{Bytes};
 use axum::extract::State;
 use axum::Json;
 use account::executor::ExecutorId;
+use contract::contract::Contract;
 use schedule::dispatch::assign_executor_for_tx;
+use tx::intent::TxPayload;
 
 /// 交易提交处理函数
 pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiResult<SubmitTxResponse> {
@@ -51,6 +53,22 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
         Ok(Json(response))
     } else {
         cmd_handle.publish_envelope(envelope.to_canonical_bytes())?;
-        Ok(Json(SubmitTxResponse::Submitted { executor_id: exec_id }))
+        let intent = envelope.intent;
+        let payload = intent.payload;
+        match payload {
+            TxPayload::Deploy { image_id, elf_hash, .. } => {
+                let ctr = Contract::create(intent.chain_id, &image_id, &elf_hash,
+                                           &envelope.verifying_key, intent.nonce);
+                let ctr_addr_str = ctr.addr.to_bech32m()?;
+                Ok(Json(SubmitTxResponse::Submitted { ctr_addr_str,executor_id: exec_id }))
+            }
+            TxPayload::Update { ctr_addr_str, image_id, elf_hash, .. } => {
+                Ok(Json(SubmitTxResponse::Submitted { ctr_addr_str, executor_id: exec_id }))
+            }
+            TxPayload::Exec { ctr_addr_str, .. } => {
+                Ok(Json(SubmitTxResponse::Submitted { ctr_addr_str, executor_id: exec_id }))
+            }
+        }
+        
     }
 }

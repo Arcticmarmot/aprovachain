@@ -26,6 +26,10 @@ pub async fn ledger_deploy_then_mint() {
             tracing::info!(target: "front::resp", %ctr_addr_str, "ctr addr: ");
             ctr_addr_str
         },
+        SubmitTxResponse::Submitted { ctr_addr_str, .. } => {
+            tracing::info!(target: "front::resp", %ctr_addr_str, "ctr addr: ");
+            ctr_addr_str
+        },
         _ => {
             tracing::error!(target: "front::resp", "contract deploy failed");
             return;

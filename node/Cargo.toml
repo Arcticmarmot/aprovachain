@@ -7,6 +7,7 @@ edition = "2024"
 db = { workspace = true }
 server = { workspace = true }
 tx = { workspace = true }
+schedule = { workspace = true }
 network = { workspace = true }
 tokio = { workspace = true }
 anyhow = { workspace = true }

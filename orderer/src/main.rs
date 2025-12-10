@@ -11,6 +11,7 @@ use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
 use consensus::solo::handle::{SoloCmd, SoloCmdHandle, SoloEvent, SoloEventHandle};
 use consensus::solo::service::{start_consensus, SoloService};
+use network::behaviour::behaviour::PeerRole;
 use orderer::handle::{handle_block_commited, handle_block_received, handle_tx_received};
 use spec::chain::ChainId;
 
@@ -38,7 +39,7 @@ async fn main() -> Result<()> {
     let p2p_cmd_hdl = P2pCmdHandle::new(p2p_cmd_tx.clone());
     let p2p_event_hdl = P2pEventHandle::new(p2p_event_tx.clone());
 
-    let (sk, peer_set, swarm) = init_p2p()?;
+    let (sk, peer_set, swarm) = init_p2p(PeerRole::Orderer)?;
     // p2p 接收P2pCmd命令，发出P2pEvent事件
     spawn(async move {
         let _ = run_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl).await;

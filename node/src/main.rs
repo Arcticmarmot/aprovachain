@@ -8,6 +8,7 @@ use network::runtime::{init_p2p, run_p2p};
 use node::bootstrap::{init_env, init_logging};
 use tokio::sync::mpsc;
 use db::handle::DBHandle;
+use network::behaviour::behaviour::PeerRole;
 use node::handle::{handle_block_received, handle_envelope_received, handle_tx_received};
 use server::runtime::run_server;
 
@@ -43,26 +44,29 @@ async fn main() -> Result<()> {
     let p2p_cmd_hdl = P2pCmdHandle::new(p2p_cmd_tx.clone());
     let p2p_event_hdl = P2pEventHandle::new(p2p_event_tx.clone());
 
-    let (sk, peer_set, swarm) = init_p2p()?;
+    let (sk, peer_set, swarm) = init_p2p(PeerRole::Executor)?;
     // p2p 接收P2pCmd命令，发出P2pEvent事件
     spawn(async move {
         let _ = run_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl).await;
     });
     tracing::info!(target:"node::init", "p2p init success...");
 
+    let server_sk= sk.clone();
     // 开启 http 服务
     spawn(async move {
-        let _ = run_server(sk, db_handle, p2p_cmd_hdl).await;
+        let _ = run_server(server_sk, db_handle, p2p_cmd_hdl).await;
     });
     tracing::info!(target:"node::init", "server init success...");
+
 
     loop {
         tokio::select! {
             Some(cmd) = p2p_event_rx.recv() => {
                 match cmd {
                     P2pEvent::EnvelopeReceived(envelope_bytes) => {
-                        tracing::info!(target:"node::event", "node received tx");
-                        if let Err(err) = handle_envelope_received(envelope_bytes) {
+                        tracing::info!(target:"node::event", "node received envelope");
+                        let p2p_cmd_hdl = P2pCmdHandle::new(p2p_cmd_tx.clone());
+                        if let Err(err) = handle_envelope_received(p2p_cmd_hdl, sk.clone(), envelope_bytes) {
                             tracing::warn!(target:"node::event", %err);
                         }
                     }

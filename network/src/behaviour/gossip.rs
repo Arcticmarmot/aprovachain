@@ -15,6 +15,16 @@ impl GossipTopic {
         }
     }
 
+    pub fn from_hash(hash: &TopicHash) -> Option<Self> {
+        if hash == &GossipTopic::Envelope.topic_hash() {
+            Some(GossipTopic::Envelope)
+        } else if hash == &GossipTopic::Tx.topic_hash() {
+            Some(GossipTopic::Tx)
+        } else if hash == &GossipTopic::Block.topic_hash() {
+            Some(GossipTopic::Block)
+        } else { None }
+    }
+
     pub fn ident(&self) -> IdentTopic {
         IdentTopic::new(self.name())
     }
@@ -22,14 +32,5 @@ impl GossipTopic {
     pub fn topic_hash(&self) -> TopicHash {
         self.ident().hash()
     }
-
-    pub fn from_hash(hash: &TopicHash) -> Option<Self> {
-        if hash == &GossipTopic::Tx.topic_hash() {
-            Some(GossipTopic::Tx)
-        } else if hash == &GossipTopic::Block.topic_hash() {
-            Some(GossipTopic::Block)
-        } else {
-            None
-        }
-    }
+    
 }

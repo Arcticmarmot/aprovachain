@@ -4227,6 +4227,7 @@ dependencies = [
  "network",
  "platform",
  "primitives",
+ "schedule",
  "server",
  "tokio",
  "tracing",

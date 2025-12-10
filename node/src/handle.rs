@@ -1,19 +1,60 @@
 use anyhow::{ensure, Context, Result};
 use account::address::ContractAddress;
 use account::executor::ExecutorId;
+use account::keypair::AccountSigningKey;
 use apps::ctr_io::{CtrInput, CtrOutput, CtrResult};
 use chain::block::{OrderedBlock, LedgerBlock};
 use contract::contract::Contract;
 use db::handle::DBHandle;
+use network::handle::P2pCmdHandle;
 use platform::clock::unix_time_millis;
 use primitives::constant::{SLOT_SECS};
 use primitives::hash::sha256;
+use schedule::dispatch::assign_executor_for_tx;
+use server::pipeline::{build_tx_outcome};
 use tx::attestation::TxAttestation;
 use tx::code::{TxServiceCode, TxServiceCodeMap};
+use tx::envelope::{TxEnvelope, TxEnvelopeWire};
 use tx::intent::TxPayload;
 
 
-pub fn handle_envelope_received(_: Vec<u8>) -> Result<()> {
+pub fn handle_envelope_received(cmd_handle: P2pCmdHandle, sk: AccountSigningKey, envelope_bytes: Vec<u8>) -> Result<()> {
+    // 加载状态信息
+    let db_handle = DBHandle::new()?;
+    let self_exec_id = ExecutorId(sk.verifying_key());
+
+    // 从字节数组构造 TxEnvelope
+    let wire: TxEnvelopeWire = TxEnvelopeWire::try_decode_bcs(envelope_bytes.as_ref())?;
+    let envelope = TxEnvelope::try_from(wire)?;
+    let tx_envelope_id = envelope.tx_id();
+    // TODO: 重放交易攻击，拒绝重复的 nonce
+    // 验证交易签名是否有效
+    envelope.self_verify()?;
+    tracing::info!(target:"node::event", ?tx_envelope_id, "tx envelope id");
+
+    let exec_id = match assign_executor_for_tx(&db_handle, &tx_envelope_id)? {
+        Some(exec_id) => { exec_id },
+        None => {
+            tracing::info!(target: "node::event", %tx_envelope_id, "no metrics yet, fall back to self as executor");
+            self_exec_id
+        }
+    };
+    tracing::info!(target:"node::event", %exec_id, "executor id");
+
+    if exec_id == self_exec_id {
+        tracing::info!(target:"node::event", "I will do it");
+        // 执行交易
+        let outcome = build_tx_outcome(&db_handle, envelope)?;
+
+        let tx = TxAttestation::create(outcome, sk);
+        let tx_bytes = tx.to_canonical_bytes();
+        tracing::info!(target: "node::event", len=?tx_bytes.len(), "tx_size");
+
+        // 广播交易
+        cmd_handle.publish_tx(tx_bytes)?;
+    } else {
+        tracing::info!(target:"node::event", "none of my business");
+    }
     Ok(())
 }
 

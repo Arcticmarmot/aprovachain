@@ -36,6 +36,7 @@ pub enum SubmitTxResponse {
         elf_hash: Hash32
     },
     Submitted {
+        ctr_addr_str: String,
         executor_id: ExecutorId,
     },
     Invalid {
@@ -66,7 +67,8 @@ impl Debug for SubmitTxResponse {
                 writeln!(f, "  image_id: {}, ", image_id.to_string())?;
                 writeln!(f, "  elf_hash: {:?}, ", hex::encode(elf_hash))?;
             },
-            SubmitTxResponse::Submitted { executor_id } => {
+            SubmitTxResponse::Submitted { ctr_addr_str, executor_id } => {
+                writeln!(f, "  ctr_addr_str: {}, ", ctr_addr_str)?;
                 writeln!(f, "  executor_id: {}, ", executor_id)?;
             },
             SubmitTxResponse::Invalid { message } => {

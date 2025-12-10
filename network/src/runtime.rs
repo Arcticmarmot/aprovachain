@@ -5,12 +5,13 @@ use libp2p::swarm::{SwarmEvent, Swarm};
 use anyhow::Result;
 use libp2p::futures::StreamExt;
 use libp2p::identity::Keypair;
-use crate::behaviour::behaviour::{PeerBehaviour, PeerEvent};
+use crate::behaviour::behaviour::{PeerBehaviour, PeerRole};
 use crate::behaviour::peer_set::PeerSet;
 use tokio::sync::mpsc::{UnboundedReceiver};
 use crate::handle::{P2pCmd, P2pEventHandle};
 use account::keypair::{AccountSigningKey, AccountSigningKeyBytes};
 use platform::file::{load_node_sk_path};
+use crate::behaviour::event::PeerEvent;
 use crate::behaviour::gossip::GossipTopic;
 
 pub fn load_node_sk_bytes() -> Result<AccountSigningKeyBytes> {
@@ -21,14 +22,14 @@ pub fn load_node_sk_bytes() -> Result<AccountSigningKeyBytes> {
     Ok(sk_bytes)
 }
 
-pub fn init_p2p() -> Result<(AccountSigningKey, PeerSet, Swarm<PeerBehaviour>)> {
+pub fn init_p2p(role: PeerRole) -> Result<(AccountSigningKey, PeerSet, Swarm<PeerBehaviour>)> {
     // 从文件加载 sk
     let sk_bytes = load_node_sk_bytes()?;
     let local_key = Keypair::ed25519_from_bytes(sk_bytes)?;
     let local_id = PeerId::from(local_key.public());
     let sk = AccountSigningKey::from_bytes(&sk_bytes);
 
-    let disc_behaviour = PeerBehaviour::new(&local_key);
+    let disc_behaviour = PeerBehaviour::new(&local_key, role);
 
     let mut swarm = libp2p::SwarmBuilder::with_existing_identity(local_key)
         .with_tokio()
@@ -101,7 +102,7 @@ pub async fn run_p2p(
                         peer_set.on_found_peers(peers);
                         peer_set.refresh(swarm);
                     },
-                    SwarmEvent::Behaviour(PeerEvent::TxReceived(peer_id, message_id, message)) => {
+                    SwarmEvent::Behaviour(PeerEvent::MessageReceived(peer_id, message_id, message)) => {
                         let topic = message.topic;
                         let bytes = message.data;
                         match GossipTopic::from_hash(&topic) {

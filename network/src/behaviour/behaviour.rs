@@ -1,14 +1,21 @@
 use std::time::Duration;
 use libp2p::{identify, ping, mdns, Multiaddr, PeerId, identity, kad, gossipsub, StreamProtocol};
-use libp2p::gossipsub::{Message, MessageAuthenticity, MessageId};
+use libp2p::gossipsub::MessageAuthenticity;
 use libp2p::kad::store::MemoryStore;
 use libp2p::swarm::{NetworkBehaviour};
 use crate::behaviour::gossip::GossipTopic;
 use crate::error::{Result};
-
+use crate::behaviour::event::PeerEvent;
 const APROVA_KAD_PROTO: &'static str = "/aprova/kad/v0.1";
 const APROVA_GOSSIP_PROTO: &'static str = "/aprova/gossip/v0.1";
 const HEART_BEAT_INTERVAL: u64 = 30;
+
+pub enum PeerRole {
+    Executor,
+    Orderer,
+    Verifier
+}
+
 #[derive(NetworkBehaviour)]
 #[behaviour(to_swarm = "PeerEvent")]
 pub struct PeerBehaviour {
@@ -19,145 +26,8 @@ pub struct PeerBehaviour {
     pub gossipsub: gossipsub::Behaviour,
 }
 
-#[derive(Debug)]
-pub enum PeerEvent {
-    PeerUp(PeerId, Option<Vec<Multiaddr>>),
-    PeerDown(PeerId),
-    FoundPeers(Vec<(PeerId, Multiaddr)>),
-    TxReceived(PeerId, MessageId, Message),
-    BlockReceived,
-    Ignore
-}
-
-impl From<ping::Event> for PeerEvent {
-    fn from(event: ping::Event) -> Self {
-        match &event.result {
-            Ok(rtt) => {
-                tracing::debug!(target:"net::ping", peer=%event.peer, ?rtt, "ping ok");
-                PeerEvent::PeerUp(event.peer, None)
-            },
-            Err(err) => {
-                tracing::info!(target:"net::ping", peer=%event.peer, ?err, "ping failed");
-                PeerEvent::PeerDown(event.peer)
-            }
-        }
-    }
-}
-
-impl From<identify::Event> for PeerEvent {
-    fn from(event: identify::Event) -> Self {
-        match event {
-            identify::Event::Received {peer_id, info, ..} => {
-                tracing::info!(target:"net::identify", %peer_id, "identify received");
-                tracing::debug!(target:"net::identify",
-                    %peer_id, agent=%info.agent_version, listen_addrs=?info.listen_addrs, protocols=?info.protocols, observed_addr=%info.observed_addr,
-                    "identify details");
-                let addrs = info.listen_addrs;
-                PeerEvent::PeerUp(peer_id, Some(addrs)) // 传递对端自报的地址
-            },
-            identify::Event::Pushed {peer_id, info, ..} => {
-                tracing::info!(target:"net::identify", %peer_id, "identify received");
-                tracing::debug!(target:"net::identify",
-                    %peer_id, agent=%info.agent_version, listen_addrs=?info.listen_addrs, protocols=?info.protocols, observed_addr=%info.observed_addr,
-                    "identify details");
-                let addrs = info.listen_addrs;
-                PeerEvent::PeerUp(peer_id, Some(addrs)) // 传递对端自报的地址
-            },
-            identify::Event::Sent { .. } => {
-                PeerEvent::Ignore
-            },
-            identify::Event::Error {peer_id, error, ..} => {
-                tracing::warn!(target:"net::identify", %peer_id, ?error, "identify error");
-                PeerEvent::PeerDown(peer_id)
-            },
-        }
-    }
-}
-
-impl From<mdns::Event> for PeerEvent {
-    fn from(event: mdns::Event) -> Self {
-        match event {
-            mdns::Event::Discovered(peers) => {
-                tracing::info!(target:"network::mdns", count=peers.len(), "mdns discovered peers");
-                tracing::debug!(target:"network::mdns", ?peers, "mdns discovered details");
-                PeerEvent::FoundPeers(peers.into_iter().collect())
-            },
-            mdns::Event::Expired(peers) => {
-                tracing::info!(target:"network::mdns", count=peers.len(), "mdns expired peers");
-                tracing::trace!(target:"network::mdns", ?peers, "mdns expired details");
-                PeerEvent::Ignore
-            }
-        }
-    }
-}
-
-impl From<kad::Event> for PeerEvent {
-    fn from(event: kad::Event) -> Self {
-        use kad::Event::*;
-        match event {
-            RoutablePeer { peer, address } => {
-                tracing::info!(target:"network::kad", peer=%peer, addr=%address, "kad routable peer");
-                PeerEvent::FoundPeers(vec![(peer, address)])
-            },
-            PendingRoutablePeer { peer, address } => {
-                tracing::info!(target:"network::kad", peer=%peer, addr=%address, "kad pending routable peer");
-                PeerEvent::FoundPeers(vec![(peer, address)])
-            },
-            UnroutablePeer { peer } => {
-                tracing::info!(target:"network::kad", peer=%peer, "kad unroutable peer");
-                PeerEvent::PeerDown(peer)
-            },
-            InboundRequest { request } => {
-                tracing::debug!(target:"network::kad", ?request, "kad request");
-                PeerEvent::Ignore
-            },
-            OutboundQueryProgressed {id, result, stats, step} => {
-                tracing::debug!(target: "network::kad", %id, ?result, ?stats, ?step);
-                PeerEvent::Ignore
-            }
-            ModeChanged { new_mode } => {
-                tracing::debug!(target:"network::kad", %new_mode, "kad mode changed");
-                PeerEvent::Ignore
-            }
-            RoutingUpdated {peer, is_new_peer, addresses, .. } => {
-                tracing::debug!(target:"network::kad", %peer, %is_new_peer, ?addresses, "kad routing update");
-                PeerEvent::Ignore
-            }
-        }
-
-    }
-}
-
-impl From<gossipsub::Event> for PeerEvent {
-    fn from(event: gossipsub::Event) -> Self {
-        use gossipsub::Event::*;
-        match event {
-            Message { message, message_id, propagation_source } => {
-                tracing::info!(target:"network::gossip", source=%propagation_source, message=?message, message_id=%message_id, "message comes");
-                PeerEvent::TxReceived(propagation_source, message_id, message)
-            },
-            Subscribed {peer_id, topic} => {
-                tracing::info!(target:"network::gossip", %peer_id, %topic, "subscribe");
-                PeerEvent::Ignore
-            },
-            Unsubscribed {peer_id, topic} => {
-                tracing::info!(target:"network::gossip", %peer_id, %topic, "unsubscibe");
-                PeerEvent::Ignore
-            },
-            GossipsubNotSupported {peer_id} => {
-                tracing::info!(target:"network::gossip", %peer_id, "unsupported");
-                PeerEvent::Ignore
-            },
-            SlowPeer {peer_id, failed_messages} => {
-                tracing::info!(target:"network::gossip", %peer_id, ?failed_messages, "unsupported");
-                PeerEvent::Ignore
-            }
-        }
-    }
-}
-
 impl PeerBehaviour {
-    pub fn new(local_key: &identity::Keypair) -> Self {
+    pub fn new(local_key: &identity::Keypair, role: PeerRole) -> Self {
         let public = local_key.public();
         let local_peer_id = PeerId::from(public.clone());
 
@@ -187,12 +57,22 @@ impl PeerBehaviour {
             gossipsub_cfg
         ).expect("gossipsub build");
 
-        let envelope = GossipTopic::Envelope.ident();
+        let envelope_topic = GossipTopic::Envelope.ident();
         let tx_topic = GossipTopic::Tx.ident();
         let block_topic = GossipTopic::Block.ident();
-        gossipsub.subscribe(&envelope).expect("subscribe tx");
-        gossipsub.subscribe(&tx_topic).expect("subscribe tx");
-        gossipsub.subscribe(&block_topic).expect("subscribe block");
+        match role {
+            PeerRole::Executor => {
+                gossipsub.subscribe(&envelope_topic).expect("subscribe envelope");
+                gossipsub.subscribe(&block_topic).expect("subscribe block");
+            }
+            PeerRole::Orderer => {
+                gossipsub.subscribe(&tx_topic).expect("subscribe tx");
+                gossipsub.subscribe(&block_topic).expect("subscribe block");
+            }
+            PeerRole::Verifier => {
+                gossipsub.subscribe(&block_topic).expect("subscribe block");
+            }
+        }
 
         Self {
             ping,
@@ -204,8 +84,8 @@ impl PeerBehaviour {
     }
 
     pub fn publish_envelope(&mut self, envelope_bytes: Vec<u8>) -> Result<()> {
-        tracing::info!(target:"network::gossip", len=%envelope_bytes.len(), "tx size: ");
-        let topic = GossipTopic::Tx.ident();
+        tracing::info!(target:"network::gossip", len=%envelope_bytes.len(), "envelope size: ");
+        let topic = GossipTopic::Envelope.ident();
         self.gossipsub.publish(topic, envelope_bytes)?;
         Ok(())
     }
