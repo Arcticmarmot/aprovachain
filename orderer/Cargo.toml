@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 chain = { workspace = true }
 network = { workspace = true }
+engine = { workspace = true }
 contract = { workspace = true }
 account = { workspace = true }
 risc0-zkvm = { workspace = true }

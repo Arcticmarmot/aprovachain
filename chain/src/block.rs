@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use platform::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32, HASH32_ZERO};
 use tx::attestation::{TxAttestation, TxAttestationWire};
-use tx::code::TxServiceCodeMap;
+use tx::code::{TxServiceCatalog};
 use crate::error::Result;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
@@ -109,7 +109,7 @@ impl OrderedBlock {
 pub struct LedgerBlock {
     pub header: BlockHeader,
     pub txs: Vec<TxAttestationWire>,
-    pub tx_codes: TxServiceCodeMap
+    pub tx_codes: TxServiceCatalog
 }
 
 impl Debug for LedgerBlock {
@@ -121,7 +121,7 @@ impl Debug for LedgerBlock {
             writeln!(f, "    {:?},", TxAttestation::try_from(tx.clone()).unwrap())?;
         }
         writeln!(f, "  ]")?;
-        for (tx_id, (exec_id, code)) in &self.tx_codes {
+        for (tx_id, (exec_id, code)) in self.tx_codes.map() {
             writeln!(f, "  tx_id: {tx_id}, exec_id: {exec_id}, code: {code:?}")?;
         }
         write!(f, "}}")
@@ -130,11 +130,18 @@ impl Debug for LedgerBlock {
 
 impl LedgerBlock {
     pub fn new(header: BlockHeader, txs: Vec<TxAttestationWire>,
-               tx_codes: TxServiceCodeMap) -> Self {
+               tx_codes: TxServiceCatalog) -> Self {
         Self {
             header,
             txs,
             tx_codes
+        }
+    }
+
+    pub fn into_ordered_block(self) -> OrderedBlock {
+        OrderedBlock {
+            header: self.header,
+            txs: self.txs
         }
     }
 

@@ -12,7 +12,7 @@ use chain::mempool::{MempoolHandle};
 use consensus::solo::handle::{SoloCmd, SoloCmdHandle, SoloEvent, SoloEventHandle};
 use consensus::solo::service::{start_consensus, SoloService};
 use network::behaviour::behaviour::PeerRole;
-use orderer::handle::{handle_block_commited, handle_block_received, handle_tx_received};
+use orderer::handle::{on_block_commited, on_block_received, on_tx_received};
 use spec::chain::ChainId;
 
 pub const TX_COUNT_LIMIT: usize = 3;
@@ -74,28 +74,26 @@ async fn main() -> Result<()> {
         tokio::select! {
             Some(cmd) = p2p_event_rx.recv() => {
                 match cmd {
-                    P2pEvent::EnvelopeReceived(_) => {
-                        tracing::info!(target:"orderer::event", "orderer received envelope");
-                    }
                     P2pEvent::TxReceived(tx_bytes) => {
                         tracing::info!(target:"orderer::event", "orderer received tx");
-                        if let Err(err) = handle_tx_received(tx_bytes, &solo_cmd_hdl) {
+                        if let Err(err) = on_tx_received(tx_bytes, &solo_cmd_hdl) {
                             tracing::error!(target:"orderer::event", %err);
                         }
                     },
                     P2pEvent::BlockReceived(block_bytes) => {
                         tracing::info!(target:"orderer::event", "orderer received block");
-                        if let Err(err) = handle_block_received(block_bytes) {
+                        if let Err(err) = on_block_received(block_bytes) {
                             tracing::error!(target:"orderer::event", %err);
                         }
                     }
+                    _ => { }
                 }
             },
             Some(output) = solo_event_rx.recv() => {
                 match output {
                     SoloEvent::BlockCommited { block_bytes } => {
                         tracing::info!(target:"orderer::event", "commited block");
-                        if let Err(err) = handle_block_commited(block_bytes, &p2p_cmd_hdl) {
+                        if let Err(err) = on_block_commited(block_bytes, &p2p_cmd_hdl) {
                             tracing::error!(target:"orderer::event", %err);
                         }
                     }

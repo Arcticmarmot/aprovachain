@@ -35,6 +35,10 @@ impl DBHandle {
         self.dbh.cf_handle("blocks").expect("cf 'blocks' must be exist")
     }
 
+    pub fn cf_tx_codes(&self) -> &ColumnFamily {
+        self.dbh.cf_handle("tx_codes").expect("cf 'tx_codes' must be exist")
+    }
+
     pub fn cf_contracts(&self) -> &ColumnFamily {
         self.dbh.cf_handle("contracts").expect("cf 'contracts' must be exist")
     }
@@ -164,10 +168,11 @@ impl DBHandle {
         Ok(elf)
     }
 
-    pub fn save_block(&self, comm_block: &LedgerBlock) -> Result<()> {
+    pub fn save_block(&self, ledger_block: &LedgerBlock) -> Result<()> {
         let mut batch = WriteBatch::default();
-        let height_key: [u8; 16] = comm_block.header.height.to_be_bytes();
-        batch.put_cf(self.cf_blocks(), height_key, comm_block.encode_bcs());
+        let height_key: [u8; 16] = ledger_block.header.height.to_be_bytes();
+        batch.put_cf(self.cf_blocks(), height_key, ledger_block.encode_bcs());
+        batch.put_cf(self.cf_tx_codes(), height_key, ledger_block.tx_codes.into());
         self.dbh.write(batch).map_err(DBError::DBPut)?;
         Ok(())
     }

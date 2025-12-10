@@ -4,6 +4,7 @@ use account::address::ContractAddress;
 use apps::ctr_io::{AccessSet, CtrInput, ReadSet};
 use db::handle::DBHandle;
 use primitives::hash::{sha256, Hash32};
+use tx::attestation::{TxAttestation, TxAttestationWire};
 use tx::envelope::{TxEnvelope, TxEnvelopeWire};
 use tx::intent::TxPayload;
 use tx::outcome::TxOutcome;
@@ -17,6 +18,13 @@ pub fn build_tx_envelope(envelope_bytes: &[u8]) -> Result<TxEnvelope> {
     // 验证交易签名是否有效
     envelope.self_verify()?;
     Ok(envelope)
+}
+
+pub fn build_tx_attestation(tx_bytes: &[u8]) -> Result<TxAttestation> {
+    let wire: TxAttestationWire = TxAttestationWire::try_decode_bcs(tx_bytes)?;
+    let tx = TxAttestation::try_from(wire)?;
+    tx.self_verify()?;
+    Ok(tx)
 }
 
 pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<Receipt> {

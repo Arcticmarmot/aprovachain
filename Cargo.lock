@@ -4539,6 +4539,7 @@ dependencies = [
  "consensus",
  "contract",
  "dotenvy",
+ "engine",
  "libp2p",
  "network",
  "platform",
