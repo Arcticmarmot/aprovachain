@@ -1,25 +1,22 @@
 [package]
-name = "server"
+name = "engine"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 db = { workspace = true }
-network = { workspace = true }
-contract = { workspace = true }
-account = { workspace = true }
-risc0-zkvm = { workspace = true}
-engine = { workspace = true }
 tx = { workspace = true }
-axum = { workspace = true }
-tokio = { workspace = true }
 schedule = { workspace = true }
-hex = { workspace = true }
+network = { workspace = true }
 anyhow = { workspace = true }
-thiserror = { workspace = true }
 tracing = { workspace = true }
+risc0-zkvm = { workspace = true}
 primitives = { workspace = true }
-serde = { workspace = true }
+chain = { workspace = true }
+thiserror = { workspace = true }
+contract = { workspace = true }
+platform = { workspace = true }
+account = { workspace = true }
 apps = { workspace = true }
 
 [features]

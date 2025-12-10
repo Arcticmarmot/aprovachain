@@ -9,7 +9,7 @@ use executor::bootstrap::{init_env, init_logging};
 use tokio::sync::mpsc;
 use db::handle::DBHandle;
 use network::behaviour::behaviour::PeerRole;
-use executor::handle::{handle_block_received, handle_envelope_received};
+use executor::handle::{on_block_received, on_envelope_received};
 use server::runtime::run_server;
 
 #[derive(Parser, Debug)]
@@ -66,13 +66,13 @@ async fn main() -> Result<()> {
                     P2pEvent::EnvelopeReceived(envelope_bytes) => {
                         tracing::info!(target:"executor::event", "executor received envelope");
                         let p2p_cmd_hdl = P2pCmdHandle::new(p2p_cmd_tx.clone());
-                        if let Err(err) = handle_envelope_received(p2p_cmd_hdl, sk.clone(), envelope_bytes) {
+                        if let Err(err) = on_envelope_received(p2p_cmd_hdl, sk.clone(), envelope_bytes) {
                             tracing::warn!(target:"executor::event", %err);
                         }
                     }
                     P2pEvent::BlockReceived(block_bytes) => {
                         tracing::info!(target:"executor::event", "executor received block");
-                        if let Err(err) = handle_block_received(&db_handle, block_bytes) {
+                        if let Err(err) = on_block_received(&db_handle, block_bytes) {
                             tracing::warn!(target:"executor::event::block", %err);
                         }
                     },

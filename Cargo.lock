@@ -1965,6 +1965,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine"
+version = "0.1.0"
+dependencies = [
+ "account",
+ "anyhow",
+ "apps",
+ "chain",
+ "contract",
+ "db",
+ "network",
+ "platform",
+ "primitives",
+ "risc0-zkvm",
+ "schedule",
+ "thiserror 2.0.17",
+ "tracing",
+ "tx",
+]
+
+[[package]]
 name = "enum-as-inner"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2070,15 +2090,12 @@ version = "0.1.0"
 dependencies = [
  "account",
  "anyhow",
- "apps",
- "chain",
  "clap",
- "contract",
  "db",
  "dotenvy",
+ "engine",
  "network",
  "platform",
- "primitives",
  "schedule",
  "server",
  "tokio",
@@ -6168,13 +6185,13 @@ dependencies = [
  "axum",
  "contract",
  "db",
+ "engine",
  "hex",
  "network",
  "primitives",
  "risc0-zkvm",
  "schedule",
  "serde",
- "spec",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -7099,23 +7116,17 @@ dependencies = [
 name = "verifier"
 version = "0.1.0"
 dependencies = [
- "account",
  "anyhow",
- "apps",
- "chain",
  "clap",
- "contract",
  "db",
  "dotenvy",
+ "engine",
  "network",
  "platform",
- "primitives",
- "schedule",
  "tokio",
  "tracing",
  "tracing-appender",
  "tracing-subscriber 0.3.20",
- "tx",
 ]
 
 [[package]]

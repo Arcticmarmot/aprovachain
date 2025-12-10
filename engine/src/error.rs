@@ -1,18 +1,14 @@
-use axum::http::StatusCode;
-use axum::Json;
-use axum::response::{IntoResponse, Response};
 use thiserror::Error;
 use tx::error::TxError;
 use account::error::AccountError;
 use apps::error::AppError;
 use contract::error::ContractError;
 use db::error::DBError;
-use engine::error::EngineError;
 use network::error::PeerError;
 use schedule::error::ScheduleError;
 
 #[derive(Debug, Error)]
-pub enum ServerError {
+pub enum EngineError {
     #[error(transparent)]
     Tx(#[from] TxError),
     #[error(transparent)]
@@ -25,8 +21,6 @@ pub enum ServerError {
     Account(#[from] AccountError),
     #[error(transparent)]
     DB(#[from] DBError),
-    #[error(transparent)]
-    Engine(#[from] EngineError),
     #[error(transparent)]
     Contract(#[from] ContractError),
     #[error("risc0 zkvm compute image_id failed")]
@@ -55,20 +49,4 @@ pub enum ServerError {
     ContractExec { message: String },
 }
 
-impl IntoResponse for ServerError {
-    fn into_response(self) -> Response {
-        match self {
-            ServerError::Tx(e) => (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
-            ServerError::DB(e) => (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
-            ServerError::ImageIdCompute(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-            ServerError::ExecutorEnvBuild(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-            ServerError::ImageIdMismatch => (StatusCode::BAD_REQUEST, self.to_string()).into_response(),
-            ServerError::ElfHashMismatch => (StatusCode::BAD_REQUEST, self.to_string()).into_response(),
-            ServerError::ElfFileNotFound => (StatusCode::BAD_REQUEST, self.to_string()).into_response(),
-            _ => (StatusCode::BAD_REQUEST, self.to_string()).into_response()
-        }
-    }
-}
-
-pub type Result<T> = std::result::Result<T, ServerError>;
-pub type ApiResult<T> = std::result::Result<Json<T>, ServerError>;
+pub type Result<T> = std::result::Result<T, EngineError>;

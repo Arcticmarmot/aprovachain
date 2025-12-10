@@ -5,8 +5,7 @@ edition = "2024"
 
 [dependencies]
 db = { workspace = true }
-tx = { workspace = true }
-schedule = { workspace = true }
+engine = { workspace = true }
 network = { workspace = true }
 tokio = { workspace = true }
 anyhow = { workspace = true }
@@ -15,9 +14,4 @@ tracing-subscriber = { workspace = true }
 tracing-appender = { workspace = true }
 clap = { workspace = true }
 dotenvy = { workspace = true }
-primitives = { workspace = true }
-chain = { workspace = true }
-contract = { workspace = true }
 platform = { workspace = true }
-account = { workspace = true }
-apps = { workspace = true }

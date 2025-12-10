@@ -12,17 +12,14 @@ network = { workspace = true }
 tokio = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
+engine = { workspace = true }
 tracing-subscriber = { workspace = true }
 tracing-appender = { workspace = true }
 clap = { workspace = true }
 dotenvy = { workspace = true }
-primitives = { workspace = true }
-chain = { workspace = true }
-contract = { workspace = true }
 platform = { workspace = true }
 account = { workspace = true }
-apps = { workspace = true }
 
 [features]
 default = []                         # 看你需不需要默认 feature
-cuda = ["server/cuda"]
+cuda = ["engine/cuda"]
