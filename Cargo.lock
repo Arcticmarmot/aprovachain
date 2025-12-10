@@ -2065,6 +2065,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "executor"
+version = "0.1.0"
+dependencies = [
+ "account",
+ "anyhow",
+ "apps",
+ "chain",
+ "clap",
+ "contract",
+ "db",
+ "dotenvy",
+ "network",
+ "platform",
+ "primitives",
+ "schedule",
+ "server",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber 0.3.20",
+ "tx",
+]
+
+[[package]]
 name = "fallible-iterator"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4213,30 +4237,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a5b0c77c1b780822bc749a33e39aeb2c07584ab93332303babeabb645298a76e"
 
 [[package]]
-name = "node"
-version = "0.1.0"
-dependencies = [
- "account",
- "anyhow",
- "apps",
- "chain",
- "clap",
- "contract",
- "db",
- "dotenvy",
- "network",
- "platform",
- "primitives",
- "schedule",
- "server",
- "tokio",
- "tracing",
- "tracing-appender",
- "tracing-subscriber 0.3.20",
- "tx",
-]
-
-[[package]]
 name = "nohash-hasher"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5966,9 +5966,8 @@ version = "0.1.0"
 dependencies = [
  "account",
  "db",
- "primitives",
- "sha2",
  "thiserror 2.0.17",
+ "tracing",
  "tx",
 ]
 
@@ -7094,6 +7093,29 @@ dependencies = [
  "num-integer",
  "num-traits",
  "rustc_version 0.4.1",
+]
+
+[[package]]
+name = "verifier"
+version = "0.1.0"
+dependencies = [
+ "account",
+ "anyhow",
+ "apps",
+ "chain",
+ "clap",
+ "contract",
+ "db",
+ "dotenvy",
+ "network",
+ "platform",
+ "primitives",
+ "schedule",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber 0.3.20",
+ "tx",
 ]
 
 [[package]]

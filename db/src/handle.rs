@@ -55,8 +55,7 @@ impl DBHandle {
                             stats.push(block.tx_codes)
                         },
                         None => {
-                            // TODO: 数据完整性保证
-                            // return Err(DBError::DBIntegrity)
+                            return Err(DBError::DBIntegrity)
                         }
                     }
                 }

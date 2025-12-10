@@ -62,13 +62,13 @@ pub async fn submit_tx(State(state) : State<AppState>, tx_bytes: Bytes) -> ApiRe
                 let ctr_addr_str = ctr.addr.to_bech32m()?;
                 Ok(Json(SubmitTxResponse::Submitted { ctr_addr_str,executor_id: exec_id }))
             }
-            TxPayload::Update { ctr_addr_str, image_id, elf_hash, .. } => {
+            TxPayload::Update { ctr_addr_str, .. } => {
                 Ok(Json(SubmitTxResponse::Submitted { ctr_addr_str, executor_id: exec_id }))
             }
             TxPayload::Exec { ctr_addr_str, .. } => {
                 Ok(Json(SubmitTxResponse::Submitted { ctr_addr_str, executor_id: exec_id }))
             }
         }
-        
+
     }
 }

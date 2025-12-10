@@ -5,17 +5,17 @@ use tokio::{signal, spawn};
 use db::runtime::{init_db, close_db, DBFileMode};
 use network::handle::{P2pCmd, P2pCmdHandle, P2pEvent, P2pEventHandle};
 use network::runtime::{init_p2p, run_p2p};
-use node::bootstrap::{init_env, init_logging};
+use executor::bootstrap::{init_env, init_logging};
 use tokio::sync::mpsc;
 use db::handle::DBHandle;
 use network::behaviour::behaviour::PeerRole;
-use node::handle::{handle_block_received, handle_envelope_received, handle_tx_received};
+use executor::handle::{handle_block_received, handle_envelope_received};
 use server::runtime::run_server;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
 struct NodeArgs {
-    #[clap(next_help_heading = "The Chain Id of the Tx")]
+    #[clap(next_help_heading = "database file mode")]
     #[arg(short, long, env, value_enum)]
     db_file_mode: DBFileMode,
 }
@@ -35,7 +35,7 @@ async fn main() -> Result<()> {
     let db_file_mode = args.db_file_mode;
     let _ = init_db(db_file_mode)?;
     let db_handle = DBHandle::new()?;
-    tracing::info!(target:"node::init", "rocksdb({db_file_mode:?}) init success...");
+    tracing::info!(target:"executor::init", "rocksdb({db_file_mode:?}) init success...");
 
     let (p2p_cmd_tx, p2p_cmd_rx) =
         mpsc::unbounded_channel::<P2pCmd>();
@@ -49,44 +49,39 @@ async fn main() -> Result<()> {
     spawn(async move {
         let _ = run_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl).await;
     });
-    tracing::info!(target:"node::init", "p2p init success...");
+    tracing::info!(target:"executor::init", "p2p init success...");
 
     let server_sk= sk.clone();
+    let server_db_handle = db_handle.clone();
     // 开启 http 服务
     spawn(async move {
-        let _ = run_server(server_sk, db_handle, p2p_cmd_hdl).await;
+        let _ = run_server(server_sk, server_db_handle, p2p_cmd_hdl).await;
     });
-    tracing::info!(target:"node::init", "server init success...");
-
-
+    tracing::info!(target:"executor::init", "server init success...");
+    
     loop {
         tokio::select! {
             Some(cmd) = p2p_event_rx.recv() => {
                 match cmd {
                     P2pEvent::EnvelopeReceived(envelope_bytes) => {
-                        tracing::info!(target:"node::event", "node received envelope");
+                        tracing::info!(target:"executor::event", "executor received envelope");
                         let p2p_cmd_hdl = P2pCmdHandle::new(p2p_cmd_tx.clone());
                         if let Err(err) = handle_envelope_received(p2p_cmd_hdl, sk.clone(), envelope_bytes) {
-                            tracing::warn!(target:"node::event", %err);
+                            tracing::warn!(target:"executor::event", %err);
                         }
                     }
-                    P2pEvent::TxReceived(tx_bytes) => {
-                        tracing::info!(target:"node::event", "node received tx");
-                        if let Err(err) = handle_tx_received(tx_bytes) {
-                            tracing::warn!(target:"node::event", %err);
+                    P2pEvent::BlockReceived(block_bytes) => {
+                        tracing::info!(target:"executor::event", "executor received block");
+                        if let Err(err) = handle_block_received(&db_handle, block_bytes) {
+                            tracing::warn!(target:"executor::event::block", %err);
                         }
                     },
-                    P2pEvent::BlockReceived(block_bytes) => {
-                        tracing::info!(target:"node::event", "node received block");
-                        if let Err(err) = handle_block_received(block_bytes) {
-                            tracing::warn!(target:"node::event::block", %err);
-                        }
-                    }
+                    _ => { }
                 }
             },
 
             _ = signal::ctrl_c() => {
-                tracing::info!(target:"node::signal", "ctrl-c received, shutting down");
+                tracing::info!(target:"executor::signal", "ctrl-c received, shutting down");
                 let _ = close_db(db_file_mode);
                 exit(0);
             }

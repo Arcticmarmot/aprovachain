@@ -12,7 +12,7 @@ pub fn init_logging() -> anyhow::Result<()> {
     let filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new("info"));
     let proj_dir = aprova_proj_dir().context("resolve project dirs")?;
-    let log_dir = proj_dir.data_local_dir().join("node-logs");
+    let log_dir = proj_dir.data_local_dir().join("verifier-logs");
     fs::create_dir_all(&log_dir).context("create log dir")?;
 
     let file_layer = fmt::layer()
@@ -39,15 +39,15 @@ pub fn init_logging() -> anyhow::Result<()> {
 pub fn init_env() -> anyhow::Result<()> {
     match dotenv() {
         Ok(path) => {
-            tracing::debug!("Loaded environment variables from {:?} for node", path);
+            tracing::debug!("Loaded environment variables from {:?} for verifier", path);
             Ok(())
         },
         Err(e) if e.not_found() => {
-            tracing::warn!("No .env found for node");
+            tracing::warn!("No .env found for verifier");
             Ok(())
         },
         Err(e) => {
-            tracing::error!("Failed to load .env file for node: {}", e);
+            tracing::error!("Failed to load .env file for verifier: {}", e);
             Err(e).context("load .env file")
         }
     }

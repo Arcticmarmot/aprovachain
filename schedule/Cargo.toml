@@ -8,5 +8,4 @@ account = { workspace = true }
 tx = { workspace = true }
 db = { workspace = true }
 thiserror = { workspace = true }
-primitives = { workspace = true }
-sha2 = { workspace = true }
+tracing = { workspace = true }

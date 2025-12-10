@@ -30,44 +30,39 @@ pub fn handle_envelope_received(cmd_handle: P2pCmdHandle, sk: AccountSigningKey,
     // TODO: 重放交易攻击，拒绝重复的 nonce
     // 验证交易签名是否有效
     envelope.self_verify()?;
-    tracing::info!(target:"node::event", ?tx_envelope_id, "tx envelope id");
+    tracing::info!(target:"executor::event", ?tx_envelope_id, "tx envelope id");
 
     let exec_id = match assign_executor_for_tx(&db_handle, &tx_envelope_id)? {
         Some(exec_id) => { exec_id },
         None => {
-            tracing::info!(target: "node::event", %tx_envelope_id, "no metrics yet, fall back to self as executor");
+            tracing::info!(target: "executor::event", %tx_envelope_id, "no metrics yet, fall back to self as executor");
             self_exec_id
         }
     };
-    tracing::info!(target:"node::event", %exec_id, "executor id");
+    tracing::info!(target:"executor::event", %exec_id, "executor id");
 
     if exec_id == self_exec_id {
-        tracing::info!(target:"node::event", "I will do it");
+        tracing::info!(target:"executor::event", "I will do it");
         // 执行交易
         let outcome = build_tx_outcome(&db_handle, envelope)?;
 
         let tx = TxAttestation::create(outcome, sk);
         let tx_bytes = tx.to_canonical_bytes();
-        tracing::info!(target: "node::event", len=?tx_bytes.len(), "tx_size");
+        tracing::info!(target: "executor::event", len=?tx_bytes.len(), "tx_size");
 
         // 广播交易
         cmd_handle.publish_tx(tx_bytes)?;
     } else {
-        tracing::info!(target:"node::event", "none of my business");
+        tracing::info!(target:"executor::event", "none of my business");
     }
     Ok(())
 }
 
-pub fn handle_tx_received(_: Vec<u8>) -> Result<()> {
-    Ok(())
-}
-
-pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
+pub fn handle_block_received(db_handle: &DBHandle, block_bytes: Vec<u8>) -> Result<()> {
     // 解码 block
     let block = OrderedBlock::try_decode_bcs(&block_bytes)?;
     let header = block.header;
-    tracing::info!(target:"node::event", ?header, "new block header");
-    let db_handle = DBHandle::new()?;
+    tracing::info!(target:"executor::event", ?header, "new block header");
     // 验证是否是合法区块，并存储 chain_state
     match db_handle.load_chain_state()? {
         Some(tip_header) => {
@@ -100,7 +95,7 @@ pub fn handle_block_received(block_bytes: Vec<u8>) -> Result<()> {
 
     // TODO: delete tracing info
     if let Some(block) = db_handle.load_block(header.height)? {
-        tracing::info!(target: "node::block", ?block, "=======COMMITTED_BLOCK=======\r\n");
+        tracing::info!(target: "executor::block", ?block, "=======COMMITTED_BLOCK=======\r\n");
     }
     Ok(())
 }
@@ -121,7 +116,7 @@ pub fn handle_tx(txs: Vec<TxAttestation>, db_handle: &DBHandle) -> Result<TxServ
 pub fn apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<TxServiceCode> {
     // 检查节点签名
     if let Err(err) = tx.self_verify() {
-        tracing::error!(target: "node::event", %err, "invalid node signature");
+        tracing::error!(target: "executor::event", %err, "invalid executor signature");
         return Ok(TxServiceCode::InvalidTx)
     }
 
@@ -130,7 +125,7 @@ pub fn apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<TxServiceCode
     let envelope = outcome.envelope;
 
     if let Err(err) = envelope.self_verify() {
-        tracing::error!(target: "node::event", %err, "invalid user signature");
+        tracing::error!(target: "executor::event", %err, "invalid user signature");
         return Ok(TxServiceCode::InvalidTx)
     }
 
@@ -143,7 +138,7 @@ pub fn apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<TxServiceCode
             let ctr_addr = match ContractAddress::parse_bech32m_with_id(intent.chain_id, &ctr_addr_str) {
                 Ok(addr) => addr,
                 Err(err) => {
-                    tracing::error!(target:"node::event", %err, ctr_addr_str, "invalid ctr_addr_str for exec tx");
+                    tracing::error!(target:"executor::event", %err, ctr_addr_str, "invalid ctr_addr_str for exec tx");
                     return Ok(TxServiceCode::InvalidTx);
                 }
             };
@@ -152,7 +147,7 @@ pub fn apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<TxServiceCode
             let ctr = match ctr_opt {
                 Some(ctr) => ctr,
                 None => {
-                    tracing::error!(target:"node::event", contract_addr=?ctr_addr, "contract not found");
+                    tracing::error!(target:"executor::event", contract_addr=?ctr_addr, "contract not found");
                     return Ok(TxServiceCode::InvalidTx);
                 }
             };
@@ -161,19 +156,19 @@ pub fn apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<TxServiceCode
             let receipt = match receipt_opt {
                 Some(receipt) => receipt,
                 None => {
-                    tracing::error!(target:"node::event", "exec tx without receipt");
+                    tracing::error!(target:"executor::event", "exec tx without receipt");
                     return Ok(TxServiceCode::InvalidTx);
                 }
             };
             if let Err(err) = receipt.verify(image_id) {
-                tracing::error!(target:"node::event", %err, "fake receipt");
+                tracing::error!(target:"executor::event", %err, "fake receipt");
                 return Ok(TxServiceCode::FakeReceipt);
             }
 
             let ctr_output_bytes: Vec<u8> = match receipt.journal.decode() {
                 Ok(bytes) => bytes,
                 Err(err) => {
-                    tracing::error!(target:"node::event", %err, "receipt journal decode failed");
+                    tracing::error!(target:"executor::event", %err, "receipt journal decode failed");
                     return Ok(TxServiceCode::InvalidTx);
                 }
             };
@@ -181,11 +176,11 @@ pub fn apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<TxServiceCode
             let ctr_output = match CtrOutput::try_decode_bcs(&ctr_output_bytes) {
                 Ok(output) => output,
                 Err(err) => {
-                    tracing::error!(target:"node::event", %err, "output decode failed");
+                    tracing::error!(target:"executor::event", %err, "output decode failed");
                     return Ok(TxServiceCode::InvalidTx);
                 }
             };
-            tracing::info!(target:"node::event", input=?input, output=?ctr_output);
+            tracing::info!(target:"executor::event", input=?input, output=?ctr_output);
 
             let input_hash = ctr_output.input_hash;
             let read_set = ctr_output.read_set;
@@ -207,7 +202,7 @@ pub fn apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<TxServiceCode
                     }
                 },
                 CtrResult::Err { message } => {
-                    tracing::error!(target: "node::event", %message, "ctr exec failed");
+                    tracing::error!(target: "executor::event", %message, "ctr exec failed");
                     return Ok(TxServiceCode::BadRequest);
                 }
             };
@@ -232,7 +227,7 @@ pub fn apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<TxServiceCode
             // key: ELF文件哈希
             // value: ELF文件字节数组
             db_handle.save_elf(ctr.elf_hash, &elf)?;
-            tracing::info!(target:"node::event", contract_addr=?ctr.addr, "contract deployed");
+            tracing::info!(target:"executor::event", contract_addr=?ctr.addr, "contract deployed");
 
             Ok(TxServiceCode::Success)
         },
@@ -243,7 +238,7 @@ pub fn apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<TxServiceCode
             let ctr_addr = match ContractAddress::parse_bech32m_with_id(intent.chain_id, &ctr_addr_str) {
                 Ok(addr) => addr,
                 Err(err) => {
-                    tracing::error!(target:"node::event", %err, ctr_addr_str, "invalid ctr_addr_str for update tx");
+                    tracing::error!(target:"executor::event", %err, ctr_addr_str, "invalid ctr_addr_str for update tx");
                     return Ok(TxServiceCode::InvalidTx);
                 }
             };
@@ -254,7 +249,7 @@ pub fn apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<TxServiceCode
             // key: ELF文件哈希
             // value: ELF文件字节数组
             db_handle.save_elf(ctr.elf_hash, &elf)?;
-            tracing::info!(target:"node::event", contract_addr=?ctr_addr, "contract update");
+            tracing::info!(target:"executor::event", contract_addr=?ctr_addr, "contract update");
 
             Ok(TxServiceCode::Success)
         },

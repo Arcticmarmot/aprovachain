@@ -1,10 +1,10 @@
 use std::cmp::Ordering;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::hash::{Hash};
 use serde::{Deserialize, Serialize};
 use crate::keypair::AccountVerifyingKey;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct ExecutorId(pub AccountVerifyingKey);
 
 impl PartialOrd for ExecutorId {
@@ -20,6 +20,12 @@ impl Ord for ExecutorId {
 }
 
 impl Display for ExecutorId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", hex::encode(&self.verifying_key().to_bytes()))
+    }
+}
+
+impl Debug for ExecutorId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", hex::encode(&self.verifying_key().to_bytes()))
     }
