@@ -9,3 +9,4 @@ tx = { workspace = true }
 db = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+chain = { workspace = true }

@@ -1,11 +1,11 @@
 use std::sync::Arc;
 use rocksdb::{ColumnFamily, WriteBatch, DB};
 use account::address::{ChainAddrBytes};
-use chain::block::{BlockHeader, LedgerBlock};
+use chain::block::{BlockHeader, LedgerBlock, OrderedBlock};
 use contract::contract::{Contract, ContractWire};
 use primitives::hash::Hash32;
 use apps::ctr_io::{NamespaceKey, ReadSet, WriteSet};
-use tx::code::TxServiceCodeMap;
+use chain::catalog::TxServiceCatalog;
 use crate::error::DBError;
 use crate::runtime::dbh;
 use crate::error::Result;
@@ -35,8 +35,8 @@ impl DBHandle {
         self.dbh.cf_handle("blocks").expect("cf 'blocks' must be exist")
     }
 
-    pub fn cf_tx_codes(&self) -> &ColumnFamily {
-        self.dbh.cf_handle("tx_codes").expect("cf 'tx_codes' must be exist")
+    pub fn cf_catalog(&self) -> &ColumnFamily {
+        self.dbh.cf_handle("catalog").expect("cf 'catalog' must be exist")
     }
 
     pub fn cf_contracts(&self) -> &ColumnFamily {
@@ -47,16 +47,16 @@ impl DBHandle {
         self.dbh.cf_handle("elfs").expect("cf 'elfs' must be exist")
     }
 
-    pub fn load_stats_window(&self, window_size: usize) -> Result<Vec<TxServiceCodeMap>> {
+    pub fn load_stats_window(&self, window_size: usize) -> Result<Vec<TxServiceCatalog>> {
         match self.load_chain_state()? {
             Some(chain_state) => {
                 let tip_height = chain_state.height;
                 let start_height= tip_height.saturating_sub(window_size as u128);
                 let mut stats = Vec::with_capacity(window_size);
                 for height in start_height..tip_height {
-                    match self.load_block(height)? {
-                        Some(block) => {
-                            stats.push(block.tx_codes)
+                    match self.load_catalog(height)? {
+                        Some(catalog) => {
+                            stats.push(catalog)
                         },
                         None => {
                             return Err(DBError::DBIntegrity)
@@ -128,9 +128,9 @@ impl DBHandle {
     }
 
     pub fn load_chain_state(&self) -> Result<Option<BlockHeader>> {
-        let tip_header = self.dbh.get_cf(self.cf_chain(), CHAIN_TIP_KEY)
+        let tip_header_opt = self.dbh.get_cf(self.cf_chain(), CHAIN_TIP_KEY)
             .map_err(DBError::DBGet)?;
-        Ok(match tip_header {
+        Ok(match tip_header_opt {
             Some(header_bytes) => { Some(BlockHeader::try_decode_bcs(&header_bytes)?) },
             None => None
         })
@@ -170,22 +170,38 @@ impl DBHandle {
 
     pub fn save_block(&self, ledger_block: &LedgerBlock) -> Result<()> {
         let mut batch = WriteBatch::default();
-        let height_key: [u8; 16] = ledger_block.header.height.to_be_bytes();
-        batch.put_cf(self.cf_blocks(), height_key, ledger_block.encode_bcs());
-        batch.put_cf(self.cf_tx_codes(), height_key, ledger_block.tx_codes.into());
+        let ordered_block = &ledger_block.ordered;
+        let height_key: [u8; 16] = ordered_block.header.height.to_be_bytes();
+        let catalog = &ledger_block.catalog;
+        batch.put_cf(self.cf_catalog(), height_key, ordered_block.encode_bcs());
+        batch.put_cf(self.cf_blocks(), height_key, catalog.encode_bcs());
         self.dbh.write(batch).map_err(DBError::DBPut)?;
         Ok(())
     }
 
+    pub fn load_catalog(&self, height: u128) -> Result<Option<TxServiceCatalog>> {
+        let height_key: [u8; 16] = height.to_be_bytes();
+        let catalog_opt = self.dbh.get_cf(self.cf_catalog(), height_key)
+            .map_err(DBError::DBGet)?;
+        Ok(match catalog_opt {
+            Some(catalog_bytes) => {
+                Some(TxServiceCatalog::try_decode_bcs(&catalog_bytes)?)
+            }
+            None => None
+        })
+    }
+
     pub fn load_block(&self, height: u128) -> Result<Option<LedgerBlock>> {
         let height_key: [u8; 16] = height.to_be_bytes();
-        let block_opt = self.dbh.get_cf(self.cf_blocks(), height_key)
+        let ordered_block_opt = self.dbh.get_cf(self.cf_blocks(), height_key)
             .map_err(DBError::DBGet)?;
-        Ok(match block_opt{
-            Some(block_bytes) => {
-                Some(LedgerBlock::try_decode_bcs(&block_bytes)?)
+        let catalog_opt = self.load_catalog(height)?;
+        Ok(match (ordered_block_opt, catalog_opt){
+            (Some(block_bytes), Some(catalog)) => {
+                let ordered_block = OrderedBlock::try_decode_bcs(&block_bytes)?;
+                Some(LedgerBlock::new(ordered_block, catalog))
             },
-            None => None
+            _ => None
         })
     }
 }

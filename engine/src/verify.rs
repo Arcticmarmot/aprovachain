@@ -3,13 +3,13 @@ use account::address::ContractAddress;
 use account::executor::ExecutorId;
 use apps::ctr_io::{CtrInput, CtrOutput, CtrResult};
 use chain::block::{OrderedBlock, LedgerBlock};
+use chain::catalog::{TxServiceCatalog, TxServiceCode};
 use contract::contract::Contract;
 use db::handle::DBHandle;
 use platform::clock::unix_time_millis;
 use primitives::constant::{SLOT_SECS};
 use primitives::hash::sha256;
 use tx::attestation::TxAttestation;
-use tx::code::{TxServiceCode, TxServiceCodeMap};
 use tx::intent::TxPayload;
 
 pub fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>) -> Result<()> {
@@ -37,19 +37,19 @@ pub fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>) -> Res
             TxAttestation::try_from(tx).with_context(|| "tx decode failed")
         })
         .collect::<Result<Vec<TxAttestation>>>()?;
-    let mut tx_codes: TxServiceCodeMap = TxServiceCodeMap::new();
+    let mut catalog = TxServiceCatalog::new();
 
     for tx in txs {
         let tx_id = tx.tx_id;
         let executor_id = ExecutorId(tx.verifying_key.clone());
         let code = verify_and_apply_tx(db_handle, tx)?;
-        tx_codes.insert(tx_id, (executor_id, code));
+        catalog.insert(tx_id, (executor_id, code));
     }
     
     // 每条 tx 的业务层校验交易
-    let committed_block = LedgerBlock::new(block.header, block.txs, tx_codes);
+    let ledger_block = LedgerBlock::new(block, catalog);
     // 存储 block
-    db_handle.save_block(&committed_block)?;
+    db_handle.save_block(&ledger_block)?;
 
     // 更新 chain_state
     db_handle.save_chain_state(&header)?;

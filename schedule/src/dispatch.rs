@@ -1,7 +1,8 @@
 use std::collections::{BTreeMap};
+use std::ops::Deref;
 use account::executor::ExecutorId;
+use chain::catalog::{TxServiceCatalog, TxServiceCode};
 use db::handle::DBHandle;
-use tx::code::{TxServiceCode, TxServiceCodeMap};
 use tx::id::{TxEnvelopeId};
 use crate::error::{Result};
 use crate::event::EventRecord;
@@ -13,12 +14,12 @@ pub const WINDOW_SIZE: usize = 32;
 pub const WARMUP_SIZE: usize = 4;
 
 /// 根据一定大小窗口的区块数据计算指标
-pub fn compute_metrics_by_window(stats_window: &[TxServiceCodeMap]) -> Metrics {
+pub fn compute_metrics_by_window(stats_window: &[TxServiceCatalog]) -> Metrics {
     let mut metrics = Metrics::new();
     for block_stats in stats_window {
         // 记录每个事件的数量
         let mut event_records: BTreeMap<ExecutorId, EventRecord> = BTreeMap::new();
-        for (_, (exec_id, code)) in block_stats {
+        for (_, (exec_id, code)) in block_stats.deref() {
             match code {
                 TxServiceCode::Success | TxServiceCode::Conflict => {
                     event_records.entry(exec_id.clone()).or_default().valid += 1;

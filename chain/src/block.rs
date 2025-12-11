@@ -1,9 +1,10 @@
 use std::fmt::{Debug, Formatter};
+use std::ops::Deref;
 use serde::{Deserialize, Serialize};
 use platform::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32, HASH32_ZERO};
 use tx::attestation::{TxAttestation, TxAttestationWire};
-use tx::code::{TxServiceCatalog};
+use crate::catalog::TxServiceCatalog;
 use crate::error::Result;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
@@ -107,21 +108,20 @@ impl OrderedBlock {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct LedgerBlock {
-    pub header: BlockHeader,
-    pub txs: Vec<TxAttestationWire>,
-    pub tx_codes: TxServiceCatalog
+    pub ordered: OrderedBlock,
+    pub catalog: TxServiceCatalog
 }
 
 impl Debug for LedgerBlock {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Block {{")?;
-        writeln!(f, "  header: {:?},", self.header)?;
+        writeln!(f, "  header: {:?},", self.ordered.header)?;
         writeln!(f, "  txs: [")?;
-        for tx in &self.txs {
+        for tx in &self.ordered.txs {
             writeln!(f, "    {:?},", TxAttestation::try_from(tx.clone()).unwrap())?;
         }
         writeln!(f, "  ]")?;
-        for (tx_id, (exec_id, code)) in self.tx_codes.map() {
+        for (tx_id, (exec_id, code)) in self.catalog.deref() {
             writeln!(f, "  tx_id: {tx_id}, exec_id: {exec_id}, code: {code:?}")?;
         }
         write!(f, "}}")
@@ -129,19 +129,10 @@ impl Debug for LedgerBlock {
 }
 
 impl LedgerBlock {
-    pub fn new(header: BlockHeader, txs: Vec<TxAttestationWire>,
-               tx_codes: TxServiceCatalog) -> Self {
+    pub fn new(ordered: OrderedBlock, catalog: TxServiceCatalog) -> Self {
         Self {
-            header,
-            txs,
-            tx_codes
-        }
-    }
-
-    pub fn into_ordered_block(self) -> OrderedBlock {
-        OrderedBlock {
-            header: self.header,
-            txs: self.txs
+            ordered,
+            catalog
         }
     }
 
