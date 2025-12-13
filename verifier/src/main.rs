@@ -5,7 +5,7 @@ use tokio::{signal, spawn};
 use db::runtime::{init_db, close_db, DBFileMode};
 use network::handle::{P2pCmd, P2pEvent, P2pEventHandle};
 use network::runtime::{init_p2p, run_p2p};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 use db::handle::DBHandle;
 use network::behaviour::behaviour::PeerRole;
 use verifier::bootstrap::{init_env, init_logging};
@@ -42,11 +42,13 @@ async fn main() -> Result<()> {
         mpsc::unbounded_channel::<P2pEvent>();
     // let p2p_cmd_hdl = P2pCmdHandle::new(p2p_cmd_tx.clone());
     let p2p_event_hdl = P2pEventHandle::new(p2p_event_tx.clone());
+    let (shutdown_tx, shutdown_rx) = watch::channel(false);
 
     let (_sk, peer_set, swarm) = init_p2p(PeerRole::Verifier)?;
     // p2p 接收P2pCmd命令，发出P2pEvent事件
-    spawn(async move {
-        let _ = run_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl).await;
+    let p2p_shutdown_rx = shutdown_rx.clone();
+    let p2p_handle = spawn(async move {
+        let _ = run_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl, p2p_shutdown_rx).await;
     });
     tracing::info!(target:"node::init", "p2p init success...");
 
@@ -66,6 +68,8 @@ async fn main() -> Result<()> {
 
             _ = signal::ctrl_c() => {
                 tracing::info!(target:"node::signal", "ctrl-c received, shutting down");
+                let _ = shutdown_tx.send(true);
+                let _ = p2p_handle.await;
                 let _ = close_db(db_file_mode);
                 exit(0);
             }

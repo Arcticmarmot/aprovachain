@@ -92,13 +92,13 @@ pub fn close_db(mode: DBFileMode) -> Result<()> {
         drop(db);
     }
 
-    match mode {
-        DBFileMode::Ephemeral => {
-            let path = DB_PATH.get().unwrap();
-            DB::destroy(&Options::default(), path).expect("DB destroy failed");
-        },
-        _ => {}
-    }
+    // match mode {
+    //     DBFileMode::Ephemeral => {
+    //         let path = DB_PATH.get().unwrap();
+    //         DB::destroy(&Options::default(), path).expect("DB destroy failed");
+    //     },
+    //     _ => {}
+    // }
 
     if let Some(temp_dir) = TEMP_DIR.swap(None) {
         drop(temp_dir);

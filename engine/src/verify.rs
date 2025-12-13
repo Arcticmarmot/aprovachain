@@ -9,6 +9,7 @@ use db::handle::DBHandle;
 use platform::clock::unix_time_millis;
 use primitives::constant::{SLOT_SECS};
 use primitives::hash::sha256;
+use schedule::dispatch::assign_executor_for_tx;
 use tx::attestation::TxAttestation;
 use tx::intent::TxPayload;
 
@@ -41,9 +42,9 @@ pub fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>) -> Res
 
     for tx in txs {
         let tx_id = tx.tx_id;
-        let executor_id = ExecutorId(tx.verifying_key.clone());
+        let exec_id = ExecutorId(tx.verifying_key.clone());
         let code = verify_and_apply_tx(db_handle, tx)?;
-        catalog.insert(tx_id, (executor_id, code));
+        catalog.insert(tx_id, (exec_id, code));
     }
     
     // 每条 tx 的业务层校验交易
@@ -71,6 +72,17 @@ pub fn verify_and_apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<Tx
     let outcome = tx.outcome;
     // 检查用户签名
     let envelope = outcome.envelope;
+
+    // 检查是否为 schedule 指定节点执行
+    let exec_id_opt = assign_executor_for_tx(&db_handle, &envelope.tx_id())?;
+    match exec_id_opt {
+        Some(exec_id) => {
+            if exec_id.verifying_key() != tx.verifying_key {
+                return Ok(TxServiceCode::InvalidTx)
+            }
+        }
+        None => { }
+    }
 
     if let Err(err) = envelope.self_verify() {
         tracing::error!(target: "engine::verify", %err, "invalid user signature");

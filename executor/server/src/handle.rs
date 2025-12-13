@@ -7,7 +7,7 @@ use axum::extract::State;
 use axum::Json;
 use account::executor::ExecutorId;
 use contract::contract::Contract;
-use engine::execute::{build_tx_outcome, verify_and_build_envelope, verify_and_build_tx};
+use engine::execute::{build_tx_outcome, verify_and_build_envelope};
 use schedule::dispatch::assign_executor_for_tx;
 use tx::intent::TxPayload;
 

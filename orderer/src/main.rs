@@ -6,7 +6,7 @@ use tokio::{spawn};
 use network::handle::*;
 use network::runtime::{init_p2p, run_p2p};
 use orderer::bootstrap::{init_env, init_logging};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
 use consensus::solo::handle::{SoloCmd, SoloCmdHandle, SoloEvent, SoloEventHandle};
@@ -38,11 +38,12 @@ async fn main() -> Result<()> {
         mpsc::unbounded_channel::<P2pEvent>();
     let p2p_cmd_hdl = P2pCmdHandle::new(p2p_cmd_tx.clone());
     let p2p_event_hdl = P2pEventHandle::new(p2p_event_tx.clone());
-
+    let (shutdown_tx, shutdown_rx) = watch::channel(false);
     let (sk, peer_set, swarm) = init_p2p(PeerRole::Orderer)?;
     // p2p 接收P2pCmd命令，发出P2pEvent事件
+    let p2p_shutdown_rx = shutdown_rx.clone();
     spawn(async move {
-        let _ = run_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl).await;
+        let _ = run_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl, p2p_shutdown_rx).await;
     });
     tracing::info!(target:"orderer::init", "p2p init success...");
 

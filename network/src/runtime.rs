@@ -8,6 +8,7 @@ use libp2p::identity::Keypair;
 use crate::behaviour::behaviour::{PeerBehaviour, PeerRole};
 use crate::behaviour::peer_set::PeerSet;
 use tokio::sync::mpsc::{UnboundedReceiver};
+use tokio::sync::watch::Receiver;
 use crate::handle::{P2pCmd, P2pEventHandle};
 use account::keypair::{AccountSigningKey, AccountSigningKeyBytes};
 use platform::file::{load_node_sk_path};
@@ -49,6 +50,7 @@ pub async fn run_p2p(
     mut swarm: Swarm<PeerBehaviour>,
     mut cmd_rx: UnboundedReceiver<P2pCmd>,
     event_handle: P2pEventHandle,
+    mut shutdown_rx: Receiver<bool>
 ) {
     let swarm = &mut swarm;
     let _ = PeerSet::init(swarm);
@@ -73,6 +75,13 @@ pub async fn run_p2p(
                     }
                 }
             },
+
+            _ = shutdown_rx.changed() => {
+                if *shutdown_rx.borrow() {
+                    tracing::info!(target:"net::signal", "shutdown received, stopping p2p loop");
+                    break;
+                }
+            }
 
             event = swarm.select_next_some() => {
                 match event {
