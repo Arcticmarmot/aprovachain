@@ -1,12 +1,12 @@
 use consensus::solo::handle::SoloCmdHandle;
 use network::handle::P2pCmdHandle;
 use anyhow::Result;
-use engine::execute::build_tx_attestation;
+use engine::execute::verify_and_build_tx;
 
 /// Orderer P2pEvent::TxReceived 处理
 pub fn on_tx_received(tx_bytes: Vec<u8>, solo_cmd_hdl: &SoloCmdHandle) -> Result<()> {
     // 验证字节数组是否是有效交易
-    build_tx_attestation(&tx_bytes)?;
+    verify_and_build_tx(&tx_bytes)?;
     solo_cmd_hdl.submit_tx(tx_bytes)?;
     Ok(())
 }

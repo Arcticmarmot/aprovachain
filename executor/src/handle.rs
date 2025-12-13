@@ -2,7 +2,7 @@ use anyhow::{Result};
 use account::executor::ExecutorId;
 use account::keypair::AccountSigningKey;
 use db::handle::DBHandle;
-use engine::execute::{build_tx_envelope, build_tx_outcome};
+use engine::execute::{build_tx_outcome, verify_and_build_envelope};
 use engine::verify::verify_and_apply_block;
 use network::handle::P2pCmdHandle;
 use schedule::dispatch::assign_executor_for_tx;
@@ -14,7 +14,7 @@ pub fn on_envelope_received(cmd_handle: P2pCmdHandle, sk: AccountSigningKey, env
     let self_exec_id = ExecutorId(sk.verifying_key());
 
     // 从字节数组构造 TxEnvelope
-    let envelope = build_tx_envelope(&envelope_bytes)?;
+    let envelope = verify_and_build_envelope(&envelope_bytes)?;
     let tx_envelope_id = envelope.tx_id();
 
     let exec_id = match assign_executor_for_tx(&db_handle, &tx_envelope_id)? {

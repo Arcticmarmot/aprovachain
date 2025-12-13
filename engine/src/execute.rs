@@ -10,7 +10,7 @@ use tx::intent::TxPayload;
 use tx::outcome::TxOutcome;
 use crate::error::{EngineError, Result};
 
-pub fn build_tx_envelope(envelope_bytes: &[u8]) -> Result<TxEnvelope> {
+pub fn verify_and_build_envelope(envelope_bytes: &[u8]) -> Result<TxEnvelope> {
     // 从字节数组构造 TxEnvelope
     let wire: TxEnvelopeWire = TxEnvelopeWire::try_decode_bcs(envelope_bytes)?;
     let envelope = TxEnvelope::try_from(wire)?;
@@ -20,7 +20,7 @@ pub fn build_tx_envelope(envelope_bytes: &[u8]) -> Result<TxEnvelope> {
     Ok(envelope)
 }
 
-pub fn build_tx_attestation(tx_bytes: &[u8]) -> Result<TxAttestation> {
+pub fn verify_and_build_tx(tx_bytes: &[u8]) -> Result<TxAttestation> {
     let wire: TxAttestationWire = TxAttestationWire::try_decode_bcs(tx_bytes)?;
     let tx = TxAttestation::try_from(wire)?;
     tx.self_verify()?;

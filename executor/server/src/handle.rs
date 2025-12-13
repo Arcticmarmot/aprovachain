@@ -7,7 +7,7 @@ use axum::extract::State;
 use axum::Json;
 use account::executor::ExecutorId;
 use contract::contract::Contract;
-use engine::execute::{build_tx_envelope, build_tx_outcome};
+use engine::execute::{build_tx_outcome, verify_and_build_envelope, verify_and_build_tx};
 use schedule::dispatch::assign_executor_for_tx;
 use tx::intent::TxPayload;
 
@@ -19,7 +19,7 @@ pub async fn submit_tx(State(state) : State<AppState>, envelope_bytes: Bytes) ->
     let sk = state.sk;
     let self_exec_id = ExecutorId(sk.verifying_key());
 
-    let envelope = build_tx_envelope(envelope_bytes.as_ref())?;
+    let envelope = verify_and_build_envelope(envelope_bytes.as_ref())?;
     let tx_envelope_id = envelope.tx_id();
 
     let exec_id = match assign_executor_for_tx(&db_handle, &tx_envelope_id)? {

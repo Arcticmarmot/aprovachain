@@ -173,8 +173,8 @@ impl DBHandle {
         let ordered_block = &ledger_block.ordered;
         let height_key: [u8; 16] = ordered_block.header.height.to_be_bytes();
         let catalog = &ledger_block.catalog;
-        batch.put_cf(self.cf_catalog(), height_key, ordered_block.encode_bcs());
-        batch.put_cf(self.cf_blocks(), height_key, catalog.encode_bcs());
+        batch.put_cf(self.cf_blocks(), height_key, ordered_block.encode_bcs());
+        batch.put_cf(self.cf_catalog(), height_key, catalog.encode_bcs());
         self.dbh.write(batch).map_err(DBError::DBPut)?;
         Ok(())
     }
