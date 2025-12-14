@@ -7,12 +7,14 @@ use account::keypair::{AccountSigningKey};
 use apps::ctr_io::AccessSet;
 use db::handle::DBHandle;
 use primitives::hash::Hash32;
+use task::queue::TaskQueue;
 
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub db_handle: DBHandle,
     pub cmd_handle: P2pCmdHandle,
-    pub sk: AccountSigningKey
+    pub sk: AccountSigningKey,
+    pub queue: TaskQueue,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -35,7 +37,7 @@ pub enum SubmitTxResponse {
         image_id: Digest,
         elf_hash: Hash32
     },
-    Submitted {
+    Pending {
         ctr_addr_str: String,
         executor_id: ExecutorId,
     },
@@ -67,7 +69,7 @@ impl Debug for SubmitTxResponse {
                 writeln!(f, "  image_id: {}, ", image_id.to_string())?;
                 writeln!(f, "  elf_hash: {:?}, ", hex::encode(elf_hash))?;
             },
-            SubmitTxResponse::Submitted { ctr_addr_str, executor_id } => {
+            SubmitTxResponse::Pending { ctr_addr_str, executor_id } => {
                 writeln!(f, "  ctr_addr_str: {}, ", ctr_addr_str)?;
                 writeln!(f, "  executor_id: {}, ", executor_id)?;
             },

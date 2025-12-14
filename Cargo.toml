@@ -8,15 +8,17 @@ authors = ["marmot"]
 members = ["account", "schedule", "front", "spec", "keygen", "verifier", "engine",
     "methods", "methods/pass", "methods/ledger_guest", "apps", "apps/ledger",
     "executor", "db", "executor/server", "orderer", "orderer/consensus",
-    "primitives", "tx", "contract", "network", "chain", "platform", "schedule", "verifier", "engine"]
+    "primitives", "tx", "contract", "network", "chain", "platform", "schedule",
+    "verifier", "engine", "task"]
 
 [dependencies]
 
 [workspace.dependencies]
-account = { path="account" }
+account = { path = "account" }
 apps = { path = "apps" }
 schedule = { path = "schedule" }
 tx = { path = "tx" }
+task = { path = "task" }
 engine = { path = "engine" }
 primitives = { path="primitives" }
 spec = { path = "spec" }

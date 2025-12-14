@@ -40,7 +40,7 @@ impl TxEnvelope {
     }
 
     pub fn self_verify(&self) -> Result<()> {
-        Ok(self.verifying_key.verify(&self.intent.tx_id().0, &self.signature)?)
+        Ok(self.verifying_key.verify(&self.intent.tx_id().hash(), &self.signature)?)
     }
 }
 

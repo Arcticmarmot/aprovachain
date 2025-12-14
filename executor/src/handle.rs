@@ -6,12 +6,12 @@ use engine::execute::{build_tx_outcome, verify_and_build_envelope};
 use engine::verify::verify_and_apply_block;
 use network::handle::P2pCmdHandle;
 use schedule::dispatch::assign_executor_for_tx;
+use task::queue::TaskQueue;
 use tx::attestation::TxAttestation;
 
-pub fn on_envelope_received(cmd_handle: P2pCmdHandle, sk: AccountSigningKey, envelope_bytes: Vec<u8>) -> Result<()> {
+pub async fn on_envelope_received(queue: TaskQueue, self_exec_id: ExecutorId, envelope_bytes: Vec<u8>) -> Result<()> {
     // 加载状态信息
     let db_handle = DBHandle::new()?;
-    let self_exec_id = ExecutorId(sk.verifying_key());
 
     // 从字节数组构造 TxEnvelope
     let envelope = verify_and_build_envelope(&envelope_bytes)?;
@@ -28,15 +28,8 @@ pub fn on_envelope_received(cmd_handle: P2pCmdHandle, sk: AccountSigningKey, env
 
     if exec_id == self_exec_id {
         tracing::info!(target:"executor::event", "I will do it");
-        // 执行交易
-        let outcome = build_tx_outcome(&db_handle, envelope)?;
-
-        let tx = TxAttestation::create(outcome, sk);
-        let tx_bytes = tx.to_canonical_bytes();
-        tracing::info!(target: "executor::event", len=?tx_bytes.len(), "tx_size");
-
-        // 广播交易
-        cmd_handle.publish_tx(tx_bytes)?;
+        // 交易放入任务队列
+        queue.push(envelope_bytes.as_ref()).await;
     } else {
         tracing::info!(target:"executor::event", "none of my business");
     }

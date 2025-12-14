@@ -1135,11 +1135,9 @@ version = "0.1.0"
 dependencies = [
  "account",
  "bcs",
- "hex",
  "platform",
  "primitives",
  "serde",
- "serde_with",
  "sha2",
  "spec",
  "thiserror 2.0.17",
@@ -2098,6 +2096,7 @@ dependencies = [
  "platform",
  "schedule",
  "server",
+ "task",
  "tokio",
  "tracing",
  "tracing-appender",
@@ -6186,6 +6185,7 @@ dependencies = [
  "risc0-zkvm",
  "schedule",
  "serde",
+ "task",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -6488,6 +6488,21 @@ name = "tap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
+
+[[package]]
+name = "task"
+version = "0.1.0"
+dependencies = [
+ "account",
+ "db",
+ "engine",
+ "network",
+ "schedule",
+ "thiserror 2.0.17",
+ "tokio",
+ "tracing",
+ "tx",
+]
 
 [[package]]
 name = "tempfile"

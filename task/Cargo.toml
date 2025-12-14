@@ -1,0 +1,15 @@
+[package]
+name = "task"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = { workspace = true }
+db = { workspace = true }
+account = { workspace = true }
+tx = { workspace = true }
+network = { workspace = true }
+thiserror = { workspace = true }
+engine = { workspace = true }
+tracing = { workspace = true }
+schedule = { workspace = true }
