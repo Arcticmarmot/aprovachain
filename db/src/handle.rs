@@ -52,8 +52,9 @@ impl DBHandle {
     pub fn load_stats_window(&self, window_size: usize, ts: u128) -> Result<Vec<TxServiceCatalog>> {
         match self.load_genesis_ts()? {
             Some(genesis_ts) => {
-                let end_height = (ts - genesis_ts) / (SLOT_SECS * 1000) as u128;
+                let end_height = ts.saturating_sub(genesis_ts) / (SLOT_SECS * 1000) as u128;
                 let start_height= end_height.saturating_sub(window_size as u128);
+                tracing::info!(target: "db::window", %start_height, %end_height, "window");
                 let mut stats = Vec::with_capacity(window_size);
                 for height in start_height..end_height {
                     match self.load_catalog(height)? {
@@ -71,14 +72,6 @@ impl DBHandle {
                 Ok(Vec::new())
             }
         }
-        
-        // match self.load_chain_state()? {
-        //     Some(chain_state) => {
-        //         
-        //         Ok(stats)
-        //     },
-        //     None => Ok(Vec::new())
-        // }
     }
 
     pub fn apply_rw_set(&self, read_set: &ReadSet, write_set: &WriteSet) -> Result<bool> {

@@ -75,7 +75,7 @@ impl From<&TxEnvelope> for TxEnvelopeWire {
     fn from(envelope: &TxEnvelope) -> Self {
         let intent = &envelope.intent;
         Self {
-            intent: intent.into(),
+            intent: TxIntentWire::from(intent),
             verifying_key: envelope.verifying_key.to_bytes(),
             address: envelope.address.to_bytes(),
             signature: envelope.signature.to_bytes()

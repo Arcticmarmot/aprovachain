@@ -72,17 +72,7 @@ pub fn verify_and_apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<Tx
     let outcome = tx.outcome;
     // 检查用户签名
     let envelope = outcome.envelope;
-    // 检查是否为 schedule 指定节点执行
-    let exec_id_opt = assign_executor_for_tx(&db_handle, &envelope.tx_id(), envelope.intent.timestamp)?;
-    match exec_id_opt {
-        Some(exec_id) => {
-            if exec_id.verifying_key() != tx.verifying_key {
-                tracing::error!(target: "engine::verify", %exec_id, schedule_exec_id=%ExecutorId(tx.verifying_key));
-                return Ok(TxServiceCode::InvalidTx)
-            }
-        }
-        None => { }
-    }
+    
     
     if let Err(err) = envelope.self_verify() {
         tracing::error!(target: "engine::verify", %err, "invalid user signature");
@@ -90,11 +80,23 @@ pub fn verify_and_apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<Tx
     }
 
     let receipt_opt = outcome.receipt_opt;
-    let intent = envelope.intent;
-    let payload = intent.payload;
+    let intent = &envelope.intent;
+    let payload = &intent.payload;
     
     match payload {
         TxPayload::Exec { ctr_addr_str, input, .. } => {
+            // 检查是否为 schedule 指定节点执行
+            let envelope_id = &envelope.tx_id();
+            match assign_executor_for_tx(&db_handle, envelope_id, intent.timestamp)? {
+                Some(exec_id) => {
+                    if exec_id.verifying_key() != tx.verifying_key {
+                        tracing::error!(target: "engine::verify", %exec_id, schedule_exec_id=%ExecutorId(tx.verifying_key));
+                        return Ok(TxServiceCode::InvalidTx)
+                    }
+                }
+                None => { }
+            }
+            
             let ctr_addr = match ContractAddress::parse_bech32m_with_id(intent.chain_id, &ctr_addr_str) {
                 Ok(addr) => addr,
                 Err(err) => {
@@ -146,7 +148,7 @@ pub fn verify_and_apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<Tx
             let read_set = ctr_output.read_set;
             let ctr_input = CtrInput {
                 chain_id: intent.chain_id,
-                input,
+                input: input.clone(),
                 read_set: read_set.clone()
             };
 

@@ -1656,6 +1656,7 @@ dependencies = [
  "spec",
  "tempfile",
  "thiserror 2.0.17",
+ "tracing",
  "tx",
 ]
 

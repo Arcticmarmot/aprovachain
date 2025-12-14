@@ -84,7 +84,7 @@ pub fn dbh() -> Result<Arc<DB>> {
     DBH.load_full().ok_or(DBError::DBNotInit)
 }
 
-pub fn close_db(mode: DBFileMode) -> Result<()> {
+pub fn close_db(_: DBFileMode) -> Result<()> {
     if let Some(db) = DBH.swap(None) {
         db.flush().expect("DB flush failed");
         db.flush_wal(true).expect("DB flush wal failed");

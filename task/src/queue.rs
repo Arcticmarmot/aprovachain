@@ -42,6 +42,11 @@ impl TaskQueue {
     pub async fn wait(&self) {
         self.notify.notified().await;
     }
+
+    pub async fn len(&self) -> usize {
+        let inner_guard = self.inner.lock().await;
+        inner_guard.queue.len()
+    }
 }
 
 

@@ -1,13 +1,10 @@
 use anyhow::{Result};
 use account::executor::ExecutorId;
-use account::keypair::AccountSigningKey;
 use db::handle::DBHandle;
-use engine::execute::{build_tx_outcome, verify_and_build_envelope};
+use engine::execute::verify_and_build_envelope;
 use engine::verify::verify_and_apply_block;
-use network::handle::P2pCmdHandle;
 use schedule::dispatch::assign_executor_for_tx;
 use task::queue::TaskQueue;
-use tx::attestation::TxAttestation;
 
 pub async fn on_envelope_received(queue: TaskQueue, self_exec_id: ExecutorId, envelope_bytes: Vec<u8>) -> Result<()> {
     // 加载状态信息
@@ -15,12 +12,12 @@ pub async fn on_envelope_received(queue: TaskQueue, self_exec_id: ExecutorId, en
 
     // 从字节数组构造 TxEnvelope
     let envelope = verify_and_build_envelope(&envelope_bytes)?;
-    let tx_envelope_id = envelope.tx_id();
+    let envelope_id = envelope.tx_id();
 
-    let exec_id = match assign_executor_for_tx(&db_handle, &tx_envelope_id, envelope.intent.timestamp)? {
+    let exec_id = match assign_executor_for_tx(&db_handle, &envelope_id, envelope.intent.timestamp)? {
         Some(exec_id) => { exec_id },
         None => {
-            tracing::info!(target: "executor::event", %tx_envelope_id, "no metrics yet, fall back to self as executor");
+            tracing::info!(target: "executor::event", %envelope_id, "no metrics yet, fall back to self as executor");
             self_exec_id
         }
     };
