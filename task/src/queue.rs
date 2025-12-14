@@ -30,6 +30,7 @@ impl TaskQueue {
     pub async fn push(&self, bytes: &[u8]) {
         let mut inner_guard = self.inner.lock().await;
         inner_guard.queue.push_back(Vec::from(bytes));
+        tracing::info!(target: "task::queue", len=%inner_guard.queue.len(), "queue len");
         drop(inner_guard);
         self.notify.notify_one();
     }

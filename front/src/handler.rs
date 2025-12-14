@@ -114,8 +114,13 @@ pub async fn send_envelope(wire: TxEnvelopeWire) -> anyhow::Result<Response> {
         .body(wire.encode_bcs())
         .send()
         .await?;
+    Ok(response)
+}
+
+pub async fn send_envelope_to(url: String, wire: TxEnvelopeWire) -> anyhow::Result<Response> {
+    let client = Client::new();
     let response = client
-        .post("http://100.107.181.54:8888/api/submit-tx")
+        .post(&url)
         .header("content-type", "application/octet-stream")
         .body(wire.encode_bcs())
         .send()

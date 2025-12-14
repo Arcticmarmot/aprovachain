@@ -10,8 +10,6 @@ pub async fn run_task(db_handle: DBHandle, cmd_handle: P2pCmdHandle,
                       sk: AccountSigningKey, queue: TaskQueue) {
     loop {
         if let Some(bytes) = queue.pop().await {
-            let len = queue.len().await;
-            tracing::info!(target: "task::queue", %len, "queue len");
             let _ = handle_envelope(&db_handle, &cmd_handle, &sk, bytes);
         }
         queue.wait().await;
