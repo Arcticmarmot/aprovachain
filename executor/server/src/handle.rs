@@ -22,7 +22,7 @@ pub async fn submit_tx(State(state) : State<AppState>, envelope_bytes: Bytes) ->
     let envelope = verify_and_build_envelope(envelope_bytes.as_ref())?;
     let tx_envelope_id = envelope.tx_id();
 
-    let exec_id = match assign_executor_for_tx(&db_handle, &tx_envelope_id)? {
+    let exec_id = match assign_executor_for_tx(&db_handle, &tx_envelope_id, envelope.intent.timestamp)? {
         Some(exec_id) => { exec_id },
         None => {
             tracing::info!(target: "node::server", %tx_envelope_id, "no metrics yet, fall back to self as executor");

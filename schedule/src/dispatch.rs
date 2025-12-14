@@ -62,21 +62,21 @@ pub fn select_executor_for_tx(tx_id: &TxEnvelopeId, metrics: &Metrics) -> Option
     None
 }
 
-pub fn assign_executor_for_tx(db_handle: &DBHandle, tx_id: &TxEnvelopeId) -> Result<Option<ExecutorId>> {
-    let stats_window = db_handle.load_stats_window(WINDOW_SIZE)?;
+pub fn assign_executor_for_tx(db_handle: &DBHandle, envelope_id: &TxEnvelopeId, envelope_ts: u128) -> Result<Option<ExecutorId>> {
+    let stats_window = db_handle.load_stats_window(WINDOW_SIZE, envelope_ts)?;
     // 启动期 slot 长度
     if stats_window.len() >= WARMUP_SIZE {
         let scores = compute_metrics_by_window(&stats_window);
-        Ok(select_executor_for_tx(tx_id, &scores))
+        Ok(select_executor_for_tx(envelope_id, &scores))
     } else {
         Ok(None)
     }
 }
 
 /// 根据 tx_id 的哈希生成随机数
-fn pseudo_random_u128(tx_id: &TxEnvelopeId) -> u128 {
+fn pseudo_random_u128(envelope_id: &TxEnvelopeId) -> u128 {
     let mut out = [0u8; 16];
-    out.copy_from_slice(&tx_id.hash()[0..16]);
+    out.copy_from_slice(&envelope_id.hash()[0..16]);
     u128::from_be_bytes(out)
 }
 

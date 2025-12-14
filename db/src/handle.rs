@@ -6,11 +6,13 @@ use contract::contract::{Contract, ContractWire};
 use primitives::hash::Hash32;
 use apps::ctr_io::{NamespaceKey, ReadSet, WriteSet};
 use chain::catalog::TxServiceCatalog;
+use primitives::constant::SLOT_SECS;
 use crate::error::DBError;
 use crate::runtime::dbh;
 use crate::error::Result;
 
 pub const CHAIN_TIP_KEY: &[u8] = b"tip_header";
+pub const GENESIS_TS_KEY: &[u8] = b"genesis_ts";
 
 #[derive(Debug, Clone)]
 pub struct DBHandle {
@@ -47,13 +49,13 @@ impl DBHandle {
         self.dbh.cf_handle("elfs").expect("cf 'elfs' must be exist")
     }
 
-    pub fn load_stats_window(&self, window_size: usize) -> Result<Vec<TxServiceCatalog>> {
-        match self.load_chain_state()? {
-            Some(chain_state) => {
-                let tip_height = chain_state.height;
-                let start_height= tip_height.saturating_sub(window_size as u128);
+    pub fn load_stats_window(&self, window_size: usize, ts: u128) -> Result<Vec<TxServiceCatalog>> {
+        match self.load_genesis_ts()? {
+            Some(genesis_ts) => {
+                let end_height = (ts - genesis_ts) / (SLOT_SECS * 1000) as u128;
+                let start_height= end_height.saturating_sub(window_size as u128);
                 let mut stats = Vec::with_capacity(window_size);
-                for height in start_height..tip_height {
+                for height in start_height..end_height {
                     match self.load_catalog(height)? {
                         Some(catalog) => {
                             stats.push(catalog)
@@ -64,9 +66,19 @@ impl DBHandle {
                     }
                 }
                 Ok(stats)
-            },
-            None => Ok(Vec::new())
+            }
+            None => {
+                Ok(Vec::new())
+            }
         }
+        
+        // match self.load_chain_state()? {
+        //     Some(chain_state) => {
+        //         
+        //         Ok(stats)
+        //     },
+        //     None => Ok(Vec::new())
+        // }
     }
 
     pub fn apply_rw_set(&self, read_set: &ReadSet, write_set: &WriteSet) -> Result<bool> {
@@ -122,11 +134,27 @@ impl DBHandle {
 
     pub fn save_chain_state(&self, header: &BlockHeader) -> Result<()> {
         let mut batch = WriteBatch::default();
+        if header.height == 0 {
+            batch.put_cf(self.cf_chain(), GENESIS_TS_KEY, header.timestamp.to_be_bytes());
+        }
         batch.put_cf(self.cf_chain(), CHAIN_TIP_KEY, header.encode_bcs());
         self.dbh.write(batch).map_err(DBError::DBPut)?;
         Ok(())
     }
 
+    pub fn load_genesis_ts(&self) -> Result<Option<u128>> {
+        let genesis_ts_opt = self.dbh.get_cf(self.cf_chain(), GENESIS_TS_KEY)
+            .map_err(DBError::DBGet)?;
+        Ok(match genesis_ts_opt {
+            Some(ts_bytes) => {
+                let mut out = [0u8; 16];
+                out.copy_from_slice(&ts_bytes);
+                Some(u128::from_be_bytes(out))
+            },
+            None => None
+        })
+    }
+    
     pub fn load_chain_state(&self) -> Result<Option<BlockHeader>> {
         let tip_header_opt = self.dbh.get_cf(self.cf_chain(), CHAIN_TIP_KEY)
             .map_err(DBError::DBGet)?;

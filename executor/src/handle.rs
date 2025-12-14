@@ -17,7 +17,7 @@ pub fn on_envelope_received(cmd_handle: P2pCmdHandle, sk: AccountSigningKey, env
     let envelope = verify_and_build_envelope(&envelope_bytes)?;
     let tx_envelope_id = envelope.tx_id();
 
-    let exec_id = match assign_executor_for_tx(&db_handle, &tx_envelope_id)? {
+    let exec_id = match assign_executor_for_tx(&db_handle, &tx_envelope_id, envelope.intent.timestamp)? {
         Some(exec_id) => { exec_id },
         None => {
             tracing::info!(target: "executor::event", %tx_envelope_id, "no metrics yet, fall back to self as executor");

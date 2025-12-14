@@ -57,7 +57,7 @@ pub fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>) -> Res
 
     // TODO: delete the tracing info
     if let Some(block) = db_handle.load_block(header.height)? {
-        tracing::info!(target: "executor::block", ?block, "=======COMMITTED_BLOCK=======\r\n");
+        tracing::info!(target: "executor::block", ?block, "=======BLOCK=======\r\n");
     }
     Ok(())
 }
@@ -72,18 +72,18 @@ pub fn verify_and_apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<Tx
     let outcome = tx.outcome;
     // 检查用户签名
     let envelope = outcome.envelope;
-
     // 检查是否为 schedule 指定节点执行
-    let exec_id_opt = assign_executor_for_tx(&db_handle, &envelope.tx_id())?;
+    let exec_id_opt = assign_executor_for_tx(&db_handle, &envelope.tx_id(), envelope.intent.timestamp)?;
     match exec_id_opt {
         Some(exec_id) => {
             if exec_id.verifying_key() != tx.verifying_key {
+                tracing::error!(target: "engine::verify", %exec_id, schedule_exec_id=%ExecutorId(tx.verifying_key));
                 return Ok(TxServiceCode::InvalidTx)
             }
         }
         None => { }
     }
-
+    
     if let Err(err) = envelope.self_verify() {
         tracing::error!(target: "engine::verify", %err, "invalid user signature");
         return Ok(TxServiceCode::InvalidTx)
@@ -92,7 +92,7 @@ pub fn verify_and_apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<Tx
     let receipt_opt = outcome.receipt_opt;
     let intent = envelope.intent;
     let payload = intent.payload;
-
+    
     match payload {
         TxPayload::Exec { ctr_addr_str, input, .. } => {
             let ctr_addr = match ContractAddress::parse_bech32m_with_id(intent.chain_id, &ctr_addr_str) {
