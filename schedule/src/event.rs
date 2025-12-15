@@ -1,7 +1,7 @@
 use crate::metrics::{Score, MAX_SCORE};
 
 pub const VALID_EVENT: Score = 10_000;
-pub const TIMEOUT_EVENT: Score = 5_000;
+pub const TIMEOUT_EVENT: Score = 0;
 pub const FAKE_RECEIPT_EVENT: Score = 4_000;
 
 #[derive(Debug, Default)]

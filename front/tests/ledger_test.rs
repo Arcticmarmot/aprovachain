@@ -10,18 +10,20 @@ use ledger::call::{generate_access_set, LedgerCall};
 use spec::chain::ChainId;
 use tx::intent::{TxPayload};
 use common::setup::init_test;
+use db::handle::DBHandle;
+use platform::clock::unix_time_millis;
 use server::context::SubmitTxResponse;
 use crate::common::setup::{extract_ctr_addr, req_by_args_to, req_by_wire_to, sleep_slot};
 
 pub const EXECUTOR_URLS: &[&str] = &[
-    // "http://100.82.28.52:8888/api/submit-tx",
-    "http://100.94.178.96:8888/api/submit-tx",
-    "http://100.107.181.54:8888/api/submit-tx",
-    "http://100.64.250.18:8888/api/submit-tx"
+    "http://cairo.mining-tuna.ts.net:8888/api/submit-tx",
+    "http://mecca.mining-tuna.ts.net:8888/api/submit-tx",
+    "http://smolensk.mining-tuna.ts.net:8888/api/submit-tx",
+    // "http://belgrade.mining-tuna.ts.net:8888/api/submit-tx",
 ];
 
 const TX_NUM: usize = 100;
-const PERIOD: Duration = Duration::from_secs(13);
+const PERIOD: Duration = Duration::from_secs(2);
 const CHAIN_ID: ChainId = ChainId(1000);
 const SCALE: u32 = 17;
 const AIRDROP_AMOUNT: u64 = 100000;
@@ -111,9 +113,8 @@ pub async fn deploy_then_send() {
 
     sleep_slot().await;
 
-
     let mut users: Vec<AccountSigningKey> = Vec::new();
-    for index in 0..50 {
+    for index in 0..TX_NUM {
         tracing::info!(target:"apps::resp", %index);
         let sk = Keypair::generate().signing_key;
         users.push(sk);
