@@ -3,7 +3,7 @@ use account::executor::ExecutorId;
 
 pub type Score = u128;
 pub const MAX_SCORE: Score = 10_000;
-pub const EMA_K: u128 = 8;
+pub const EMA_K: u128 = 4;
 pub type Metrics = BTreeMap<ExecutorId, (Integrity, Timeliness)>;
 
 #[derive(Debug)]

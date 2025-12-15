@@ -1,3 +1,4 @@
+use tokio::task::spawn_blocking;
 use account::keypair::AccountSigningKey;
 use db::handle::DBHandle;
 use engine::execute::{build_tx_outcome, verify_and_build_envelope};
@@ -6,11 +7,16 @@ use tx::attestation::TxAttestation;
 use crate::queue::TaskQueue;
 use crate::error::Result;
 
-pub async fn run_task(db_handle: DBHandle, cmd_handle: P2pCmdHandle,
+pub async fn run_task(db_handle: &DBHandle, cmd_handle: P2pCmdHandle,
                       sk: AccountSigningKey, queue: TaskQueue) {
     loop {
         if let Some(bytes) = queue.pop().await {
-            let _ = handle_envelope(&db_handle, &cmd_handle, &sk, bytes);
+            let db_handle = db_handle.clone();
+            let cmd_handle = cmd_handle.clone();
+            let sk = sk.clone();
+            spawn_blocking(move || {
+                let _ = handle_envelope(&db_handle, &cmd_handle, &sk, bytes);
+            });
         }
         queue.wait().await;
     }

@@ -76,7 +76,6 @@ pub fn assign_executor_for_tx(db_handle: &DBHandle, envelope_id: &TxEnvelopeId, 
 
 /// 根据 tx_id 的哈希生成随机数
 fn pseudo_random_u128(envelope_id: &TxEnvelopeId) -> u128 {
-    tracing::info!(target: "schedule::tx", %envelope_id);
     let mut out = [0u8; 16];
     out.copy_from_slice(&envelope_id.hash()[0..16]);
     u128::from_be_bytes(out)

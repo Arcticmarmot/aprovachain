@@ -6,8 +6,6 @@ use chain::block::{OrderedBlock, LedgerBlock};
 use chain::catalog::{TxServiceCatalog, TxServiceCode};
 use contract::contract::Contract;
 use db::handle::DBHandle;
-use platform::clock::unix_time_millis;
-use primitives::constant::{SLOT_SECS};
 use primitives::hash::sha256;
 use schedule::dispatch::assign_executor_for_tx;
 use tx::attestation::TxAttestation;
@@ -43,7 +41,7 @@ pub fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>) -> Res
     for tx in txs {
         let tx_id = tx.tx_id;
         let exec_id = ExecutorId(tx.verifying_key.clone());
-        let code = verify_and_apply_tx(db_handle, tx)?;
+        let code = verify_and_apply_tx(db_handle, tx, header.height)?;
         catalog.insert(tx_id, (exec_id, code));
     }
     
@@ -62,7 +60,7 @@ pub fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>) -> Res
     Ok(())
 }
 
-pub fn verify_and_apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<TxServiceCode> {
+pub fn verify_and_apply_tx(db_handle: &DBHandle, tx: TxAttestation, curr_height: u128) -> Result<TxServiceCode> {
     // 检查节点签名
     if let Err(err) = tx.self_verify() {
         tracing::error!(target: "engine::verify", %err, "invalid executor signature");
@@ -72,7 +70,7 @@ pub fn verify_and_apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<Tx
     let outcome = tx.outcome;
     // 检查用户签名
     let envelope = outcome.envelope;
-    
+
     
     if let Err(err) = envelope.self_verify() {
         tracing::error!(target: "engine::verify", %err, "invalid user signature");
@@ -96,7 +94,7 @@ pub fn verify_and_apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<Tx
                 }
                 None => { }
             }
-            
+
             let ctr_addr = match ContractAddress::parse_bech32m_with_id(intent.chain_id, &ctr_addr_str) {
                 Ok(addr) => addr,
                 Err(err) => {
@@ -169,14 +167,16 @@ pub fn verify_and_apply_tx(db_handle: &DBHandle, tx: TxAttestation) -> Result<Tx
                 }
             };
             // Timeout 判断
-            let now = unix_time_millis()?;
-            let elapsed = now - intent.timestamp;
-            let allow_elapsed: u128 = SLOT_SECS as u128 * intent.scale.to_slot_count() as u128 * 1000;
-
-            if elapsed > allow_elapsed {
-                Ok(TxServiceCode::Timeout)
+            let slot_range = intent.scale.to_slot_count();
+            if let Some(send_height) = db_handle.ts_to_slot(intent.timestamp)? {
+                tracing::info!(target:"engine::verify", %send_height, %slot_range, %curr_height);
+                if (send_height + slot_range as u128) < curr_height {
+                    Ok(TxServiceCode::Timeout)
+                } else {
+                    Ok(TxServiceCode::Success)
+                }
             } else {
-                Ok(TxServiceCode::Success)
+                Ok(TxServiceCode::InvalidTx)
             }
         },
         TxPayload::Deploy { image_id, elf_hash, elf } => {

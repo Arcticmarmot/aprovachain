@@ -65,7 +65,7 @@ async fn main() -> Result<()> {
     let task_sk= sk.clone();
     let task_queue = queue.clone();
     let _ = spawn(async move {
-        run_task(task_db_handle, p2p_cmd_hdl, task_sk, task_queue).await;
+        run_task(&task_db_handle, p2p_cmd_hdl, task_sk, task_queue).await;
     });
 
     let server_db_handle = db_handle.clone();

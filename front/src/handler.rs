@@ -77,6 +77,17 @@ where
     })
 }
 
+pub fn create_build_spec_by_sk(chain_id: ChainId, sk: &AccountSigningKey, scale: u32, payload: TxPayload) -> anyhow::Result<TxBuildSpec> {
+    // build sk from Args
+    let scale = TxScale::try_from(scale)?;
+    Ok(TxBuildSpec {
+        chain_id,
+        sk: sk.clone(),
+        scale,
+        payload
+    })
+}
+
 pub fn create_build_spec(chain_id: ChainId, scale: u32, payload: TxPayload) -> anyhow::Result<TxBuildSpec> {
     // build sk from Args
     let sk_bytes = load_user_sk_bytes()?;

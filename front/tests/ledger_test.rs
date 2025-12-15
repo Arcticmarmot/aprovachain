@@ -3,38 +3,68 @@ mod common;
 use std::time::Duration;
 use clap::Parser;
 use tokio::time::MissedTickBehavior;
-use front::handler::{build_envelope_wire, create_build_spec, TxArgs};
+use account::address::UserAddress;
+use account::keypair::{AccountSigningKey, Keypair};
+use front::handler::{build_envelope_wire, create_build_spec_by_sk, parse_tx_args, send_envelope_to, TxArgs};
 use ledger::call::{generate_access_set, LedgerCall};
 use spec::chain::ChainId;
 use tx::intent::{TxPayload};
-use common::setup::{init_test, SMOLENSK, KOL_SERVER};
+use common::setup::init_test;
+use server::context::SubmitTxResponse;
 use crate::common::setup::{extract_ctr_addr, req_by_args_to, req_by_wire_to, sleep_slot};
 
 pub const EXECUTOR_URLS: &[&str] = &[
-    "http://100.82.28.52:8888/api/submit-tx",
+    // "http://100.82.28.52:8888/api/submit-tx",
     "http://100.94.178.96:8888/api/submit-tx",
     "http://100.107.181.54:8888/api/submit-tx",
+    "http://100.64.250.18:8888/api/submit-tx"
 ];
+
 const TX_NUM: usize = 100;
-const PERIOD: Duration = Duration::from_secs(10);
+const PERIOD: Duration = Duration::from_secs(13);
 const CHAIN_ID: ChainId = ChainId(1000);
 const SCALE: u32 = 17;
-async fn send_exec_to_executor(base_url: String, ctr_addr_str: String, tx_num: usize) -> anyhow::Result<()> {
+const AIRDROP_AMOUNT: u64 = 100000;
+
+async fn send_mint(base_url: String, ctr_addr_str: String, sk: &AccountSigningKey) -> anyhow::Result<()> {
+    let vk = &sk.verifying_key();
+    let addr = UserAddress::from_vk(CHAIN_ID, vk);
+    let addr_str = addr.to_bech32m()?;
+    let call = LedgerCall::Mint { to: addr_str.clone(), amount: AIRDROP_AMOUNT };
+
+    let input = call.encode_bcs();
+    let access_set = generate_access_set(CHAIN_ID, input.clone())?;
+
+    let payload = TxPayload::Exec {
+        ctr_addr_str,
+        input,
+        access_set,
+    };
+
+    let spec = create_build_spec_by_sk(CHAIN_ID, &sk, SCALE, payload)?;
+    let wire = build_envelope_wire(spec)?;
+
+    req_by_wire_to(base_url.clone(), wire).await;
+    Ok(())
+}
+
+async fn initial_airdrop(ctr_addr_str: String, users: &[AccountSigningKey]) {
+    for (i, user) in users.iter().enumerate() {
+        let url = EXECUTOR_URLS[i % EXECUTOR_URLS.len()];
+        let _ = send_mint(url.to_string(), ctr_addr_str.clone(), user).await;
+        tokio::time::sleep(PERIOD).await;
+    }
+}
+
+async fn send_exec_to_executor(base_url: String, ctr_addr_str: String, sk: AccountSigningKey, tx_num: usize) -> anyhow::Result<()> {
     let mut ticker = tokio::time::interval(PERIOD);
     ticker.set_missed_tick_behavior(MissedTickBehavior::Delay);
+    let vk = &sk.verifying_key();
+    let addr = UserAddress::from_vk(CHAIN_ID, vk);
+    let addr_str = addr.to_bech32m()?;
     for i in 0..tx_num {
         ticker.tick().await;
-        let call = if i % 2 == 0 {
-            let amount = 1_00000;
-            LedgerCall::Mint { to: SMOLENSK.to_string(), amount }
-        } else {
-            let amount = 1;
-            LedgerCall::Transfer {
-                from: SMOLENSK.to_string(),
-                to: KOL_SERVER.to_string(),
-                amount,
-            }
-        };
+        let call = LedgerCall::Mint { to: addr_str.clone(), amount: 10 };
 
         let input = call.encode_bcs();
         let access_set = generate_access_set(CHAIN_ID, input.clone())?;
@@ -45,7 +75,7 @@ async fn send_exec_to_executor(base_url: String, ctr_addr_str: String, tx_num: u
             access_set,
         };
 
-        let spec = create_build_spec(CHAIN_ID, SCALE, payload)?;
+        let spec = create_build_spec_by_sk(CHAIN_ID, &sk, SCALE, payload)?;
         let wire = build_envelope_wire(spec)?;
 
         req_by_wire_to(base_url.clone(), wire).await;
@@ -53,7 +83,7 @@ async fn send_exec_to_executor(base_url: String, ctr_addr_str: String, tx_num: u
     Ok(())
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+#[tokio::test]
 pub async fn deploy_then_send() {
     init_test();
     let args = TxArgs::try_parse_from([
@@ -65,28 +95,46 @@ pub async fn deploy_then_send() {
     ]).expect("parse args");
 
     let mut resp= None;
-    for url in EXECUTOR_URLS {
-        resp = Some(req_by_args_to(url.to_string(), &args).await);
+    tracing::info!(target:"apps::init", "TxArgs: {:?}", args);
+
+    let tx_build_spec = parse_tx_args(&args).unwrap();
+
+    let tx_envelope_wire = build_envelope_wire(tx_build_spec).unwrap();
+    for url in EXECUTOR_URLS.clone() {
+        let response = send_envelope_to(url.to_string(), tx_envelope_wire.clone()).await.unwrap();
+        let parsed_resp = response.json::<SubmitTxResponse>().await.unwrap();
+        tracing::info!(target:"apps::resp", "Response: {:?}", parsed_resp);
+        resp = Some(parsed_resp)
     }
 
     let ctr_addr_str = extract_ctr_addr(resp.unwrap()).unwrap();
 
     sleep_slot().await;
 
-    let total = TX_NUM;
-    let per = total / EXECUTOR_URLS.len();
 
-    let mut handles = Vec::new();
-    for (idx, url) in EXECUTOR_URLS.iter().enumerate() {
-        let handle = tokio::spawn(send_exec_to_executor(
-            url.to_string(),
-            ctr_addr_str.clone(),
-            per,
-        ));
-        handles.push(handle);
+    let mut users: Vec<AccountSigningKey> = Vec::new();
+    for index in 0..50 {
+        tracing::info!(target:"apps::resp", %index);
+        let sk = Keypair::generate().signing_key;
+        users.push(sk);
     }
 
-    for handle in handles {
-        handle.await.expect("task join").expect("task run");
-    }
+    initial_airdrop(ctr_addr_str, &users).await;
+
+    // let total = TX_NUM;
+    // let per = total / EXECUTOR_URLS.len();
+    //
+    // let mut handles = Vec::new();
+    // for url in EXECUTOR_URLS.iter().enumerate() {
+    //     let handle = tokio::spawn(send_exec_to_executor(
+    //         url.to_string(),
+    //         ctr_addr_str.clone(),
+    //         per,
+    //     ));
+    //     handles.push(handle);
+    // }
+    //
+    // for handle in handles {
+    //     handle.await.expect("task join").expect("task run");
+    // }
 }

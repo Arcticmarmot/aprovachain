@@ -1,4 +1,5 @@
 use std::time::Duration;
+use reqwest::StatusCode;
 use tokio::time::sleep;
 use front::bootstrap::{init_env, init_logging};
 use front::handler::{build_envelope_wire, parse_tx_args, send_envelope, send_envelope_to, TxArgs};
@@ -60,8 +61,9 @@ pub async fn req_by_wire(wire: TxEnvelopeWire) -> SubmitTxResponse {
 
 pub async fn req_by_wire_to(url: String, wire: TxEnvelopeWire) -> SubmitTxResponse {
     let resp = send_envelope_to(url, wire).await.unwrap();
+    tracing::info!(target:"apps::resp", "Response: {:?}", resp);
     let parsed_resp = resp.json::<SubmitTxResponse>().await.unwrap();
-    tracing::info!(target:"apps::resp", "Response: {:?}", parsed_resp);
+    tracing::info!(target:"apps::resp", "parsed_resp: {:?}", parsed_resp);
     parsed_resp
 }
 pub fn extract_ctr_addr(resp: SubmitTxResponse) -> anyhow::Result<String> {

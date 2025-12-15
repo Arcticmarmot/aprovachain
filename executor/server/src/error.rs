@@ -57,6 +57,7 @@ pub enum ServerError {
 
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
+        tracing::error!(target: "server::error", error=?self, "api error");
         match self {
             ServerError::Tx(e) => (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
             ServerError::DB(e) => (StatusCode::BAD_REQUEST, e.to_string()).into_response(),

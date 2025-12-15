@@ -49,6 +49,16 @@ impl DBHandle {
         self.dbh.cf_handle("elfs").expect("cf 'elfs' must be exist")
     }
 
+    pub fn ts_to_slot(&self, ts: u128) -> Result<Option<u128>> {
+        Ok(match self.load_genesis_ts()? {
+            Some(genesis_ts) => {
+                let height = ts.saturating_sub(genesis_ts) / (SLOT_SECS * 1000) as u128;
+                Some(height)
+            }
+            None => None
+        })
+    }
+
     pub fn load_stats_window(&self, window_size: usize, ts: u128) -> Result<Vec<TxServiceCatalog>> {
         match self.load_genesis_ts()? {
             Some(genesis_ts) => {
