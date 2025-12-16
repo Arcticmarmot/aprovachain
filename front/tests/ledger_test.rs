@@ -16,16 +16,16 @@ use server::context::SubmitTxResponse;
 use crate::common::setup::{extract_ctr_addr, req_by_args_to, req_by_wire_to, sleep_slot};
 
 pub const EXECUTOR_URLS: &[&str] = &[
-    // "http://cairo.mining-tuna.ts.net:8888/api/submit-tx",
+    "http://cairo.mining-tuna.ts.net:8888/api/submit-tx",
     "http://minsk.mining-tuna.ts.net:8888/api/submit-tx",
     // "http://mecca.mining-tuna.ts.net:8888/api/submit-tx",
-    // "http://smolensk.mining-tuna.ts.net:8888/api/submit-tx",
+    "http://smolensk.mining-tuna.ts.net:8888/api/submit-tx",
     // "http://belgrade.mining-tuna.ts.net:8888/api/submit-tx",
 ];
 
 const TX_NUM: usize = 20;
 const USER_NUM: usize = 100;
-const PERIOD: Duration = Duration::from_secs(1);
+const PERIOD: Duration = Duration::from_secs(4);
 const CHAIN_ID: ChainId = ChainId(1000);
 const SCALE: u32 = 18;
 const AIRDROP_AMOUNT: u64 = 100000;
@@ -53,8 +53,9 @@ async fn send_mint(base_url: String, ctr_addr_str: String, sk: &AccountSigningKe
 }
 
 async fn initial_airdrop(ctr_addr_str: String, users: &[AccountSigningKey]) {
-    for (i, user) in users.iter().enumerate() {
-        let url = EXECUTOR_URLS[i % EXECUTOR_URLS.len()];
+    for (index, user) in users.iter().enumerate() {
+        tracing::info!(target:"apps::resp", %index);
+        let url = EXECUTOR_URLS[index % EXECUTOR_URLS.len()];
         let _ = send_mint(url.to_string(), ctr_addr_str.clone(), user).await;
         tokio::time::sleep(PERIOD).await;
     }
@@ -118,7 +119,6 @@ pub async fn ledger_test() {
 
     let mut users: Vec<AccountSigningKey> = Vec::new();
     for index in 0..USER_NUM {
-        tracing::info!(target:"apps::resp", %index);
         let sk = Keypair::generate().signing_key;
         users.push(sk);
     }

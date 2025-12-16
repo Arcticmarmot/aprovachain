@@ -23,7 +23,8 @@ pub async fn run_task(db_handle: DBHandle, cmd_handle: P2pCmdHandle,
                 let cmd_handle = cmd_handle.clone();
                 let sk = sk.clone();
                 let _ = spawn_blocking(move || {
-                    let _ = permit;
+                    // NOTE: 不能使用 _ 会被直接释放丢弃
+                    let _permit = permit;
                     let _ = handle_envelope(&db_handle, &cmd_handle, &sk, bytes);
                 });
             },

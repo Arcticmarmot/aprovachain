@@ -22,5 +22,4 @@ platform = { workspace = true }
 account = { workspace = true }
 
 [features]
-default = []                         # 看你需不需要默认 feature
 cuda = ["engine/cuda"]

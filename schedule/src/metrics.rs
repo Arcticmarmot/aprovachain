@@ -27,7 +27,7 @@ pub struct Timeliness {
 }
 
 impl Default for Timeliness {
-    fn default() -> Self { Self { score: MAX_SCORE / 2 } }
+    fn default() -> Self { Self { score: MAX_SCORE / 10 } }
 }
 
 impl Timeliness {
