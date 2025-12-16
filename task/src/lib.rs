@@ -1,3 +1,3 @@
 pub mod queue;
 pub mod runtime;
-mod error;
+pub mod error;

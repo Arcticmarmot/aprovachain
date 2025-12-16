@@ -10,6 +10,8 @@ const PURGE: u64 = 20;
 const BOOTNODE_ADDRS: &[&'static str] = &[
     "/ip4/100.64.250.18/tcp/33333",
     "/ip4/100.107.181.54/tcp/33333",
+    "/ip4/100.70.254.75/tcp/33333",
+    "/ip4/100.105.138.1/tcp/33333",
 ];
 
 #[derive(Debug)]

@@ -31,7 +31,7 @@ impl TaskQueue {
         let mut inner_guard = self.inner.lock().await;
         inner_guard.queue.push_back(Vec::from(bytes));
         tracing::info!(target: "task::queue", len=%inner_guard.queue.len(), "queue len");
-        drop(inner_guard);
+        drop(inner_guard); // 防止唤醒-阻塞”抖动
         self.notify.notify_one();
     }
 
@@ -42,6 +42,17 @@ impl TaskQueue {
 
     pub async fn wait(&self) {
         self.notify.notified().await;
+    }
+
+    pub async fn pop_or_wait(&self) -> Vec<u8> {
+        loop {
+            let mut inner_guard = self.inner.lock().await;
+            if let Some(bytes) = inner_guard.queue.pop_front() {
+                return bytes;
+            }
+            drop(inner_guard);
+            self.wait().await;
+        }
     }
 
     pub async fn len(&self) -> usize {

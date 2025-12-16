@@ -16,16 +16,18 @@ use server::context::SubmitTxResponse;
 use crate::common::setup::{extract_ctr_addr, req_by_args_to, req_by_wire_to, sleep_slot};
 
 pub const EXECUTOR_URLS: &[&str] = &[
-    "http://cairo.mining-tuna.ts.net:8888/api/submit-tx",
-    "http://mecca.mining-tuna.ts.net:8888/api/submit-tx",
-    "http://smolensk.mining-tuna.ts.net:8888/api/submit-tx",
+    // "http://cairo.mining-tuna.ts.net:8888/api/submit-tx",
+    "http://minsk.mining-tuna.ts.net:8888/api/submit-tx",
+    // "http://mecca.mining-tuna.ts.net:8888/api/submit-tx",
+    // "http://smolensk.mining-tuna.ts.net:8888/api/submit-tx",
     // "http://belgrade.mining-tuna.ts.net:8888/api/submit-tx",
 ];
 
-const TX_NUM: usize = 100;
-const PERIOD: Duration = Duration::from_secs(2);
+const TX_NUM: usize = 20;
+const USER_NUM: usize = 100;
+const PERIOD: Duration = Duration::from_secs(1);
 const CHAIN_ID: ChainId = ChainId(1000);
-const SCALE: u32 = 17;
+const SCALE: u32 = 18;
 const AIRDROP_AMOUNT: u64 = 100000;
 
 async fn send_mint(base_url: String, ctr_addr_str: String, sk: &AccountSigningKey) -> anyhow::Result<()> {
@@ -86,7 +88,7 @@ async fn send_exec_to_executor(base_url: String, ctr_addr_str: String, sk: Accou
 }
 
 #[tokio::test]
-pub async fn deploy_then_send() {
+pub async fn ledger_test() {
     init_test();
     let args = TxArgs::try_parse_from([
         "apps",
@@ -96,13 +98,14 @@ pub async fn deploy_then_send() {
         "--deploy-elf", concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/elf/ledger_guest.bin"),
     ]).expect("parse args");
 
-    let mut resp= None;
     tracing::info!(target:"apps::init", "TxArgs: {:?}", args);
 
     let tx_build_spec = parse_tx_args(&args).unwrap();
 
     let tx_envelope_wire = build_envelope_wire(tx_build_spec).unwrap();
-    for url in EXECUTOR_URLS.clone() {
+
+    let mut resp= None;
+    for url in EXECUTOR_URLS {
         let response = send_envelope_to(url.to_string(), tx_envelope_wire.clone()).await.unwrap();
         let parsed_resp = response.json::<SubmitTxResponse>().await.unwrap();
         tracing::info!(target:"apps::resp", "Response: {:?}", parsed_resp);
@@ -114,7 +117,7 @@ pub async fn deploy_then_send() {
     sleep_slot().await;
 
     let mut users: Vec<AccountSigningKey> = Vec::new();
-    for index in 0..TX_NUM {
+    for index in 0..USER_NUM {
         tracing::info!(target:"apps::resp", %index);
         let sk = Keypair::generate().signing_key;
         users.push(sk);

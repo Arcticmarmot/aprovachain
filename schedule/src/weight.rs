@@ -8,8 +8,8 @@ pub type Weights = BTreeMap<ExecutorId, Weight>;
 
 /// 根据 integrity 和 timeliness 计算出权重
 pub fn weight_from_metrics(integrity: &Integrity, timeliness: &Timeliness) -> Weight {
-    let igt_weight = integrity.score * 40 / 100;
-    let tln_weight = timeliness.score * 60 / 100;
+    let igt_weight = integrity.score * 10 / 100;
+    let tln_weight = timeliness.score * 90 / 100;
     let weight = igt_weight + tln_weight;
     weight.max(1)
 }

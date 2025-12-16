@@ -61,11 +61,14 @@ async fn main() -> Result<()> {
     tracing::info!(target:"executor::init", "p2p init success...");
 
     let self_exec_id = ExecutorId(sk.verifying_key());
+    tracing::info!(target:"executor::init", %self_exec_id, "self executor id");
+
     let task_db_handle = db_handle.clone();
     let task_sk= sk.clone();
     let task_queue = queue.clone();
-    let _ = spawn(async move {
-        run_task(&task_db_handle, p2p_cmd_hdl, task_sk, task_queue).await;
+    let task_shutdown_rx = shutdown_rx.clone();
+    let task_handle = spawn(async move {
+        run_task(task_db_handle, p2p_cmd_hdl, task_sk, task_queue, task_shutdown_rx).await;
     });
 
     let server_db_handle = db_handle.clone();
@@ -105,6 +108,7 @@ async fn main() -> Result<()> {
                 let _ = shutdown_tx.send(true);
                 let _ = p2p_handle.await;
                 let _ = server_handle.await;
+                let _ = task_handle.await;
                 let _ = close_db(db_file_mode);
                 exit(0);
             }
