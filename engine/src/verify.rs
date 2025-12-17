@@ -168,7 +168,7 @@ pub fn verify_and_apply_tx(db_handle: &DBHandle, tx: TxAttestation, curr_height:
             };
             // Timeout 判断
             let slot_range = intent.scale.to_slot_count();
-            if let Some(send_height) = db_handle.ts_to_slot(intent.timestamp)? {
+            if let Some(send_height) = db_handle.load_ts_height(intent.timestamp)? {
                 tracing::info!(target:"engine::verify", %send_height, %slot_range, %curr_height);
                 if (send_height + slot_range as u128) < curr_height {
                     Ok(TxServiceCode::Timeout)

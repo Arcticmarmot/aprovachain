@@ -7,14 +7,14 @@ use account::keypair::{AccountSigningKey};
 use apps::ctr_io::AccessSet;
 use db::handle::DBHandle;
 use primitives::hash::Hash32;
-use task::queue::TaskQueue;
+use task::schedule::TaskSchedule;
 
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub db_handle: DBHandle,
     pub cmd_handle: P2pCmdHandle,
     pub sk: AccountSigningKey,
-    pub queue: TaskQueue,
+    pub schedule: TaskSchedule,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

@@ -1,4 +1,4 @@
-pub mod queue;
+pub mod schedule;
 pub mod runtime;
 pub mod error;
-pub mod strategy;
+pub mod discipline;

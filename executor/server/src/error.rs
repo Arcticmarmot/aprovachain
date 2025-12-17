@@ -51,6 +51,8 @@ pub enum ServerError {
     InvalidScale,
     #[error("receipt decode failed")]
     ReceiptDecode(#[from] risc0_zkvm::serde::Error),
+    #[error("genesis ts not found")]
+    GenesisTs,
     #[error("contract exec failed: {message}")]
     ContractExec { message: String },
 }

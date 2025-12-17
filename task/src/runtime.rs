@@ -6,7 +6,7 @@ use db::handle::DBHandle;
 use engine::execute::{build_tx_outcome, verify_and_build_envelope};
 use network::handle::P2pCmdHandle;
 use tx::attestation::TxAttestation;
-use crate::queue::TaskQueue;
+use crate::schedule::TaskSchedule;
 use crate::error::Result;
 use tokio::sync::Semaphore;
 use std::sync::atomic::AtomicUsize;
@@ -15,11 +15,11 @@ const MAX_PROVE: usize = 2;
 static INFLIGHT: AtomicUsize = AtomicUsize::new(0);
 
 pub async fn run_task(db_handle: DBHandle, cmd_handle: P2pCmdHandle,
-                      sk: AccountSigningKey, queue: TaskQueue, mut shutdown_rx: Receiver<bool>) {
+                      sk: AccountSigningKey, schedule: TaskSchedule, mut shutdown_rx: Receiver<bool>) {
     let prove_sem = Arc::new(Semaphore::new(MAX_PROVE));
     loop {
         tokio::select! {
-            bytes = queue.pop_or_wait() => {
+            bytes = schedule.pop_or_wait() => {
                 let permit = prove_sem.clone().acquire_owned().await.expect("prove_sem closed");
                 let db_handle = db_handle.clone();
                 let cmd_handle = cmd_handle.clone();

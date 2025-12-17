@@ -1,12 +1,12 @@
-use anyhow::{Result};
+use anyhow::{anyhow, Result};
 use account::executor::ExecutorId;
 use db::handle::DBHandle;
 use engine::execute::verify_and_build_envelope;
 use engine::verify::verify_and_apply_block;
 use schedule::dispatch::assign_executor_for_tx;
-use task::queue::TaskQueue;
+use task::schedule::TaskSchedule;
 
-pub async fn on_envelope_received(queue: TaskQueue, self_exec_id: ExecutorId, envelope_bytes: Vec<u8>) -> Result<()> {
+pub async fn on_envelope_received(schedule: TaskSchedule, self_exec_id: ExecutorId, envelope_bytes: Vec<u8>) -> Result<()> {
     // 加载状态信息
     let db_handle = DBHandle::new()?;
 
@@ -25,8 +25,11 @@ pub async fn on_envelope_received(queue: TaskQueue, self_exec_id: ExecutorId, en
 
     if exec_id == self_exec_id {
         tracing::info!(target:"executor::event", "I will do it");
+
         // 交易放入任务队列
-        queue.push(envelope_bytes.as_ref(), envelope.intent.scale).await;
+        let send_height = db_handle.load_ts_height(envelope.intent.timestamp)?
+            .ok_or_else(|| anyhow!("genesis ts not found"))?;
+        schedule.push(envelope_bytes.as_ref(), envelope.intent.scale, send_height).await;
     } else {
         tracing::info!(target:"executor::event", "none of my business");
     }

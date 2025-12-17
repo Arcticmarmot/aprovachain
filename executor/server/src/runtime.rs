@@ -5,17 +5,17 @@ use tokio::sync::watch::Receiver;
 use network::handle::{P2pCmdHandle};
 use account::keypair::AccountSigningKey;
 use db::handle::DBHandle;
-use task::queue::TaskQueue;
+use task::schedule::TaskSchedule;
 use crate::context::AppState;
 use crate::handle::submit_tx;
 
 pub async fn run_server(sk: AccountSigningKey, db_handle: DBHandle,
-                        cmd_handle: P2pCmdHandle, queue: TaskQueue, shutdown_rx: Receiver<bool>) -> Result<()> {
+                        cmd_handle: P2pCmdHandle, schedule: TaskSchedule, shutdown_rx: Receiver<bool>) -> Result<()> {
     let state = AppState {
         db_handle,
         sk,
         cmd_handle,
-        queue,
+        schedule,
     };
     let node = Router::new()
         .route("/api/submit-tx", post(submit_tx))

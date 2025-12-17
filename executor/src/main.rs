@@ -12,7 +12,7 @@ use db::handle::DBHandle;
 use network::behaviour::behaviour::PeerRole;
 use executor::handle::{on_block_received, on_envelope_received};
 use server::runtime::run_server;
-use task::queue::TaskQueue;
+use task::schedule::{DisciplineKind, TaskSchedule};
 use task::runtime::run_task;
 
 #[derive(Parser, Debug)]
@@ -41,7 +41,7 @@ async fn main() -> Result<()> {
     tracing::info!(target:"executor::init", "rocksdb({db_file_mode:?}) init success...");
 
     // 新建 envelope 任务队列
-    let queue = TaskQueue::new_smallest_first();
+    let queue = TaskSchedule::create(DisciplineKind::EdfSpt);
 
     let (p2p_cmd_tx, p2p_cmd_rx) =
         mpsc::unbounded_channel::<P2pCmd>();

@@ -1,7 +1,7 @@
 use tx::attestation::TxAttestation;
 use crate::pipeline::resp_from_outcome;
 use crate::context::{AppState, SubmitTxResponse};
-use crate::error::{ApiResult};
+use crate::error::{ApiResult, ServerError};
 use axum::body::{Bytes};
 use axum::extract::State;
 use axum::Json;
@@ -16,7 +16,7 @@ pub async fn submit_tx(State(state) : State<AppState>, envelope_bytes: Bytes) ->
     let db_handle = state.db_handle;
     let cmd_handle = state.cmd_handle;
     let sk = state.sk;
-    let queue = state.queue;
+    let schedule = state.schedule;
     let self_exec_id = ExecutorId(sk.verifying_key());
 
     let envelope = verify_and_build_envelope(envelope_bytes.as_ref())?;
@@ -45,7 +45,14 @@ pub async fn submit_tx(State(state) : State<AppState>, envelope_bytes: Bytes) ->
             if exec_id == self_exec_id {
                 tracing::info!(target:"node::server", "I'll do it");
                 // 交易放入任务队列
-                queue.push(envelope_bytes.as_ref(), envelope.intent.scale).await;
+                match db_handle.load_ts_height(envelope.intent.timestamp)? {
+                    Some(send_height) => {
+                        schedule.push(envelope_bytes.as_ref(), envelope.intent.scale, send_height).await;
+                    }
+                    None => {
+                        return Err(ServerError::GenesisTs)
+                    }
+                }
             } else {
                 // 广播 envelope 到执行层
                 cmd_handle.publish_envelope(envelope.to_canonical_bytes())?;

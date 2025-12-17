@@ -8,6 +8,8 @@ pub enum TaskError {
     Peer(#[from] network::error::PeerError),
     #[error(transparent)]
     Schedule(#[from] schedule::error::ScheduleError),
+    #[error("bad discipline")]
+    BadDiscipline,
 }
 
 pub type Result<T> = std::result::Result<T, TaskError>;

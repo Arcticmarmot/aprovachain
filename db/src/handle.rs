@@ -48,21 +48,20 @@ impl DBHandle {
     pub fn cf_elfs(&self) -> &ColumnFamily {
         self.dbh.cf_handle("elfs").expect("cf 'elfs' must be exist")
     }
-
-    pub fn ts_to_slot(&self, ts: u128) -> Result<Option<u128>> {
+    
+    pub fn load_ts_height(&self, ts: u128) -> Result<Option<u128>> {
         Ok(match self.load_genesis_ts()? {
             Some(genesis_ts) => {
-                let height = ts.saturating_sub(genesis_ts) / (SLOT_SECS * 1000) as u128;
-                Some(height)
+                let now_slot = ts.saturating_sub(genesis_ts) / (SLOT_SECS * 1000) as u128;
+                Some(now_slot)
             }
-            None => None
+            None => { None }
         })
     }
 
     pub fn load_stats_window(&self, window_size: usize, ts: u128) -> Result<Vec<TxServiceCatalog>> {
-        match self.load_genesis_ts()? {
-            Some(genesis_ts) => {
-                let end_height = ts.saturating_sub(genesis_ts) / (SLOT_SECS * 1000) as u128;
+        match self.load_ts_height(ts)? {
+            Some(end_height) => {
                 let start_height= end_height.saturating_sub(window_size as u128);
                 tracing::info!(target: "db::window", %start_height, %end_height, "window");
                 let mut stats = Vec::with_capacity(window_size);
@@ -71,16 +70,12 @@ impl DBHandle {
                         Some(catalog) => {
                             stats.push(catalog)
                         },
-                        None => {
-                            return Err(DBError::DBIntegrity)
-                        }
+                        None => { return Err(DBError::DBIntegrity) }
                     }
                 }
                 Ok(stats)
             }
-            None => {
-                Ok(Vec::new())
-            }
+            None => { Ok(Vec::new()) }
         }
     }
 
