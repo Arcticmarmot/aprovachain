@@ -41,7 +41,7 @@ async fn main() -> Result<()> {
     tracing::info!(target:"executor::init", "rocksdb({db_file_mode:?}) init success...");
 
     // 新建 envelope 任务队列
-    let queue = TaskQueue::new();
+    let queue = TaskQueue::new_smallest_first();
 
     let (p2p_cmd_tx, p2p_cmd_rx) =
         mpsc::unbounded_channel::<P2pCmd>();

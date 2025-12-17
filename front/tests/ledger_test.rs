@@ -11,10 +11,9 @@ use ledger::call::{generate_access_set, LedgerCall};
 use spec::chain::ChainId;
 use tx::intent::{TxPayload};
 use common::setup::init_test;
-use db::handle::DBHandle;
-use platform::clock::unix_time_millis;
 use server::context::SubmitTxResponse;
-use crate::common::setup::{extract_ctr_addr, req_by_args_to, req_by_wire_to, sleep_slot};
+use crate::common::setup::{extract_ctr_addr, req_by_wire_to, sleep_slot};
+use rand::prelude::*;
 
 pub const EXECUTOR_URLS: &[&str] = &[
     // "http://cairo.mining-tuna.ts.net:8888/api/submit-tx",
@@ -31,10 +30,10 @@ const CHAIN_ID: ChainId = ChainId(1000);
 const SCALE: u32 = 18;
 const AIRDROP_AMOUNT: u64 = 100000;
 
-
 #[tokio::test]
 pub async fn ledger_test() {
     init_test();
+
     let args = TxArgs::try_parse_from([
         "apps",
         "--chain-id", "1000",
@@ -48,21 +47,17 @@ pub async fn ledger_test() {
     let tx_build_spec = parse_tx_args(&args).unwrap();
 
     let tx_envelope_wire = build_envelope_wire(tx_build_spec).unwrap();
+    let deploy_url = EXECUTOR_URLS.choose(&mut rand::rng()).unwrap();
+    let response = send_envelope_to(deploy_url.to_string(), tx_envelope_wire.clone()).await.unwrap();
+    let parsed_resp = response.json::<SubmitTxResponse>().await.unwrap();
+    tracing::info!(target:"apps::resp", "Response: {:?}", parsed_resp);
 
-    let mut resp= None;
-    for url in EXECUTOR_URLS {
-        let response = send_envelope_to(url.to_string(), tx_envelope_wire.clone()).await.unwrap();
-        let parsed_resp = response.json::<SubmitTxResponse>().await.unwrap();
-        tracing::info!(target:"apps::resp", "Response: {:?}", parsed_resp);
-        resp = Some(parsed_resp)
-    }
-
-    let ctr_addr_str = extract_ctr_addr(resp.unwrap()).unwrap();
+    let ctr_addr_str = extract_ctr_addr(parsed_resp).unwrap();
 
     sleep_slot().await;
 
     let mut users: Vec<AccountSigningKey> = Vec::new();
-    for index in 0..USER_NUM {
+    for _ in 0..USER_NUM {
         let sk = Keypair::generate().signing_key;
         users.push(sk);
     }
@@ -101,8 +96,9 @@ async fn send_mint(base_url: String, ctr_addr_str: String, sk: &AccountSigningKe
         input,
         access_set,
     };
+    let tx_scale = rand::random_range(16..=20);
 
-    let spec = create_build_spec_by_sk(CHAIN_ID, &sk, SCALE, payload)?;
+    let spec = create_build_spec_by_sk(CHAIN_ID, &sk, tx_scale, payload)?;
     let wire = build_envelope_wire(spec)?;
 
     req_by_wire_to(base_url.clone(), wire).await;
@@ -112,7 +108,7 @@ async fn send_mint(base_url: String, ctr_addr_str: String, sk: &AccountSigningKe
 async fn initial_airdrop(ctr_addr_str: String, users: &[AccountSigningKey]) {
     for (index, user) in users.iter().enumerate() {
         tracing::info!(target:"apps::resp", %index);
-        let url = EXECUTOR_URLS[index % EXECUTOR_URLS.len()];
+        let url = EXECUTOR_URLS.choose(&mut rand::rng()).unwrap();
         let _ = send_mint(url.to_string(), ctr_addr_str.clone(), user).await;
         tokio::time::sleep(PERIOD).await;
     }

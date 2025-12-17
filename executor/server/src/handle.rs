@@ -45,7 +45,7 @@ pub async fn submit_tx(State(state) : State<AppState>, envelope_bytes: Bytes) ->
             if exec_id == self_exec_id {
                 tracing::info!(target:"node::server", "I'll do it");
                 // 交易放入任务队列
-                queue.push(envelope_bytes.as_ref()).await;
+                queue.push(envelope_bytes.as_ref(), envelope.intent.scale).await;
             } else {
                 // 广播 envelope 到执行层
                 cmd_handle.publish_envelope(envelope.to_canonical_bytes())?;

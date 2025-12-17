@@ -8,7 +8,7 @@ use crate::intent::{TxIntent, TxIntentWire};
 use crate::error::Result;
 use crate::id::TxEnvelopeId;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,)]
 pub struct TxEnvelope {
     pub intent: TxIntent,
     pub verifying_key: AccountVerifyingKey,

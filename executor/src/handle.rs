@@ -26,7 +26,7 @@ pub async fn on_envelope_received(queue: TaskQueue, self_exec_id: ExecutorId, en
     if exec_id == self_exec_id {
         tracing::info!(target:"executor::event", "I will do it");
         // 交易放入任务队列
-        queue.push(envelope_bytes.as_ref()).await;
+        queue.push(envelope_bytes.as_ref(), envelope.intent.scale).await;
     } else {
         tracing::info!(target:"executor::event", "none of my business");
     }
