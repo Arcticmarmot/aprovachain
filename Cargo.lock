@@ -2286,7 +2286,6 @@ dependencies = [
  "account",
  "anyhow",
  "clap",
- "db",
  "dotenvy",
  "hex",
  "ledger",

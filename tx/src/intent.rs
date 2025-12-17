@@ -69,9 +69,9 @@ impl TxScale {
         match self {
             TxScale::Tiny   => 1,
             TxScale::Small  => 2,
-            TxScale::Medium => 3,
-            TxScale::Large  => 4,
-            TxScale::Huge   => 5,
+            TxScale::Medium => 4,
+            TxScale::Large  => 8,
+            TxScale::Huge   => 16,
         }
     }
 }

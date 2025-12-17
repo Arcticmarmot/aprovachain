@@ -57,11 +57,8 @@ pub struct OrderedBlock {
 
 impl Debug for OrderedBlock {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // header 直接用派生 Debug
         writeln!(f, "Block {{")?;
         writeln!(f, "  header: {:?},", self.header)?;
-
-        // txs 用你自己的格式
         writeln!(f, "  txs: [")?;
         for tx in &self.txs {
             writeln!(f, "    {:?},", TxAttestation::try_from(tx.clone()).unwrap())?;
@@ -114,6 +111,7 @@ pub struct LedgerBlock {
 
 impl Debug for LedgerBlock {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "")?;
         writeln!(f, "Block {{")?;
         writeln!(f, "  header: {:?},", self.ordered.header)?;
         writeln!(f, "  txs: [")?;

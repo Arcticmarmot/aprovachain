@@ -1,12 +1,25 @@
 use std::cmp::{Ordering};
 use std::collections::{BinaryHeap, VecDeque};
+use std::fmt::{Display, Formatter};
+use tx::envelope::TxEnvelope;
 
 #[derive(Debug, Clone)]
 pub struct Task {
-    pub bytes: Vec<u8>,
+    pub envelope: TxEnvelope,
     pub scale: u32,
     pub deadline: u128,
     pub seq: u64,
+}
+
+impl Display for Task {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "")?;
+        writeln!(f, "Task {{")?;
+        writeln!(f, "  scale: {:?},", self.scale)?;
+        writeln!(f, "  deadline: {:?},", self.deadline)?;
+        writeln!(f, "  seq: {:?},", self.seq)?;
+        writeln!(f, "}}")
+    }
 }
 
 #[derive(Debug, Clone)]

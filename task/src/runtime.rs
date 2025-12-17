@@ -3,7 +3,7 @@ use tokio::sync::watch::Receiver;
 use tokio::task::spawn_blocking;
 use account::keypair::AccountSigningKey;
 use db::handle::DBHandle;
-use engine::execute::{build_tx_outcome, verify_and_build_envelope};
+use engine::execute::{build_tx_outcome};
 use network::handle::P2pCmdHandle;
 use tx::attestation::TxAttestation;
 use crate::schedule::TaskSchedule;
@@ -11,7 +11,9 @@ use crate::error::Result;
 use tokio::sync::Semaphore;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::SeqCst;
-const MAX_PROVE: usize = 2;
+use tx::envelope::TxEnvelope;
+
+const MAX_PROVE: usize = 1;
 static INFLIGHT: AtomicUsize = AtomicUsize::new(0);
 
 pub async fn run_task(db_handle: DBHandle, cmd_handle: P2pCmdHandle,
@@ -45,9 +47,7 @@ pub async fn run_task(db_handle: DBHandle, cmd_handle: P2pCmdHandle,
 }
 
 pub fn handle_envelope(db_handle: &DBHandle, cmd_handle: &P2pCmdHandle, sk: &AccountSigningKey,
-                       bytes: Vec<u8>) -> Result<()> {
-    let envelope = verify_and_build_envelope(&bytes)?;
-
+                       envelope: TxEnvelope) -> Result<()> {
     let outcome = build_tx_outcome(&db_handle, envelope)?;
 
     let tx = TxAttestation::create(outcome, sk.clone());

@@ -120,7 +120,7 @@ async fn send_exec_to_executor(base_url: String, ctr_addr_str: String, sk: Accou
     let vk = &sk.verifying_key();
     let addr = UserAddress::from_vk(CHAIN_ID, vk);
     let addr_str = addr.to_bech32m()?;
-    for i in 0..tx_num {
+    for _ in 0..tx_num {
         ticker.tick().await;
         let call = LedgerCall::Mint { to: addr_str.clone(), amount: 10 };
 

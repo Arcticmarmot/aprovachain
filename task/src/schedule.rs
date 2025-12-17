@@ -1,9 +1,9 @@
 use std::collections::{BinaryHeap, VecDeque};
 use std::sync::Arc;
 use tokio::sync::{Mutex, Notify};
-use tx::intent::TxScale;
 use crate::discipline::*;
 use std::sync::atomic::{AtomicU64, Ordering as AOrd};
+use tx::envelope::TxEnvelope;
 
 pub enum DisciplineKind {
     Fcfs,
@@ -36,17 +36,14 @@ impl TaskSchedule {
         }
     }
 
-    pub async fn push(&self, bytes: &[u8], tx_scale: TxScale, send_height: u128) {
+    pub async fn push(&self, envelope: TxEnvelope, scale: u32, send_height: u128) {
         let seq = self.seq.fetch_add(1, AOrd::Relaxed);
+        let tx_scale = envelope.intent.scale; // 用户预估 tx_scale 用于计算截止时间
         let deadline = send_height + tx_scale.to_slot_count() as u128;
-        let task = Task {
-            bytes: Vec::from(bytes),
-            scale: tx_scale.to_slot_count(),
-            deadline,
-            seq
-        };
+        let scale = scale;
+        let task = Task { envelope, scale, deadline, seq };
         let mut discipline_guard = self.discipline.lock().await;
-        tracing::info!(target: "task::queue", ?task, "push task");
+        tracing::info!(target: "task::queue", %task, "push task");
         match &mut *discipline_guard {
             Discipline::Fcfs(queue) => {
                 queue.push_back(task);
@@ -73,43 +70,47 @@ impl TaskSchedule {
         self.notify.notified().await;
     }
 
-    pub async fn pop_or_wait(&self) -> Vec<u8> {
+    pub async fn pop_or_wait(&self) -> TxEnvelope {
         loop {
             let mut discipline_guard = self.discipline.lock().await;
             let bytes_opt = match &mut *discipline_guard {
                 Discipline::Fcfs(queue) => {
-                    queue.pop_front().map(|t| {
-                        tracing::info!(target: "task::queue", ?t, "pop task");
-                        t.bytes
+                    queue.pop_front().map(|task| {
+                        tracing::info!(target: "task::queue", %task, "pop task");
+                        task.envelope
                     })
                 }
                 Discipline::Spt(queue) => {
-                    queue.pop().map(|t| {
-                        tracing::info!(target: "task::queue", ?t, "pop task");
-                        t.0.bytes
+                    queue.pop().map(|key| {
+                        let task = key.0;
+                        tracing::info!(target: "task::queue", %task, "pop task");
+                        task.envelope
                     })
                 }
                 Discipline::Edf(queue) => {
-                    queue.pop().map(|t| {
-                        tracing::info!(target: "task::queue", ?t, "pop task");
-                        t.0.bytes
+                    queue.pop().map(|key| {
+                        let task = key.0;
+                        tracing::info!(target: "task::queue", %task, "pop task");
+                        task.envelope
                     })
                 }
                 Discipline::SptEdf(queue) => {
-                    queue.pop().map(|t| {
-                        tracing::info!(target: "task::queue", ?t, "pop task");
-                        t.0.bytes
+                    queue.pop().map(|key| {
+                        let task = key.0;
+                        tracing::info!(target: "task::queue", %task, "pop task");
+                        task.envelope
                     })
                 }
                 Discipline::EdfSpt(queue) => {
-                    queue.pop().map(|t| {
-                        tracing::info!(target: "task::queue", ?t, "pop task");
-                        t.0.bytes
+                    queue.pop().map(|key| {
+                        let task = key.0;
+                        tracing::info!(target: "task::queue", %task, "pop task");
+                        task.envelope
                     })
                 }
             };
-            if let Some(bytes) = bytes_opt {
-                return bytes;
+            if let Some(envelope) = bytes_opt {
+                return envelope;
             }
             drop(discipline_guard);
             self.wait().await;

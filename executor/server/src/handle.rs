@@ -6,7 +6,7 @@ use axum::body::{Bytes};
 use axum::extract::State;
 use axum::Json;
 use account::executor::ExecutorId;
-use engine::execute::{build_tx_outcome, verify_and_build_envelope};
+use engine::execute::{build_tx_outcome, pre_exec_tx, verify_and_build_envelope};
 use schedule::dispatch::assign_executor_for_tx;
 use tx::intent::TxPayload;
 
@@ -20,6 +20,7 @@ pub async fn submit_tx(State(state) : State<AppState>, envelope_bytes: Bytes) ->
     let self_exec_id = ExecutorId(sk.verifying_key());
 
     let envelope = verify_and_build_envelope(envelope_bytes.as_ref())?;
+    let send_ts = envelope.intent.timestamp;
     let payload = &envelope.intent.payload;
     match payload {
         TxPayload::Deploy { .. } | TxPayload::Update { .. } => {
@@ -32,9 +33,9 @@ pub async fn submit_tx(State(state) : State<AppState>, envelope_bytes: Bytes) ->
             cmd_handle.publish_tx(tx_bytes)?;
             Ok(Json(response))
         }
-        TxPayload::Exec { ctr_addr_str, .. } => {
+        TxPayload::Exec { ctr_addr_str, input, access_set } => {
             let envelope_id = envelope.tx_id();
-            let exec_id = match assign_executor_for_tx(&db_handle, &envelope_id, envelope.intent.timestamp)? {
+            let exec_id = match assign_executor_for_tx(&db_handle, &envelope_id, send_ts)? {
                 Some(exec_id) => { exec_id },
                 None => {
                     tracing::info!(target: "node::server", %envelope_id, "no metrics yet, fall back to self as executor");
@@ -43,18 +44,18 @@ pub async fn submit_tx(State(state) : State<AppState>, envelope_bytes: Bytes) ->
             };
             tracing::info!(target:"node::server", %exec_id, "executor id");
             if exec_id == self_exec_id {
-                tracing::info!(target:"node::server", "I'll do it");
+                tracing::info!(target:"node::server", "handle envelope myself");
                 // 交易放入任务队列
-                match db_handle.load_ts_height(envelope.intent.timestamp)? {
+                let scale = pre_exec_tx(&db_handle, &envelope, ctr_addr_str, input, access_set)?;
+                match db_handle.load_ts_height(send_ts)? {
                     Some(send_height) => {
-                        schedule.push(envelope_bytes.as_ref(), envelope.intent.scale, send_height).await;
+                        schedule.push(envelope.clone(), scale, send_height).await;
                     }
-                    None => {
-                        return Err(ServerError::GenesisTs)
-                    }
+                    None => { return Err(ServerError::GenesisTs) }
                 }
             } else {
                 // 广播 envelope 到执行层
+                tracing::info!(target:"node::server", "gossip envelope");
                 cmd_handle.publish_envelope(envelope.to_canonical_bytes())?;
             }
             // 返回 response

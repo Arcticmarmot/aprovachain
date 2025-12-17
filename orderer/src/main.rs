@@ -38,7 +38,7 @@ async fn main() -> Result<()> {
         mpsc::unbounded_channel::<P2pEvent>();
     let p2p_cmd_hdl = P2pCmdHandle::new(p2p_cmd_tx.clone());
     let p2p_event_hdl = P2pEventHandle::new(p2p_event_tx.clone());
-    let (shutdown_tx, shutdown_rx) = watch::channel(false);
+    let (_shutdown_tx, shutdown_rx) = watch::channel(false);
     let (sk, peer_set, swarm) = init_p2p(PeerRole::Orderer)?;
     // p2p 接收P2pCmd命令，发出P2pEvent事件
     let p2p_shutdown_rx = shutdown_rx.clone();
