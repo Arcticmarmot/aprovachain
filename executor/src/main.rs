@@ -106,9 +106,9 @@ async fn main() -> Result<()> {
             _ = signal::ctrl_c() => {
                 tracing::info!(target:"executor::signal", "ctrl-c received, shutting down");
                 let _ = shutdown_tx.send(true);
+                let _ = task_handle.await;
                 let _ = p2p_handle.await;
                 let _ = server_handle.await;
-                let _ = task_handle.await;
                 let _ = close_db(db_file_mode);
                 exit(0);
             }

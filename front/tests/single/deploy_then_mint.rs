@@ -1,20 +1,18 @@
-mod common;
-
 use clap::Parser;
-use front::handler::{build_envelope_wire, create_build_spec, parse_tx_args, parse_tx_args_with, send_envelope, TxArgs};
+use front::handler::{build_envelope_wire, create_build_spec, TxArgs};
 use ledger::call::{generate_access_set, LedgerCall};
 use server::context::SubmitTxResponse;
 use spec::chain::ChainId;
 use tx::intent::TxPayload;
-use common::setup::{init_test, req_by_args, req_by_wire, sleep_slot, SMOLENSK};
+use crate::common::setup::{init_test, req_by_args, req_by_wire, sleep_slot, SMOLENSK};
 
 #[tokio::test]
-pub async fn ledger_deploy_then_update_fail() {
+pub async fn ledger_deploy_then_mint() {
     init_test();
     let args = TxArgs::try_parse_from([
         "apps",
         "--chain-id", "1000",
-        "--scale", "2",
+        "--scale", "17",
         "--payload-type", "Deploy",
         "--deploy-elf", concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/elf/ledger_guest.bin"),
     ]).expect("parse args");
@@ -26,6 +24,10 @@ pub async fn ledger_deploy_then_update_fail() {
             tracing::info!(target: "front::resp", %ctr_addr_str, "ctr addr: ");
             ctr_addr_str
         },
+        SubmitTxResponse::Pending { ctr_addr_str, .. } => {
+            tracing::info!(target: "front::resp", %ctr_addr_str, "ctr addr: ");
+            ctr_addr_str
+        },
         _ => {
             tracing::error!(target: "front::resp", "contract deploy failed");
             return;
@@ -33,20 +35,7 @@ pub async fn ledger_deploy_then_update_fail() {
     };
 
     sleep_slot().await;
-
-    let args = TxArgs::try_parse_from([
-        "apps",
-        "--chain-id", "1000",
-        "--scale", "2",
-        "--payload-type", "Update",
-        "--ctr-addr-str", &ctr_addr_str,
-        "--update-elf",  concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/elf/pass.bin"),
-    ]).expect("parse args");
-
-    req_by_args(&args).await;
-
-    sleep_slot().await;
-
+    
     let chain_id = ChainId(args.chain_id);
     let scale = args.scale;
     let mint = LedgerCall::Mint { to: SMOLENSK.to_string(), amount: 100 };

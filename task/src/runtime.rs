@@ -9,8 +9,10 @@ use tx::attestation::TxAttestation;
 use crate::queue::TaskQueue;
 use crate::error::Result;
 use tokio::sync::Semaphore;
-
-const MAX_PROVE: usize = 1;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering::SeqCst;
+const MAX_PROVE: usize = 2;
+static INFLIGHT: AtomicUsize = AtomicUsize::new(0);
 
 pub async fn run_task(db_handle: DBHandle, cmd_handle: P2pCmdHandle,
                       sk: AccountSigningKey, queue: TaskQueue, mut shutdown_rx: Receiver<bool>) {
@@ -22,15 +24,19 @@ pub async fn run_task(db_handle: DBHandle, cmd_handle: P2pCmdHandle,
                 let db_handle = db_handle.clone();
                 let cmd_handle = cmd_handle.clone();
                 let sk = sk.clone();
-                let _ = spawn_blocking(move || {
+                spawn_blocking(move || {
                     // NOTE: 不能使用 _ 会被直接释放丢弃
                     let _permit = permit;
-                    let _ = handle_envelope(&db_handle, &cmd_handle, &sk, bytes);
+                    let n = INFLIGHT.fetch_add(1, SeqCst) + 1;
+                    tracing::info!(target="task::runtime", inflight=n, "prove start");
+                    let result = handle_envelope(&db_handle, &cmd_handle, &sk, bytes);
+                    let n = INFLIGHT.fetch_sub(1, SeqCst) - 1;
+                    tracing::info!(target="task::runtime", inflight=n, ?result, "prove end");
                 });
             },
             _ = shutdown_rx.changed() => {
                 if *shutdown_rx.borrow() {
-                    tracing::info!(target:"net::signal", "shutdown received, stopping task loop");
+                    tracing::info!(target:"task::runtime", "shutdown received, stopping task loop");
                     break;
                 }
             }
@@ -46,7 +52,7 @@ pub fn handle_envelope(db_handle: &DBHandle, cmd_handle: &P2pCmdHandle, sk: &Acc
 
     let tx = TxAttestation::create(outcome, sk.clone());
     let tx_bytes = tx.to_canonical_bytes();
-    tracing::info!(target: "task::event", len=?tx_bytes.len(), "tx_size");
+    tracing::info!(target: "task::runtime", len=?tx_bytes.len(), "tx_size");
 
     // 广播交易
     cmd_handle.publish_tx(tx_bytes)?;

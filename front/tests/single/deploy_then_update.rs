@@ -1,12 +1,10 @@
-mod common;
-
 use clap::Parser;
 use front::handler::{build_envelope_wire, create_build_spec, parse_tx_args, parse_tx_args_with, send_envelope, TxArgs};
 use ledger::call::{generate_access_set, LedgerCall};
 use server::context::SubmitTxResponse;
 use spec::chain::ChainId;
 use tx::intent::TxPayload;
-use common::setup::{init_test, req_by_args, req_by_wire, sleep_slot, SMOLENSK};
+use crate::common::setup::{init_test, req_by_args, req_by_wire, sleep_slot, SMOLENSK};
 
 #[tokio::test]
 pub async fn ledger_deploy_then_update() {

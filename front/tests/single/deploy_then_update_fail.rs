@@ -1,20 +1,18 @@
-mod common;
-
 use clap::Parser;
 use front::handler::{build_envelope_wire, create_build_spec, parse_tx_args, parse_tx_args_with, send_envelope, TxArgs};
 use ledger::call::{generate_access_set, LedgerCall};
 use server::context::SubmitTxResponse;
 use spec::chain::ChainId;
 use tx::intent::TxPayload;
-use common::setup::{init_test, req_by_args, req_by_wire, sleep_slot, KOL_SERVER, SMOLENSK};
+use crate::common::setup::{init_test, req_by_args, req_by_wire, sleep_slot, SMOLENSK};
 
 #[tokio::test]
-pub async fn ledger_deploy_then_trans() {
+pub async fn ledger_deploy_then_update_fail() {
     init_test();
     let args = TxArgs::try_parse_from([
         "apps",
         "--chain-id", "1000",
-        "--scale", "17",
+        "--scale", "2",
         "--payload-type", "Deploy",
         "--deploy-elf", concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/elf/ledger_guest.bin"),
     ]).expect("parse args");
@@ -34,9 +32,22 @@ pub async fn ledger_deploy_then_trans() {
 
     sleep_slot().await;
 
+    let args = TxArgs::try_parse_from([
+        "apps",
+        "--chain-id", "1000",
+        "--scale", "2",
+        "--payload-type", "Update",
+        "--ctr-addr-str", &ctr_addr_str,
+        "--update-elf",  concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/elf/pass.bin"),
+    ]).expect("parse args");
+
+    req_by_args(&args).await;
+
+    sleep_slot().await;
+
     let chain_id = ChainId(args.chain_id);
     let scale = args.scale;
-    let mint = LedgerCall::Transfer { from: SMOLENSK.to_string(), to: KOL_SERVER.to_string(), amount: 10 };
+    let mint = LedgerCall::Mint { to: SMOLENSK.to_string(), amount: 100 };
     let input = mint.encode_bcs();
     let access_set = generate_access_set(chain_id, input.clone()).unwrap();
 

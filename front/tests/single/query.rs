@@ -1,10 +1,8 @@
-mod common;
-
 use front::handler::{build_envelope_wire, create_build_spec};
 use ledger::call::{generate_access_set, LedgerCall};
 use spec::chain::ChainId;
 use tx::intent::TxPayload;
-use common::setup::{init_test, req_by_wire, SMOLENSK};
+use crate::common::setup::{init_test, req_by_wire, SMOLENSK};
 
 #[tokio::test]
 pub async fn ledger_query() {

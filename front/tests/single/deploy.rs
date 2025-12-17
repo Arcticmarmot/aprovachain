@@ -1,8 +1,6 @@
-mod common;
-
 use clap::Parser;
 use front::handler::{TxArgs};
-use common::setup::{init_test, req_by_args};
+use crate::common::setup::{init_test, req_by_args};
 
 #[tokio::test]
 pub async fn ledger_deploy() {
