@@ -6,3 +6,5 @@ edition = "2024"
 [dependencies]
 rand_core = { workspace = true }
 directories = { workspace = true }
+serde_yaml = { workspace = true }
+serde = { workspace = true }

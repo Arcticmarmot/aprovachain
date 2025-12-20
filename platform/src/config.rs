@@ -1,0 +1,36 @@
+use std::fs;
+use std::path::{Path, PathBuf};
+use serde::Deserialize;
+
+
+fn default_slot_secs() -> u32 {
+    12
+}
+
+fn default_tx_capacity() -> u32 {
+    100
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct BaseConfig {
+    #[serde(default="default_slot_secs")]
+    pub slot_secs: u32,
+    #[serde(default="default_tx_capacity")]
+    pub tx_capacity: u32
+}
+
+pub fn load_base_config() -> BaseConfig {
+    let path = default_base_yaml_path();
+    load_config_from(&path)
+}
+
+fn load_config_from(path: impl AsRef<Path>) -> BaseConfig {
+    let s = fs::read_to_string(path.as_ref()).expect("read config file failed");
+    let cfg: BaseConfig = serde_yaml::from_str(&s).expect("load base config failed");
+    cfg
+}
+
+fn default_base_yaml_path() -> PathBuf {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    manifest_dir.join("..").join("config").join("base.yaml")
+}

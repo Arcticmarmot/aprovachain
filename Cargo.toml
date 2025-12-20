@@ -47,6 +47,7 @@ rand = { version = "0.9" , features = ["std_rng"]}
 rand_core = { version="0.9", features = ["os_rng", "std"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1" }
+serde_yaml = { version = "0.9" }
 serde_with = { version = "3", features = ["macros", "hex"] }
 tokio = { version = "1.0", features = ["signal", "net", "io-util", "io-std", "macros",
     "rt", "rt-multi-thread", "sync", "time"] }
