@@ -4,6 +4,7 @@ use ed25519_dalek::{SecretKey, Signer, Verifier};
 use ed25519_dalek::{SigningKey, VerifyingKey, Signature};
 use ed25519_dalek::ed25519::SignatureBytes;
 use ed25519_dalek::PUBLIC_KEY_LENGTH;
+use libp2p::PeerId;
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use spec::chain::ChainId;
@@ -97,6 +98,15 @@ impl Keypair {
         fs::create_dir_all(dir).map_err(AccountError::CreateDir)?;
         let pathname = dir.join(format!("{filename}.hex"));
         fs::write(&pathname, sk_hex).map_err(AccountError::WriteHex)?;
+        Ok(())
+    }
+
+    pub fn save_peer_id(&self, dir: &Path, filename: &str) -> Result<()>{
+        let peer_key = libp2p::identity::Keypair::ed25519_from_bytes(self.signing_key.to_bytes()).unwrap();
+        let peer_id_str = PeerId::from(peer_key.public()).to_base58();
+        fs::create_dir_all(dir).map_err(AccountError::CreateDir)?;
+        let pathname = dir.join(format!("{filename}"));
+        fs::write(&pathname, peer_id_str).map_err(AccountError::WriteHex)?;
         Ok(())
     }
 

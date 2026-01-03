@@ -13,3 +13,4 @@ serde = { workspace = true }
 rand_core = { version = "0.6", features = ["getrandom"]}
 spec = { workspace = true }
 primitives = { workspace = true }
+libp2p = { workspace = true }

@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use serde::Deserialize;
 
-
+fn default_chain_id() -> u64 { 1000 }
 fn default_slot_secs() -> u32 {
     12
 }
@@ -11,12 +11,31 @@ fn default_tx_capacity() -> u32 {
     100
 }
 
+fn default_consensus_config() -> ConsensusConfig {
+    ConsensusConfig {
+        protocol: "SOLO".to_string(),
+        leader_id: "".to_string(),
+        members: Vec::new()
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct BaseConfig {
+    #[serde(default="default_chain_id")]
+    pub chain_id: u64,
     #[serde(default="default_slot_secs")]
     pub slot_secs: u32,
     #[serde(default="default_tx_capacity")]
-    pub tx_capacity: u32
+    pub tx_capacity: u32,
+    #[serde(default="default_consensus_config")]
+    pub consensus: ConsensusConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConsensusConfig {
+    pub protocol: String,
+    pub leader_id: String,
+    pub members: Vec<String>,
 }
 
 pub fn load_base_config() -> BaseConfig {

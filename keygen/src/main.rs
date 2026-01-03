@@ -22,4 +22,5 @@ fn gen_node_keypair(keypair_path: &PathBuf) {
     let keypair_dir = keypair_path.join("node");
     keypair.save_sk_hex(&keypair_dir, "signing-key").expect("saving the signing key to file");
     keypair.save_vk_hex(&keypair_dir, "verifying-key").expect("saving the verifying key to file");
+    keypair.save_peer_id(&keypair_dir, "peer-id").expect("saving the peer id to file");
 }
