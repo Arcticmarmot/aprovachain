@@ -17,6 +17,7 @@ pub async fn submit_tx(State(state) : State<AppState>, envelope_bytes: Bytes) ->
     let cmd_handle = state.cmd_handle;
     let sk = state.sk;
     let schedule = state.schedule;
+    let prove_mode = state.prove_mode;
     let self_exec_id = ExecutorId(sk.verifying_key());
 
     let envelope = verify_and_build_envelope(envelope_bytes.as_ref())?;
@@ -24,7 +25,7 @@ pub async fn submit_tx(State(state) : State<AppState>, envelope_bytes: Bytes) ->
     let payload = &envelope.intent.payload;
     match payload {
         TxPayload::Deploy { .. } | TxPayload::Update { .. } => {
-            let outcome = build_tx_outcome(&db_handle, envelope)?;
+            let outcome = build_tx_outcome(&db_handle, envelope, prove_mode)?;
             let response = resp_from_outcome(&outcome)?;
             let tx = TxAttestation::create(outcome, sk);
             let tx_bytes = tx.to_canonical_bytes();

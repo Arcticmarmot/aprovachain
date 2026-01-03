@@ -21,6 +21,7 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 primitives = { workspace = true }
 serde = { workspace = true }
+platform = { workspace = true }
 apps = { workspace = true }
 
 [features]

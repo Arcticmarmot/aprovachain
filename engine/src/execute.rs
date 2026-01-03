@@ -3,6 +3,7 @@ use risc0_zkvm::{default_executor, default_prover, Digest, ExecutorEnv, ProverOp
 use account::address::ContractAddress;
 use apps::ctr_io::{AccessSet, CtrInput, ReadSet};
 use db::handle::DBHandle;
+use platform::config::ProveMode;
 use primitives::hash::{sha256, Hash32};
 use tx::attestation::{TxAttestation, TxAttestationWire};
 use tx::envelope::{TxEnvelope, TxEnvelopeWire};
@@ -51,6 +52,30 @@ pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<Receipt> 
     Ok(receipt)
 }
 
+pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<Receipt> {
+    #[cfg(feature = "cuda")]
+    tracing::info!("server: CUDA feature ENABLED (will use GPU backend if possible)");
+    // 搭建虚拟机环境传入 input
+    let env = ExecutorEnv::builder()
+        .write(&ctr_input.encode_bcs())
+        .unwrap()
+        .build().map_err(EngineError::ExecutorEnvBuild)?;
+    // opts 里选 succinct
+    let opt = ProverOpts::fast();
+    // 根据虚拟机环境和 ELF 文件生成证明
+    let prover = default_prover();
+
+    let start_prove = Instant::now();
+    let proof = prover.prove_with_opts(env, &elf, &opt).map_err(EngineError::ProofGenerate)?;
+    let end_prove = Instant::now();
+    let elapsed = end_prove - start_prove;
+    tracing::info!(target: "engine::execute", ?elapsed, "prove time: ");
+    tracing::info!(target: "engine::execute", ?proof);
+
+    let receipt = proof.receipt;
+    Ok(receipt)
+}
+
 pub fn cycles_by_pre_exec(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<u32> {
     // 搭建虚拟机环境传入 input
     let env = ExecutorEnv::builder()
@@ -73,11 +98,11 @@ pub fn cycles_by_pre_exec(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<u32> {
     }
 }
 
-pub fn build_tx_outcome(db_handle: &DBHandle, envelope: TxEnvelope) -> Result<TxOutcome> {
+pub fn build_tx_outcome(db_handle: &DBHandle, envelope: TxEnvelope, prove_mode: ProveMode) -> Result<TxOutcome> {
     let payload = &envelope.intent.payload;
     match payload {
         TxPayload::Exec { ctr_addr_str, input, access_set} => {
-            let receipt = exec_tx(&db_handle, &envelope, ctr_addr_str, input, access_set)?;
+            let receipt = exec_tx(&db_handle, &envelope, ctr_addr_str, input, access_set, prove_mode)?;
             Ok(TxOutcome::create(envelope,  Some(receipt)))
         },
         TxPayload::Deploy{ image_id, elf, elf_hash } => {
@@ -92,7 +117,7 @@ pub fn build_tx_outcome(db_handle: &DBHandle, envelope: TxEnvelope) -> Result<Tx
 }
 
 pub fn exec_tx(db_handle: &DBHandle, envelope: &TxEnvelope, ctr_addr_str: &String,
-               input: &Vec<u8>, access_set: &AccessSet) -> Result<Receipt> {
+               input: &Vec<u8>, access_set: &AccessSet, prove_mode: ProveMode) -> Result<Receipt> {
     // 根据合约地址查找合约
     let intent = &envelope.intent;
     let ctr_addr = ContractAddress::parse_bech32m_with_id(intent.chain_id, ctr_addr_str)?;
@@ -131,9 +156,15 @@ pub fn exec_tx(db_handle: &DBHandle, envelope: &TxEnvelope, ctr_addr_str: &Strin
         input: input.clone(),
         read_set,
     };
-
-    let receipt = generate_receipt(&ctr_input, &elf)?;
-
+    let receipt = match prove_mode {
+        ProveMode::Native => {
+            generate_receipt(&ctr_input, &elf)?
+        }
+        ProveMode::Simulate { latency } => {
+            generate_simulate_receipt(&ctr_input, &elf)?
+        }
+    };
+    
     Ok(receipt)
 }
 

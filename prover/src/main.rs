@@ -10,6 +10,7 @@ use tokio::sync::{mpsc, watch};
 use account::executor::ExecutorId;
 use db::handle::DBHandle;
 use network::behaviour::behaviour::PeerRole;
+use platform::config::ProveMode;
 use prover::handle::{on_block_received, on_envelope_received};
 use server::runtime::run_server;
 use task::schedule::{DisciplineKind, TaskSchedule};
@@ -33,6 +34,16 @@ async fn main() -> Result<()> {
 
     // 解析 NodeArgs
     let args = NodeArgs::parse();
+    let config = platform::config::load_base_config();
+    let prover_config = config.prove;
+    let prove_mode = match prover_config.mode.as_str() {
+        "native" => ProveMode::Native,
+        "simulate" => ProveMode::Simulate {
+            latency: prover_config.latency,
+        },
+        _ => panic!("unknown prove mode"),
+    };
+    let queue_config = config.queue;
 
     // 初始化数据库
     let db_file_mode = args.db_file_mode;
@@ -67,8 +78,9 @@ async fn main() -> Result<()> {
     let task_sk= sk.clone();
     let task_queue = queue.clone();
     let task_shutdown_rx = shutdown_rx.clone();
+    let task_prove_mode = prove_mode.clone();
     let task_handle = spawn(async move {
-        run_task(task_db_handle, p2p_cmd_hdl, task_sk, task_queue, task_shutdown_rx).await;
+        run_task(task_db_handle, p2p_cmd_hdl, task_sk, task_queue, task_shutdown_rx, task_prove_mode, queue_config).await;
     });
 
     let server_db_handle = db_handle.clone();
@@ -76,10 +88,11 @@ async fn main() -> Result<()> {
     let p2p_cmd_hdl = P2pCmdHandle::new(p2p_cmd_tx.clone());
     let server_shutdown_rx = shutdown_rx.clone();
     let server_queue = queue.clone();
+    let server_prove_mode = prove_mode.clone();
     // 开启 http 服务
     let server_handle = spawn(async move {
         let _ = run_server(server_sk, server_db_handle, p2p_cmd_hdl,
-                           server_queue, server_shutdown_rx).await;
+                           server_queue, server_shutdown_rx, server_prove_mode).await;
     });
     tracing::info!(target:"executor::init", "server init success...");
 

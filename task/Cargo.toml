@@ -13,3 +13,4 @@ thiserror = { workspace = true }
 engine = { workspace = true }
 tracing = { workspace = true }
 schedule = { workspace = true }
+platform = { workspace = true }

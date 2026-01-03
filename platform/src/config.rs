@@ -3,32 +3,74 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 
 fn default_chain_id() -> u64 { 1000 }
-fn default_slot_secs() -> u32 {
-    12
+fn default_slot_secs() -> u32 { 12 }
+fn default_tx_capacity() -> u32 { 100 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ProveConfig {
+    pub mode: String,   // "real" | "fake"
+    pub latency: u64,
 }
 
-fn default_tx_capacity() -> u32 {
-    100
+#[derive(Debug, Clone)]
+pub enum ProveMode {
+    Native,
+    Simulate { latency: u64 }
 }
 
-fn default_consensus_config() -> ConsensusConfig {
-    ConsensusConfig {
-        protocol: "SOLO".to_string(),
-        leader_id: "".to_string(),
-        members: Vec::new()
-    }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DispatchConfig {
+    pub window_size: u32,
+    pub ema_k: u32,
+    pub score: DispatchScoreConfig,
 }
+
+
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DispatchScoreConfig {
+    pub timeliness: TimelinessScoreConfig,
+    pub integrity: IntegrityScoreConfig,
+}
+
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TimelinessScoreConfig {
+    pub timeout: u128,
+}
+
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct IntegrityScoreConfig {
+    pub fake: u128,
+}
+
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct QueueConfig {
+    pub discipline: String, // fcfs | spt | edf | spt_edf | edf_spt
+}
+
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct BaseConfig {
     #[serde(default="default_chain_id")]
     pub chain_id: u64,
+
     #[serde(default="default_slot_secs")]
     pub slot_secs: u32,
+
     #[serde(default="default_tx_capacity")]
     pub tx_capacity: u32,
-    #[serde(default="default_consensus_config")]
+
     pub consensus: ConsensusConfig,
+
+    pub prove: ProveConfig,
+
+    pub dispatch: DispatchConfig,
+
+    pub queue: QueueConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]

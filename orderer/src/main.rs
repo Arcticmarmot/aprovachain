@@ -59,7 +59,7 @@ async fn main() -> Result<()> {
     let chain_id = ChainId(config.chain_id);
 
     match cons_config.protocol.as_str() {
-        "SOLO" => {
+        "solo" => {
             let (solo_cmd_tx, solo_cmd_rx) =
                 mpsc::unbounded_channel::<SoloCmd>();
             let (solo_event_tx, mut solo_event_rx) =
@@ -106,7 +106,7 @@ async fn main() -> Result<()> {
                 }
             }
         }
-        "CFT" => {
+        "cft" => {
             let (cft_cmd_tx, cft_cmd_rx) =
                 mpsc::unbounded_channel::<CftCmd>();
             let (cft_event_tx, mut cft_event_rx) =
