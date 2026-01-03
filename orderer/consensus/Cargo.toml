@@ -11,4 +11,5 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 primitives = { workspace = true }
 platform = { workspace = true }
-hex = { workspace = true }
+network = { workspace = true }
+engine = { workspace = true }

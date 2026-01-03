@@ -1,16 +1,19 @@
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::time::Duration;
-use libp2p::identity::Keypair;
 use libp2p::PeerId;
+use tokio::spawn;
+use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::time::sleep;
 use chain::block::{BlockHeader, OrderedBlock};
 use chain::chain::ChainState;
 use chain::mempool::MempoolHandle;
 use primitives::constant::SLOT_SECS;
-use crate::solo::handle::SoloCmdHandle;
 use crate::error::Result;
 use platform::config::ConsensusConfig;
+use crate::cft::protocol::{CftCmd, CftCmdHandle, CftEventHandle};
+use crate::solo::protocol::SoloEventHandle;
+use crate::solo::service::SoloService;
 
 pub const PACK_TX_COUNT: usize = 100;
 
@@ -63,7 +66,7 @@ impl CftService {
         }
     }
 
-    pub fn update_chain_state(&mut self, header: BlockHeader) -> crate::error::Result<()> {
+    pub fn update_chain_state(&mut self, header: BlockHeader) -> Result<()> {
         self.chain_state.update(header)?;
         Ok(())
     }
@@ -73,9 +76,76 @@ impl CftService {
     }
 }
 
-pub async fn slot_loop(solo_cmd_handle: SoloCmdHandle) {
+pub async fn slot_loop(cft_cmd_handle: CftCmdHandle) {
     loop {
         sleep(Duration::from_secs(SLOT_SECS)).await;
-        let _ = solo_cmd_handle.new_slot();
+        let _ = cft_cmd_handle.new_slot();
     }
 }
+
+pub fn handle_new_slot(service: &mut CftService, cft_event_hdl: &CftEventHandle) {
+    if !service.is_leader() { return; }
+    match service.pack_block() {
+        Ok(block) => {
+            match service.update_chain_state(block.header) {
+                Ok(()) => {
+                    tracing::info!(target:"consensus::event", chain=?service.chain_state, "state");
+                    match cft_event_hdl.block_proposed(block.encode_bcs()) {
+                        Ok(()) => {
+                            // service.mempool_handle.clear_pending();
+                            tracing::info!(target:"consensus::event", pool=?service.mempool_handle, "state");
+                        }
+                        Err(err) => {
+                            tracing::warn!(target:"consensus::event", %err, "output event");
+                        }
+                    }
+                }
+                Err(err) => {
+                    tracing::warn!(target:"consensus::event", %err, "update chain state");
+                }
+            }
+        },
+        Err(err) => {
+            tracing::warn!(target:"consensus::event", %err, "pack block");
+        }
+    }
+}
+
+pub async fn start_cft_consensus(mut service: CftService,
+                             mut cft_cmd_rx: UnboundedReceiver<CftCmd>,
+                             cft_cmd_hdl: CftCmdHandle,
+                             cft_event_hdl: CftEventHandle) -> Result<()> {
+    spawn(async move {
+        slot_loop(cft_cmd_hdl).await
+    });
+    let service = &mut service;
+    loop {
+        tokio::select! {
+            Some(input) = cft_cmd_rx.recv() => {
+                match input {
+                    CftCmd::NewSlot => {
+                        tracing::info!(target:"consensus::event", "tick tock");
+                        handle_new_slot(service, &cft_event_hdl);
+                    },
+                    CftCmd::AppendAck { peer_id, ack } => {
+                        tracing::info!(target:"consensus::event", "append ack");
+                        // handle_new_slot(service, &solo_event_hdl);
+                    },
+                    CftCmd::ProposeBlock { block_bytes } => {
+                        tracing::info!(target:"consensus::event", "propose block");
+                        // handle_new_slot(service, &solo_event_hdl);
+                    },
+                    CftCmd::CommitBlock { block_bytes } => {
+                        tracing::info!(target:"consensus::event", "commit block");
+                        // handle_new_slot(service, &solo_event_hdl);
+                    },
+                    CftCmd::SubmitTx {tx_bytes}=> {
+                        tracing::info!(target:"consensus::event", "received tx");
+                        //  handle_submit_tx(service, tx_bytes);
+                    },
+                }
+            }
+        }
+    }
+}
+

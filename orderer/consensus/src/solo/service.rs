@@ -8,7 +8,7 @@ use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
 use primitives::constant::SLOT_SECS;
 use crate::error::Result;
-use crate::solo::handle::{handle_new_slot, handle_submit_tx, SoloCmd, SoloCmdHandle, SoloEventHandle};
+use crate::solo::protocol::{handle_new_slot, handle_submit_tx, SoloCmd, SoloCmdHandle, SoloEventHandle};
 
 pub const PACK_TX_COUNT: usize = 100;
 
@@ -62,7 +62,7 @@ pub async fn slot_loop(solo_cmd_handle: SoloCmdHandle) {
     }
 }
 
-pub async fn start_consensus(mut service: SoloService,
+pub async fn start_solo_consensus(mut service: SoloService,
                              mut solo_cmd_rx: UnboundedReceiver<SoloCmd>,
                              solo_cmd_hdl: SoloCmdHandle,
                              solo_event_hdl: SoloEventHandle) -> Result<()> {

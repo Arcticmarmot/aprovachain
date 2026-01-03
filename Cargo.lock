@@ -1277,8 +1277,9 @@ name = "consensus"
 version = "0.1.0"
 dependencies = [
  "chain",
- "hex",
+ "engine",
  "libp2p",
+ "network",
  "platform",
  "primitives",
  "thiserror 2.0.17",

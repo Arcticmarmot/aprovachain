@@ -9,12 +9,12 @@ use orderer::bootstrap::{init_env, init_logging};
 use tokio::sync::{mpsc, watch};
 use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
-use consensus::solo::handle::{SoloCmd, SoloCmdHandle, SoloEvent, SoloEventHandle};
-use consensus::solo::service::{start_consensus, SoloService};
-use consensus::cft::handle::{CftCmd, CftCmdHandle, CftEvent, CftEventHandle};
-use consensus::cft::service::{CftService};
+use consensus::solo::protocol::{SoloCmd, SoloCmdHandle, SoloEvent, SoloEventHandle};
+use consensus::solo::service::{start_solo_consensus, SoloService};
+use consensus::cft::protocol::{CftCmd, CftCmdHandle, CftEvent, CftEventHandle};
+use consensus::cft::service::{start_cft_consensus, CftService};
 use network::behaviour::behaviour::PeerRole;
-use orderer::handle::{on_block_commited, on_block_received, on_tx_received};
+use orderer::handle::{on_block_commited, on_block_proposed, on_block_received, on_tx_received};
 use spec::chain::ChainId;
 
 pub const TX_COUNT_LIMIT: usize = 3;
@@ -75,7 +75,7 @@ async fn main() -> Result<()> {
             let solo_cmd_hdl = SoloCmdHandle::new(solo_cmd_tx.clone());
             let solo_event_hdl = SoloEventHandle::new(solo_event_tx.clone());
             spawn(async move {
-                start_consensus(solo, solo_cmd_rx, solo_cmd_hdl, solo_event_hdl).await
+                start_solo_consensus(solo, solo_cmd_rx, solo_cmd_hdl, solo_event_hdl).await
             });
             tracing::info!(target:"orderer::init", "consensus init success(SOLO)...");
 
@@ -128,43 +128,48 @@ async fn main() -> Result<()> {
             let cft_cmd_hdl = CftCmdHandle::new(cft_cmd_tx.clone());
             let cft_event_hdl = CftEventHandle::new(cft_event_tx.clone());
             spawn(async move {
-                // start_consensus(solo, solo_cmd_rx, solo_cmd_hdl, solo_event_hdl).await
+                start_cft_consensus(cft, cft_cmd_rx, cft_cmd_hdl, cft_event_hdl).await
             });
             tracing::info!(target:"orderer::init", "consensus init success(CFT)...");
 
             let cft_cmd_hdl = CftCmdHandle::new(cft_cmd_tx.clone());
-            bail!("")
-            // loop {
-            //     tokio::select! {
-            //         Some(cmd) = p2p_event_rx.recv() => {
-            //             match cmd {
-            //                 P2pEvent::TxReceived(tx_bytes) => {
-            //                     tracing::info!(target:"orderer::event", "orderer received tx");
-            //                     if let Err(err) = on_tx_received(tx_bytes, &cft_cmd_hdl) {
-            //                         tracing::error!(target:"orderer::event", %err);
-            //                     }
-            //                 },
-            //                 P2pEvent::BlockReceived(block_bytes) => {
-            //                     tracing::info!(target:"orderer::event", "orderer received block");
-            //                     if let Err(err) = on_block_received(block_bytes) {
-            //                         tracing::error!(target:"orderer::event", %err);
-            //                     }
-            //                 }
-            //                 _ => { }
-            //             }
-            //         },
-            //         Some(output) = cft_event_rx.recv() => {
-            //             match output {
-            //                 SoloEvent::BlockCommited { block_bytes } => {
-            //                     tracing::info!(target:"orderer::event", "commited block");
-            //                     if let Err(err) = on_block_commited(block_bytes, &p2p_cmd_hdl) {
-            //                         tracing::error!(target:"orderer::event", %err);
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
+            loop {
+                tokio::select! {
+                    Some(cmd) = p2p_event_rx.recv() => {
+                        match cmd {
+                            P2pEvent::TxReceived(tx_bytes) => {
+                                tracing::info!(target:"orderer::event", "orderer received tx");
+                                if let Err(err) = on_tx_received(tx_bytes, &cft_cmd_hdl) {
+                                    tracing::error!(target:"orderer::event", %err);
+                                }
+                            },
+                            P2pEvent::BlockReceived(block_bytes) => {
+                                tracing::info!(target:"orderer::event", "orderer received block");
+                                if let Err(err) = on_block_received(block_bytes) {
+                                    tracing::error!(target:"orderer::event", %err);
+                                }
+                            }
+                            _ => { }
+                        }
+                    },
+                    Some(output) = cft_event_rx.recv() => {
+                        match output {
+                            CftEvent::BlockProposed { block_bytes } => {
+                                tracing::info!(target:"orderer::event", "commited block");
+                                if let Err(err) = on_block_proposed(block_bytes, &p2p_cmd_hdl) {
+                                    tracing::error!(target:"orderer::event", %err);
+                                }
+                            }
+                            CftEvent::BlockCommited { block_bytes } => {
+                                tracing::info!(target:"orderer::event", "commited block");
+                                if let Err(err) = on_block_commited(block_bytes, &p2p_cmd_hdl) {
+                                    tracing::error!(target:"orderer::event", %err);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         _ => {
             bail!("bad consensus protocol")

@@ -1,6 +1,7 @@
 use thiserror::Error;
 use chain::error::ChainError;
-use crate::solo::handle::{SoloCmd, SoloEvent};
+use crate::cft::protocol::{CftCmd, CftEvent};
+use crate::solo::protocol::{SoloCmd, SoloEvent};
 
 #[derive(Debug, Error)]
 pub enum ConsensusError {
@@ -10,10 +11,10 @@ pub enum ConsensusError {
     SendSoloCmd(#[from] tokio::sync::mpsc::error::SendError<SoloCmd>),
     #[error("send event failed")]
     SendSoloEvent(#[from] tokio::sync::mpsc::error::SendError<SoloEvent>),
-    #[error("config parse failed")]
-    ConfigParse(#[from] hex::FromHexError),
-    #[error("peer id parse failed")]
-    PeerIdParse(#[from] libp2p::identity::ParseError)
+    #[error("send cmd failed")]
+    SendCftCmd(#[from] tokio::sync::mpsc::error::SendError<CftCmd>),
+    #[error("send event failed")]
+    SendCftEvent(#[from] tokio::sync::mpsc::error::SendError<CftEvent>),
 }
 
 pub type Result<T> = std::result::Result<T, ConsensusError>;
