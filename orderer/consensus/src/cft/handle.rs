@@ -17,12 +17,13 @@ pub fn handle_new_slot(service: &mut CftService, cft_event_hdl: &CftEventHandle)
     let block_hash = header.hash();
     let block_bytes = block.encode_bcs();
 
-    service.staged_blocks.insert(height, block_bytes.clone());
+    service.staged_blocks.insert(height, (block_hash, block_bytes.clone()));
     service
         .pending_acks
         .entry(height)
         .or_default()
         .insert(service.local_id);
+
     let agr = Agreement::ProposeBlock {
         height,
         block_hash,
@@ -37,6 +38,7 @@ pub fn handle_submit_agreement(service: &mut CftService,
                                from: PeerId,
                                bytes: Vec<u8>) -> Result<()> {
     let agr = Agreement::try_decode_bcs(&bytes)?;
+    tracing::info!(target: "cft::agreement", ?agr);
     match agr {
         Agreement::ProposeBlock { height, block_hash, block_bytes } => {
             if service.is_leader() { return Ok(()); }
@@ -48,16 +50,17 @@ pub fn handle_submit_agreement(service: &mut CftService,
             let header = &block.header;
 
             if header.height != height || header.hash() != block_hash {
+                tracing::warn!(target:"consensus::event", height, "block inconsistent");
                 let nack = Agreement::AppendAck { height, block_hash, ack: false };
                 cft_event_hdl.agreement_commited(nack.encode_bcs())?;
                 return Ok(());
             }
 
-            if let Some(existing_bytes) = service.staged_blocks.get(&height) {
-                let existing_block = OrderedBlock::try_decode_bcs(existing_bytes)?;
-                if existing_block.header.hash() != block_hash {
+            if let Some((staged_hash, _bytes)) = service.staged_blocks.get(&height) {
+                if staged_hash != &block_hash {
+                    tracing::warn!(target:"consensus::event", height, "block hash mismatch");
                     let nack = Agreement::AppendAck { height, block_hash, ack: false };
-                    let _ = cft_event_hdl.agreement_commited(nack.encode_bcs());
+                    cft_event_hdl.agreement_commited(nack.encode_bcs())?;
                     return Ok(());
                 }
                 let ack = Agreement::AppendAck { height, block_hash, ack: true };
@@ -68,6 +71,7 @@ pub fn handle_submit_agreement(service: &mut CftService,
             match service.chain_state.tip_header_opt {
                 Some(tip) => {
                     if header.height != tip.height + 1 || header.parent_hash != tip.hash() {
+                        tracing::warn!(target:"consensus::event", height, ?tip, "invalid next block");
                         let nack = Agreement::AppendAck { height, block_hash, ack: false };
                         cft_event_hdl.agreement_commited(nack.encode_bcs())?;
                         return Ok(());
@@ -75,6 +79,7 @@ pub fn handle_submit_agreement(service: &mut CftService,
                 }
                 None => {
                     if header.height != 0 {
+                        tracing::warn!(target:"consensus::event", height, "invalid next block");
                         let nack = Agreement::AppendAck { height, block_hash, ack: false };
                         cft_event_hdl.agreement_commited(nack.encode_bcs())?;
                         return Ok(());
@@ -83,7 +88,7 @@ pub fn handle_submit_agreement(service: &mut CftService,
             }
 
             // 暂存
-            service.staged_blocks.insert(height, block_bytes);
+            service.staged_blocks.insert(height, (block_hash,block_bytes));
 
             // 回 ack
             let ack_msg = Agreement::AppendAck { height, block_hash, ack: true };
@@ -104,15 +109,12 @@ pub fn handle_submit_agreement(service: &mut CftService,
                 return Ok(());
             }
 
-            // 必须存在对应的 staged 提案
-            let staged_bytes = match service.staged_blocks.get(&height) {
-                Some(b) => b.clone(),
+            let (staged_hash, staged_bytes) = match service.staged_blocks.get(&height) {
+                Some((h, b)) => (*h, b.clone()),
                 None => return Ok(()),
             };
 
-            // hash 必须匹配 staged
-            let staged_block = OrderedBlock::try_decode_bcs(&staged_bytes)?;
-            if staged_block.header.height != height || staged_block.header.hash() != block_hash {
+            if staged_hash != block_hash {
                 tracing::warn!(target:"consensus::event", height, "ack hash mismatch");
                 return Ok(());
             }
@@ -123,11 +125,13 @@ pub fn handle_submit_agreement(service: &mut CftService,
             if acks.len() < service.quorum {
                 return Ok(());
             }
-            // 达 quorum：commit 本地 tip
+
+            let staged_block = OrderedBlock::try_decode_bcs(&staged_bytes)?;
+
             service.update_chain_state(staged_block.header)?;
 
-            // 广播 Commit（让 follower apply）
             let commit = Agreement::CommitBlock { height, block_hash };
+
             cft_event_hdl.agreement_commited(commit.encode_bcs())?;
 
             cft_event_hdl.block_commited(staged_bytes.clone())?;
@@ -143,24 +147,21 @@ pub fn handle_submit_agreement(service: &mut CftService,
             if service.is_leader() { return Ok(()) }
             if from != service.leader_id { return Ok(()); }
 
-            let staged_bytes = match service.staged_blocks.get(&height) {
-                Some(b) => b.clone(),
+            let (staged_hash, staged_bytes) = match service.staged_blocks.get(&height) {
+                Some((h, b)) => (*h, b.clone()),
                 None => return Ok(()),
             };
 
-            let staged_block = OrderedBlock::try_decode_bcs(&staged_bytes)?;
-            if staged_block.header.height != height || staged_block.header.hash() != block_hash {
-                tracing::warn!(target:"consensus::event", height, "commit hash mismatch");
+            if staged_hash != block_hash {
+                tracing::warn!(target:"consensus::event", height, "ack hash mismatch");
                 return Ok(());
             }
 
-            // 连续性（防止乱序 commit）
+            let staged_block = OrderedBlock::try_decode_bcs(&staged_bytes)?;
+
             match service.chain_state.tip_header_opt {
                 Some(tip) => {
-                    if staged_block.header.height != tip.height + 1 {
-                        return Ok(());
-                    }
-                    if staged_block.header.parent_hash != tip.hash() {
+                    if staged_block.header.height != tip.height + 1 || staged_block.header.parent_hash != tip.hash(){
                         return Ok(());
                     }
                 }
@@ -171,7 +172,7 @@ pub fn handle_submit_agreement(service: &mut CftService,
                 }
             }
 
-            service.update_chain_state(staged_block.header.clone())?;
+            service.update_chain_state(staged_block.header)?;
             service.staged_blocks.remove(&height);
             Ok(())
         }

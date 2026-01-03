@@ -11,7 +11,7 @@ use chain::mempool::MempoolHandle;
 use primitives::constant::SLOT_SECS;
 use crate::error::Result;
 use platform::config::ConsensusConfig;
-use crate::cft::agreement::Agreement;
+use primitives::hash::Hash32;
 use crate::cft::handle::{handle_new_slot, handle_submit_agreement, handle_submit_tx};
 use crate::cft::protocol::{CftCmd, CftCmdHandle, CftEventHandle};
 
@@ -26,7 +26,7 @@ pub struct CftService {
     pub members: Vec<PeerId>,
     pub quorum: usize,
     pub pending_acks: HashMap<u128, HashSet<PeerId>>,
-    pub staged_blocks: HashMap<u128, Vec<u8>>,
+    pub staged_blocks: HashMap<u128, (Hash32, Vec<u8>)>,
 }
 
 impl CftService {
@@ -53,7 +53,7 @@ impl CftService {
         })
     }
 
-    pub fn pack_block(&mut self) -> crate::error::Result<OrderedBlock> {
+    pub fn pack_block(&mut self) -> Result<OrderedBlock> {
         match self.chain_state.tip_header_opt {
             Some(tip_header) => {
                 let block = self.mempool_handle.pack_block(&tip_header, crate::solo::service::PACK_TX_COUNT)?;

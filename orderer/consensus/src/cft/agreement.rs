@@ -1,6 +1,7 @@
 use primitives::hash::Hash32;
 use serde::{Deserialize, Serialize};
 use crate::error::Result;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Agreement {
     AppendAck {

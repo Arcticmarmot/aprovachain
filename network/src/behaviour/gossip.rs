@@ -13,7 +13,7 @@ impl GossipTopic {
             GossipTopic::Envelope => "/aprova/envelope".to_string(),
             GossipTopic::Tx => "/aprova/tx".to_string(),
             GossipTopic::Block => "/aprova/block".to_string(),
-            GossipTopic::Agreement => "aprova/cons_msg".to_string(),
+            GossipTopic::Agreement => "aprova/agreement".to_string(),
         }
     }
 

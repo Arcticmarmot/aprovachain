@@ -9,7 +9,6 @@ use orderer::bootstrap::{init_env, init_logging};
 use tokio::sync::{mpsc, watch};
 use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
-use consensus::cft::agreement::Agreement;
 use consensus::solo::protocol::{SoloCmd, SoloCmdHandle, SoloEvent, SoloEventHandle};
 use consensus::solo::service::{start_solo_consensus, SoloService};
 use consensus::cft::protocol::{CftCmd, CftCmdHandle, CftEvent, CftEventHandle};
@@ -139,7 +138,7 @@ async fn main() -> Result<()> {
                                 }
                             },
                             P2pEvent::AgreementReceived { from, bytes } => {
-                                tracing::info!(target:"orderer::event", "orderer received tx");
+                                tracing::info!(target:"orderer::event", "orderer received agreement");
                                 if let Err(err) = on_cft_agreement_received(from, bytes, &cft_cmd_hdl) {
                                     tracing::error!(target:"orderer::event", %err);
                                 }
@@ -150,7 +149,7 @@ async fn main() -> Result<()> {
                     Some(output) = cft_event_rx.recv() => {
                         match output {
                             CftEvent::AgreementCommited { agreement_bytes } => {
-                                tracing::info!(target:"orderer::event", "commited block");
+                                tracing::info!(target:"orderer::event", "commited agreement");
                                 if let Err(err) = on_cft_agreement_commited(agreement_bytes, &p2p_cmd_hdl) {
                                     tracing::error!(target:"orderer::event", %err);
                                 }

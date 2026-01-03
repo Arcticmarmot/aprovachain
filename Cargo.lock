@@ -9,7 +9,6 @@ dependencies = [
  "bech32",
  "ed25519-dalek",
  "hex",
- "libp2p",
  "primitives",
  "rand_core 0.6.4",
  "serde",
@@ -3235,6 +3234,7 @@ name = "keygen"
 version = "0.1.0"
 dependencies = [
  "account",
+ "libp2p",
  "platform",
 ]
 

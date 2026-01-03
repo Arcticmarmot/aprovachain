@@ -5,6 +5,6 @@ consensus:
   protocol: "CFT"
   leader_id: "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE"
   members:
-    - "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE"
-    - "12D3KooWEB9JUhgjPUuR5QVeokUNeRSpjcxxGaELnLvydLTpCFUZ"
-    - "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9"
+    - "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE" # smolensk
+    - "12D3KooWEB9JUhgjPUuR5QVeokUNeRSpjcxxGaELnLvydLTpCFUZ" # mecca
+    - "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9" # kol-server

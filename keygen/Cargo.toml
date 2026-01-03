@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 account = { workspace = true }
 platform = { workspace = true }
+libp2p = { workspace = true }
