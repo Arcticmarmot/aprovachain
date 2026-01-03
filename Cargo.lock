@@ -1276,12 +1276,12 @@ dependencies = [
 name = "consensus"
 version = "0.1.0"
 dependencies = [
+ "bcs",
  "chain",
- "engine",
  "libp2p",
- "network",
  "platform",
  "primitives",
+ "serde",
  "thiserror 2.0.17",
  "tokio",
  "tracing",

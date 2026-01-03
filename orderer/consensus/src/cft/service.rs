@@ -11,9 +11,9 @@ use chain::mempool::MempoolHandle;
 use primitives::constant::SLOT_SECS;
 use crate::error::Result;
 use platform::config::ConsensusConfig;
+use crate::cft::agreement::Agreement;
+use crate::cft::handle::{handle_new_slot, handle_submit_agreement, handle_submit_tx};
 use crate::cft::protocol::{CftCmd, CftCmdHandle, CftEventHandle};
-use crate::solo::protocol::SoloEventHandle;
-use crate::solo::service::SoloService;
 
 pub const PACK_TX_COUNT: usize = 100;
 
@@ -83,40 +83,15 @@ pub async fn slot_loop(cft_cmd_handle: CftCmdHandle) {
     }
 }
 
-pub fn handle_new_slot(service: &mut CftService, cft_event_hdl: &CftEventHandle) {
-    if !service.is_leader() { return; }
-    match service.pack_block() {
-        Ok(block) => {
-            match service.update_chain_state(block.header) {
-                Ok(()) => {
-                    tracing::info!(target:"consensus::event", chain=?service.chain_state, "state");
-                    match cft_event_hdl.block_proposed(block.encode_bcs()) {
-                        Ok(()) => {
-                            // service.mempool_handle.clear_pending();
-                            tracing::info!(target:"consensus::event", pool=?service.mempool_handle, "state");
-                        }
-                        Err(err) => {
-                            tracing::warn!(target:"consensus::event", %err, "output event");
-                        }
-                    }
-                }
-                Err(err) => {
-                    tracing::warn!(target:"consensus::event", %err, "update chain state");
-                }
-            }
-        },
-        Err(err) => {
-            tracing::warn!(target:"consensus::event", %err, "pack block");
-        }
-    }
-}
+
 
 pub async fn start_cft_consensus(mut service: CftService,
                              mut cft_cmd_rx: UnboundedReceiver<CftCmd>,
                              cft_cmd_hdl: CftCmdHandle,
                              cft_event_hdl: CftEventHandle) -> Result<()> {
+    let slot_cmd_hdl = cft_cmd_hdl.clone();
     spawn(async move {
-        slot_loop(cft_cmd_hdl).await
+        slot_loop(slot_cmd_hdl).await
     });
     let service = &mut service;
     loop {
@@ -125,27 +100,24 @@ pub async fn start_cft_consensus(mut service: CftService,
                 match input {
                     CftCmd::NewSlot => {
                         tracing::info!(target:"consensus::event", "tick tock");
-                        handle_new_slot(service, &cft_event_hdl);
+                        if let Err(err) = handle_new_slot(service, &cft_event_hdl) {
+                            tracing::info!(target:"consensus::event", %err);
+                        }
                     },
-                    CftCmd::AppendAck { peer_id, ack } => {
-                        tracing::info!(target:"consensus::event", "append ack");
-                        // handle_new_slot(service, &solo_event_hdl);
-                    },
-                    CftCmd::ProposeBlock { block_bytes } => {
-                        tracing::info!(target:"consensus::event", "propose block");
-                        // handle_new_slot(service, &solo_event_hdl);
-                    },
-                    CftCmd::CommitBlock { block_bytes } => {
-                        tracing::info!(target:"consensus::event", "commit block");
-                        // handle_new_slot(service, &solo_event_hdl);
+                    CftCmd::SubmitAgreement { from, agreement_bytes } => {
+                        tracing::info!(target:"consensus::event", "submit agreement");
+                        if let Err(err) = handle_submit_agreement(service, &cft_event_hdl, from, agreement_bytes) {
+                            tracing::info!(target:"consensus::event", %err);
+                        }
                     },
                     CftCmd::SubmitTx {tx_bytes}=> {
                         tracing::info!(target:"consensus::event", "received tx");
-                        //  handle_submit_tx(service, tx_bytes);
+                        if let Err(err) = handle_submit_tx(service, tx_bytes) {
+                            tracing::info!(target:"consensus::event", %err);
+                        }
                     },
                 }
             }
         }
     }
 }
-

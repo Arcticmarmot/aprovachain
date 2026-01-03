@@ -11,5 +11,5 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 primitives = { workspace = true }
 platform = { workspace = true }
-network = { workspace = true }
-engine = { workspace = true }
+serde = { workspace = true }
+bcs = { workspace = true }

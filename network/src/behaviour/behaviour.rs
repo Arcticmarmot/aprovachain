@@ -60,6 +60,7 @@ impl PeerBehaviour {
         let envelope_topic = GossipTopic::Envelope.ident();
         let tx_topic = GossipTopic::Tx.ident();
         let block_topic = GossipTopic::Block.ident();
+        let agreement_topic = GossipTopic::Agreement.ident();
         match role {
             PeerRole::Executor => {
                 gossipsub.subscribe(&envelope_topic).expect("subscribe envelope");
@@ -68,6 +69,7 @@ impl PeerBehaviour {
             PeerRole::Orderer => {
                 gossipsub.subscribe(&tx_topic).expect("subscribe tx");
                 gossipsub.subscribe(&block_topic).expect("subscribe block");
+                gossipsub.subscribe(&agreement_topic).expect("subscribe agreement");
             }
             PeerRole::Verifier => {
                 gossipsub.subscribe(&block_topic).expect("subscribe block");
@@ -101,6 +103,13 @@ impl PeerBehaviour {
         tracing::info!(target:"network::gossip", len=%block_bytes.len(), "block size: ");
         let topic = GossipTopic::Block.ident();
         let _ = self.gossipsub.publish(topic, block_bytes);
+        Ok(())
+    }
+    
+    pub fn publish_agreement(&mut self, agreement_bytes: Vec<u8>) -> Result<()> {
+        tracing::info!(target:"network::gossip", len=%agreement_bytes.len(), "agreement size: ");
+        let topic = GossipTopic::Agreement.ident();
+        let _ = self.gossipsub.publish(topic, agreement_bytes);
         Ok(())
     }
 

@@ -8,7 +8,7 @@ use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
 use primitives::constant::SLOT_SECS;
 use crate::error::Result;
-use crate::solo::protocol::{handle_new_slot, handle_submit_tx, SoloCmd, SoloCmdHandle, SoloEventHandle};
+use crate::solo::protocol::{SoloCmd, SoloCmdHandle, SoloEventHandle};
 
 pub const PACK_TX_COUNT: usize = 100;
 
@@ -84,6 +84,48 @@ pub async fn start_solo_consensus(mut service: SoloService,
                     },
                 }
             }
+        }
+    }
+}
+
+/// SoloCmd::NewSlot 处理
+pub fn handle_new_slot(service: &mut SoloService, solo_event_hdl: &SoloEventHandle) {
+    if !service.is_leader() { return; }
+    match service.pack_block() {
+        Ok(block) => {
+            match service.update_chain_state(block.header) {
+                Ok(()) => {
+                    tracing::info!(target:"consensus::event", chain=?service.chain_state, "state");
+                    match solo_event_hdl.block_commited(block.encode_bcs()) {
+                        Ok(()) => {
+                            service.mempool_handle.clear_pending();
+                            tracing::info!(target:"consensus::event", pool=?service.mempool_handle, "state");
+                        }
+                        Err(err) => {
+                            tracing::warn!(target:"consensus::event", %err, "output event");
+                        }
+                    }
+                }
+                Err(err) => {
+                    tracing::warn!(target:"consensus::event", %err, "update chain state");
+                }
+            }
+        },
+        Err(err) => {
+            tracing::warn!(target:"consensus::event", %err, "pack block");
+        }
+    }
+}
+
+/// SoloCmd::SubmitTx 处理
+pub fn handle_submit_tx(service: &mut SoloService, tx_bytes: Vec<u8>) {
+    if !service.is_leader() { return; }
+    match service.mempool_handle.received_tx(tx_bytes) {
+        Ok(()) => {
+            tracing::info!(target:"consensus::event", "pushed tx");
+        }
+        Err(err) => {
+            tracing::warn!(target:"consensus::event", %err, "received tx");
         }
     }
 }

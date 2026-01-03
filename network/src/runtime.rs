@@ -73,6 +73,11 @@ pub async fn run_p2p(
                             tracing::warn!(target: "net::cmd", %err, "publish block cmd")
                         }
                     }
+                    P2pCmd::PublishAgreement(agreement_bytes) => {
+                        if let Err(err) = swarm.behaviour_mut().publish_agreement(agreement_bytes) {
+                            tracing::warn!(target: "net::cmd", %err, "publish block cmd")
+                        }
+                    }
                 }
             },
 
@@ -127,6 +132,11 @@ pub async fn run_p2p(
                             },
                             Some(GossipTopic::Block) => {
                                 if let Err(err) = event_handle.received_block(bytes) {
+                                    tracing::info!(target: "net::event", %err, "receive block event")
+                                }
+                            },
+                            Some(GossipTopic::Agreement) => {
+                                if let Err(err) = event_handle.received_agreement(peer_id, bytes) {
                                     tracing::info!(target: "net::event", %err, "receive block event")
                                 }
                             },
