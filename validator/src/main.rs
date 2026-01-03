@@ -8,8 +8,8 @@ use network::runtime::{init_p2p, run_p2p};
 use tokio::sync::{mpsc, watch};
 use db::handle::DBHandle;
 use network::behaviour::behaviour::PeerRole;
-use verifier::bootstrap::{init_env, init_logging};
-use verifier::handle::{handle_block_received};
+use validator::bootstrap::{init_env, init_logging};
+use validator::handle::{handle_block_received};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]

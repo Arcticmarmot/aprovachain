@@ -2087,28 +2087,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "executor"
-version = "0.1.0"
-dependencies = [
- "account",
- "anyhow",
- "clap",
- "db",
- "dotenvy",
- "engine",
- "network",
- "platform",
- "schedule",
- "server",
- "task",
- "tokio",
- "tracing",
- "tracing-appender",
- "tracing-subscriber 0.3.20",
- "tx",
-]
-
-[[package]]
 name = "fallible-iterator"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4974,6 +4952,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "prover"
+version = "0.1.0"
+dependencies = [
+ "account",
+ "anyhow",
+ "clap",
+ "db",
+ "dotenvy",
+ "engine",
+ "network",
+ "platform",
+ "schedule",
+ "server",
+ "task",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber 0.3.20",
+ "tx",
+]
+
+[[package]]
 name = "puffin"
 version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7125,6 +7125,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "validator"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "db",
+ "dotenvy",
+ "engine",
+ "network",
+ "platform",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber 0.3.20",
+]
+
+[[package]]
 name = "valuable"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7146,23 +7163,6 @@ dependencies = [
  "num-integer",
  "num-traits",
  "rustc_version 0.4.1",
-]
-
-[[package]]
-name = "verifier"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "db",
- "dotenvy",
- "engine",
- "network",
- "platform",
- "tokio",
- "tracing",
- "tracing-appender",
- "tracing-subscriber 0.3.20",
 ]
 
 [[package]]

@@ -5,11 +5,9 @@ edition = "2024"
 authors = ["marmot"]
 
 [workspace]
-members = ["account", "schedule", "front", "spec", "keygen", "verifier", "engine",
-    "methods", "methods/pass", "methods/ledger_guest", "apps", "apps/ledger",
-    "executor", "db", "executor/server", "orderer", "orderer/consensus",
-    "primitives", "tx", "contract", "network", "chain", "platform", "schedule",
-    "verifier", "engine", "task"]
+members = ["account", "schedule", "front", "spec", "keygen", "validator", "engine", "methods", "methods/pass",
+    "methods/ledger_guest", "apps", "apps/ledger", "prover", "db", "prover/server", "orderer", "orderer/consensus",
+    "primitives", "tx", "contract", "network", "chain", "platform", "schedule", "engine", "task"]
 
 [dependencies]
 
@@ -27,7 +25,7 @@ chain = { path = "chain" }
 network = { path = "network" }
 consensus = { path = "orderer/consensus" }
 db = { path = "db" }
-server = { path = "executor/server" }
+server = { path = "prover/server" }
 ledger = { path = "apps/ledger" }
 platform = { path = "platform" }
 
