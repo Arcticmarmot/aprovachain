@@ -47,6 +47,8 @@ pub enum EngineError {
     ReceiptDecode(#[from] risc0_zkvm::serde::Error),
     #[error("contract exec failed: {message}")]
     ContractExec { message: String },
+    #[error("bad prove scheme")]
+    ProveScheme,
 }
 
 pub type Result<T> = std::result::Result<T, EngineError>;

@@ -3,20 +3,20 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 
 fn default_chain_id() -> u64 { 1000 }
-fn default_slot_secs() -> u32 { 12 }
-fn default_tx_capacity() -> u32 { 100 }
+fn default_slot_secs() -> u64 { 12 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ProveConfig {
     pub mode: String,   // "real" | "fake"
+    pub scheme: String,
     pub latency: u64,
     pub offset: u64
 }
 
 #[derive(Debug, Clone)]
 pub enum ProveMode {
-    Native,
-    Simulate { latency: u64, offset: u64 }
+    Native { scheme: String },
+    Simulate { scheme: String, latency: u64, offset: u64 }
 }
 
 
@@ -60,11 +60,8 @@ pub struct BaseConfig {
     pub chain_id: u64,
 
     #[serde(default="default_slot_secs")]
-    pub slot_secs: u32,
-
-    #[serde(default="default_tx_capacity")]
-    pub tx_capacity: u32,
-
+    pub slot_secs: u64,
+    
     pub consensus: ConsensusConfig,
 
     pub prove: ProveConfig,
@@ -77,6 +74,7 @@ pub struct BaseConfig {
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConsensusConfig {
     pub protocol: String,
+    pub tx_capacity: usize,
     pub leader_id: String,
     pub members: Vec<String>,
 }

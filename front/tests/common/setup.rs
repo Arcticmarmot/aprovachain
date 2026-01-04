@@ -2,7 +2,7 @@ use std::time::Duration;
 use tokio::time::sleep;
 use front::bootstrap::{init_env, init_logging};
 use front::handler::{build_envelope_wire, parse_tx_args, send_envelope, send_envelope_to, TxArgs};
-use primitives::constant::{SLOT_SECS};
+use platform::config::load_base_config;
 use server::context::SubmitTxResponse;
 use tx::envelope::TxEnvelopeWire;
 
@@ -14,7 +14,8 @@ pub async fn sleep_a_while() {
     sleep(Duration::from_secs(2)).await
 }
 pub async fn sleep_slot() {
-    sleep(Duration::from_secs(SLOT_SECS)).await
+    let base = load_base_config();
+    sleep(Duration::from_secs(base.slot_secs)).await
 }
 
 pub fn init_test() {

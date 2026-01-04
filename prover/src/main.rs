@@ -37,8 +37,11 @@ async fn main() -> Result<()> {
     let config = platform::config::load_base_config();
     let prover_config = config.prove;
     let prove_mode = match prover_config.mode.as_str() {
-        "native" => ProveMode::Native,
+        "native" => ProveMode::Native {
+            scheme: prover_config.scheme
+        },
         "simulate" => ProveMode::Simulate {
+            scheme: prover_config.scheme,
             latency: prover_config.latency,
             offset: prover_config.offset
         },

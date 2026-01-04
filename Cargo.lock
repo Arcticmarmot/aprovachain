@@ -1654,6 +1654,7 @@ dependencies = [
  "contract",
  "directories",
  "once_cell",
+ "platform",
  "primitives",
  "rocksdb",
  "spec",

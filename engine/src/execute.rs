@@ -29,7 +29,7 @@ pub fn verify_and_build_tx(tx_bytes: &[u8]) -> Result<TxAttestation> {
     Ok(tx)
 }
 
-pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<Receipt> {
+pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, scheme: String) -> Result<Receipt> {
     #[cfg(feature = "cuda")]
     tracing::info!("server: CUDA feature ENABLED (will use GPU backend if possible)");
     // 搭建虚拟机环境传入 input
@@ -37,8 +37,20 @@ pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<Receipt> 
         .write(&ctr_input.encode_bcs())
         .unwrap()
         .build().map_err(EngineError::ExecutorEnvBuild)?;
-    // opts 里选 succinct
-    let opt = ProverOpts::fast();
+    let opt = match scheme.as_str() {
+        "succinct" => {
+            ProverOpts::succinct()
+        }
+        "fast" => {
+            ProverOpts::fast()
+        }
+        "groth16" => {
+            ProverOpts::groth16()
+        }
+        _ => {
+            return Err(EngineError::ProveScheme)
+        }
+    };
     // 根据虚拟机环境和 ELF 文件生成证明
     let prover = default_prover();
 
@@ -53,7 +65,7 @@ pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<Receipt> 
     Ok(receipt)
 }
 
-pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, latency: u64) -> Result<Receipt> {
+pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, scheme: String, latency: u64) -> Result<Receipt> {
     #[cfg(feature = "cuda")]
     tracing::info!("server: CUDA feature ENABLED (will use GPU backend if possible)");
     let latency_dur = Duration::from_millis(latency);
@@ -176,13 +188,13 @@ pub fn exec_tx(db_handle: &DBHandle, envelope: &TxEnvelope, ctr_addr_str: &Strin
         read_set,
     };
     let receipt = match prove_mode {
-        ProveMode::Native => {
-            generate_receipt(&ctr_input, &elf)?
+        ProveMode::Native { scheme } => {
+            generate_receipt(&ctr_input, &elf, scheme)?
         }
-        ProveMode::Simulate { latency, offset } => {
+        ProveMode::Simulate { scheme, latency, offset } => {
             let sample_latency = sample_prove_time_ms(latency, offset);
             tracing::info!(target: "engine::execute", %sample_latency);
-            generate_simulate_receipt(&ctr_input, &elf, sample_latency)?
+            generate_simulate_receipt(&ctr_input, &elf, scheme, sample_latency)?
         }
     };
     

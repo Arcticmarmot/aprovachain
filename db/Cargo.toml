@@ -19,3 +19,4 @@ account = { workspace = true }
 primitives = { workspace = true }
 spec = { workspace = true }
 apps = { workspace = true }
+platform = { workspace = true }

@@ -8,21 +8,20 @@ use tokio::time::sleep;
 use chain::block::{BlockHeader, OrderedBlock};
 use chain::chain::ChainState;
 use chain::mempool::MempoolHandle;
-use primitives::constant::SLOT_SECS;
 use crate::error::Result;
 use platform::config::ConsensusConfig;
 use primitives::hash::Hash32;
 use crate::cft::handle::{handle_new_slot, handle_submit_agreement, handle_submit_tx};
 use crate::cft::protocol::{CftCmd, CftCmdHandle, CftEventHandle};
 
-pub const PACK_TX_COUNT: usize = 100;
-
 #[derive(Debug)]
 pub struct CftService {
+    pub slot_secs: u64,
     pub local_id: PeerId,
     pub leader_id: PeerId,
     pub chain_state: ChainState,
     pub mempool_handle: MempoolHandle,
+    pub tx_capacity: usize,
     pub members: Vec<PeerId>,
     pub quorum: usize,
     pub pending_acks: HashMap<u128, HashSet<PeerId>>,
@@ -30,7 +29,8 @@ pub struct CftService {
 }
 
 impl CftService {
-    pub fn new(local_id: PeerId,
+    pub fn new(slot_secs: u64,
+               local_id: PeerId,
                chain_state: ChainState,
                mempool_handle: MempoolHandle,
                cons_config: ConsensusConfig) -> Result<Self> {
@@ -42,10 +42,12 @@ impl CftService {
         }
         let quorum = members.len() / 2 + 1;
         Ok(Self {
+            slot_secs,
             local_id,
             leader_id,
             chain_state,
             mempool_handle,
+            tx_capacity: cons_config.tx_capacity,
             members,
             quorum,
             pending_acks: HashMap::new(),
@@ -56,7 +58,7 @@ impl CftService {
     pub fn pack_block(&mut self) -> Result<OrderedBlock> {
         match self.chain_state.tip_header_opt {
             Some(tip_header) => {
-                let block = self.mempool_handle.pack_block(&tip_header, crate::solo::service::PACK_TX_COUNT)?;
+                let block = self.mempool_handle.pack_block(&tip_header, self.tx_capacity)?;
                 Ok(block)
             },
             None => {
@@ -76,9 +78,9 @@ impl CftService {
     }
 }
 
-pub async fn slot_loop(cft_cmd_handle: CftCmdHandle) {
+pub async fn slot_loop(cft_cmd_handle: CftCmdHandle, slot_secs: u64) {
     loop {
-        sleep(Duration::from_secs(SLOT_SECS)).await;
+        sleep(Duration::from_secs(slot_secs)).await;
         let _ = cft_cmd_handle.new_slot();
     }
 }
@@ -90,10 +92,12 @@ pub async fn start_cft_consensus(mut service: CftService,
                              cft_cmd_hdl: CftCmdHandle,
                              cft_event_hdl: CftEventHandle) -> Result<()> {
     let slot_cmd_hdl = cft_cmd_hdl.clone();
+    let slot_secs = service.slot_secs;
     spawn(async move {
-        slot_loop(slot_cmd_hdl).await
+        slot_loop(slot_cmd_hdl, slot_secs).await
     });
     let service = &mut service;
+
     loop {
         tokio::select! {
             Some(input) = cft_cmd_rx.recv() => {

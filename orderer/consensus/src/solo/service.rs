@@ -6,36 +6,42 @@ use tokio::time::sleep;
 use chain::block::{OrderedBlock, BlockHeader};
 use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
-use primitives::constant::SLOT_SECS;
+use platform::config::ConsensusConfig;
 use crate::error::Result;
 use crate::solo::protocol::{SoloCmd, SoloCmdHandle, SoloEventHandle};
 
 pub const PACK_TX_COUNT: usize = 100;
 
 pub struct SoloService {
+    pub slot_secs: u64,
     pub local_id: PeerId,
     pub leader_id: PeerId,
     pub chain_state: ChainState,
-    pub mempool_handle: MempoolHandle
+    pub mempool_handle: MempoolHandle,
+    pub tx_capacity: usize
 }
 
 impl SoloService {
-    pub fn new(local_id: PeerId,
+    pub fn new(slot_secs: u64,
+               local_id: PeerId,
                leader_id: PeerId,
                chain_state: ChainState,
-               mempool_handle: MempoolHandle) -> Self {
+               mempool_handle: MempoolHandle,
+               cons_config: ConsensusConfig) -> Self {
         Self {
+            slot_secs,
             local_id,
             leader_id,
             chain_state,
-            mempool_handle
+            mempool_handle,
+            tx_capacity: cons_config.tx_capacity
         }
     }
 
     pub fn pack_block(&mut self) -> Result<OrderedBlock> {
         match self.chain_state.tip_header_opt {
             Some(tip_header) => {
-                let block = self.mempool_handle.pack_block(&tip_header, PACK_TX_COUNT)?;
+                let block = self.mempool_handle.pack_block(&tip_header, self.tx_capacity)?;
                 Ok(block)
             },
             None => {
@@ -55,9 +61,9 @@ impl SoloService {
     }
 }
 
-pub async fn slot_loop(solo_cmd_handle: SoloCmdHandle) {
+pub async fn slot_loop(solo_cmd_handle: SoloCmdHandle, slot_secs: u64) {
     loop {
-        sleep(Duration::from_secs(SLOT_SECS)).await;
+        sleep(Duration::from_secs(slot_secs)).await;
         let _ = solo_cmd_handle.new_slot();
     }
 }
@@ -66,8 +72,9 @@ pub async fn start_solo_consensus(mut service: SoloService,
                              mut solo_cmd_rx: UnboundedReceiver<SoloCmd>,
                              solo_cmd_hdl: SoloCmdHandle,
                              solo_event_hdl: SoloEventHandle) -> Result<()> {
+    let slot_secs = service.slot_secs;
     spawn(async move {
-        slot_loop(solo_cmd_hdl).await
+        slot_loop(solo_cmd_hdl, slot_secs).await
     });
     let service = &mut service;
     loop {

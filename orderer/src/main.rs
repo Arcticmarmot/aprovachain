@@ -33,8 +33,9 @@ async fn main() -> Result<()> {
 
     // 解析 NodeArgs
     let _ = NodeArgs::parse();
-    let config = platform::config::load_base_config();
-    let cons_config = config.consensus;
+    let base = platform::config::load_base_config();
+    let slot_secs = base.slot_secs;
+    let cons_config = base.consensus;
 
     let (p2p_cmd_tx, p2p_cmd_rx) =
         mpsc::unbounded_channel::<P2pCmd>();
@@ -56,7 +57,7 @@ async fn main() -> Result<()> {
     let local_id = PeerId::from(local_key.public());
     tracing::info!(target:"orderer::init", "local_id: {:?}", local_id);
 
-    let chain_id = ChainId(config.chain_id);
+    let chain_id = ChainId(base.chain_id);
 
     match cons_config.protocol.as_str() {
         "solo" => {
@@ -70,7 +71,7 @@ async fn main() -> Result<()> {
                 tip_header_opt: None
             };
             let mempool_handle = MempoolHandle::new();
-            let solo = SoloService::new(local_id, local_id, chain_state, mempool_handle);
+            let solo = SoloService::new(slot_secs, local_id, local_id, chain_state, mempool_handle, cons_config);
 
             let solo_cmd_hdl = SoloCmdHandle::new(solo_cmd_tx.clone());
             let solo_event_hdl = SoloEventHandle::new(solo_event_tx.clone());
@@ -117,7 +118,7 @@ async fn main() -> Result<()> {
                 tip_header_opt: None
             };
             let mempool_handle = MempoolHandle::new();
-            let cft = CftService::new(local_id, chain_state, mempool_handle, cons_config)?;
+            let cft = CftService::new(slot_secs, local_id, chain_state, mempool_handle, cons_config)?;
             tracing::info!(target:"orderer::init", ?cft);
             let cft_cmd_hdl = CftCmdHandle::new(cft_cmd_tx.clone());
             let cft_event_hdl = CftEventHandle::new(cft_event_tx.clone());

@@ -6,7 +6,7 @@ use contract::contract::{Contract, ContractWire};
 use primitives::hash::Hash32;
 use apps::ctr_io::{NamespaceKey, ReadSet, WriteSet};
 use chain::catalog::TxServiceCatalog;
-use primitives::constant::SLOT_SECS;
+use platform::config::load_base_config;
 use crate::error::DBError;
 use crate::runtime::dbh;
 use crate::error::Result;
@@ -17,12 +17,15 @@ pub const GENESIS_TS_KEY: &[u8] = b"genesis_ts";
 #[derive(Debug, Clone)]
 pub struct DBHandle {
     pub dbh: Arc<DB>,
+    pub slot_secs: u64
 }
 
 impl DBHandle {
     pub fn new() -> Result<Self> {
         let dbh = dbh()?;
-        Ok(Self { dbh })
+        let base = load_base_config();
+        let slot_secs = base.slot_secs;
+        Ok(Self { dbh, slot_secs })
     }
 
     pub fn cf_data(&self) -> &ColumnFamily {
@@ -52,7 +55,8 @@ impl DBHandle {
     pub fn load_ts_height(&self, ts: u128) -> Result<Option<u128>> {
         Ok(match self.load_genesis_ts()? {
             Some(genesis_ts) => {
-                let now_slot = ts.saturating_sub(genesis_ts) / (SLOT_SECS * 1000) as u128;
+                // Note: 共识服务稳定出块才能一致
+                let now_slot = ts.saturating_sub(genesis_ts) / (self.slot_secs * 1000) as u128;
                 Some(now_slot)
             }
             None => { None }
