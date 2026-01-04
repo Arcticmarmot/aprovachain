@@ -10,8 +10,8 @@ pub const SMOLENSK: &'static str = "main1guwa5cdjvwtc8m86tmrjtkknqtee759k77j7qz"
 pub const KOL_SERVER: &'static str = "main16n6z9xz7j5nled2neqsj8qtmcwdnqz6gwsks9f";
 
 
-pub async fn sleep_a_while() {
-    sleep(Duration::from_secs(2)).await
+pub async fn sleep_for(secs: u64) {
+    sleep(Duration::from_secs(secs)).await
 }
 pub async fn sleep_slot() {
     let base = load_base_config();

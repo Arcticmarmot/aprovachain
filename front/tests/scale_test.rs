@@ -3,28 +3,37 @@ mod common;
 mod single;
 
 use clap::Parser;
-use front::handler::{build_envelope_wire, create_build_spec, parse_tx_args, send_envelope, send_envelope_to, TxArgs};
+use front::handler::{build_envelope_wire, create_build_spec, parse_tx_args, send_envelope, TxArgs};
 use spec::chain::ChainId;
 use common::setup::init_test;
 use server::context::SubmitTxResponse;
-use crate::common::setup::{extract_ctr_addr, req_by_wire, sleep_a_while, sleep_slot};
-use rand::prelude::*;
+use crate::common::setup::{extract_ctr_addr, req_by_wire, sleep_for};
 use apps::ctr_io::AccessSet;
 use platform::config::load_base_config;
 use primitives::trans::u64_to_be_vec;
 use tx::intent::TxPayload;
 
+const FIBONACCI_ITERS: &[u64] = &[100, 1_000, 10_000, 20_000, 100_000];
+
 #[tokio::test]
 pub async fn scale_test() {
     init_test();
-
     let base = load_base_config();
+    let chain_id = ChainId(base.chain_id);
+    let slot_secs = base.slot_secs;
 
+    // deploy fibonacci
     let ctr_addr_str = deploy_fibonacci().await;
+    sleep_for(slot_secs).await;
 
-    sleep_slot().await;
+    for (index, &iters) in FIBONACCI_ITERS.iter().enumerate() {
+        let scale = index as u32 + 16;
+        exec_fibonacci(chain_id, iters, scale, ctr_addr_str.clone()).await;
+    }
+}
 
-    let input = u64_to_be_vec(100);
+async fn exec_fibonacci(chain_id: ChainId, iters: u64, scale: u32, ctr_addr_str: String) {
+    let input = u64_to_be_vec(iters);
     let access_set = AccessSet::new();
 
     let payload = TxPayload::Exec {
@@ -32,9 +41,6 @@ pub async fn scale_test() {
         input,
         access_set,
     };
-
-    let chain_id = ChainId(1000);
-    let scale = 18;
 
     let tx_build_spec = create_build_spec(chain_id, scale, payload).unwrap();
     let tx_envelope_wire = build_envelope_wire(tx_build_spec).unwrap();

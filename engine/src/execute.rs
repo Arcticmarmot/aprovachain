@@ -38,18 +38,10 @@ pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, scheme: String) -> 
         .unwrap()
         .build().map_err(EngineError::ExecutorEnvBuild)?;
     let opt = match scheme.as_str() {
-        "succinct" => {
-            ProverOpts::succinct()
-        }
-        "fast" => {
-            ProverOpts::fast()
-        }
-        "groth16" => {
-            ProverOpts::groth16()
-        }
-        _ => {
-            return Err(EngineError::ProveScheme)
-        }
+        "succinct" => { ProverOpts::succinct() }
+        "fast" => { ProverOpts::fast() }
+        "groth16" => { ProverOpts::groth16() }
+        _ => { return Err(EngineError::ProveScheme) }
     };
     // 根据虚拟机环境和 ELF 文件生成证明
     let prover = default_prover();
@@ -75,8 +67,12 @@ pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, scheme: St
         .unwrap()
         .build().map_err(EngineError::ExecutorEnvBuild)?;
     // opts 里选 succinct
-    let opt = ProverOpts::groth16();
-    // 根据虚拟机环境和 ELF 文件生成证明
+    let opt = match scheme.as_str() {
+        "succinct" => { ProverOpts::succinct() }
+        "fast" => { ProverOpts::fast() }
+        "groth16" => { ProverOpts::groth16() }
+        _ => { return Err(EngineError::ProveScheme) }
+    };    // 根据虚拟机环境和 ELF 文件生成证明
     let prover = default_prover();
 
     let start_prove = Instant::now();
