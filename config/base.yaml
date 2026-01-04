@@ -9,7 +9,7 @@ consensus:
     - "12D3KooWEB9JUhgjPUuR5QVeokUNeRSpjcxxGaELnLvydLTpCFUZ" # mecca
     - "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9" # kol-server
 prove:
-  mode: "simulate" # "native" | "simulate"
+  mode: "native" # "native" | "simulate"
   latency: 500
   offset: 50
 

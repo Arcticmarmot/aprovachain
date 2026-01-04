@@ -24,3 +24,4 @@ tokio = { workspace = true }
 risc0-zkvm = { workspace = true }
 platform = { workspace = true }
 rand = { workspace = true }
+apps = { workspace = true }

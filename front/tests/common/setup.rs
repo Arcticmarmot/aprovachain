@@ -1,5 +1,4 @@
 use std::time::Duration;
-use reqwest::StatusCode;
 use tokio::time::sleep;
 use front::bootstrap::{init_env, init_logging};
 use front::handler::{build_envelope_wire, parse_tx_args, send_envelope, send_envelope_to, TxArgs};
@@ -10,6 +9,10 @@ use tx::envelope::TxEnvelopeWire;
 pub const SMOLENSK: &'static str = "main1guwa5cdjvwtc8m86tmrjtkknqtee759k77j7qz";
 pub const KOL_SERVER: &'static str = "main16n6z9xz7j5nled2neqsj8qtmcwdnqz6gwsks9f";
 
+
+pub async fn sleep_a_while() {
+    sleep(Duration::from_secs(2)).await
+}
 pub async fn sleep_slot() {
     sleep(Duration::from_secs(SLOT_SECS)).await
 }

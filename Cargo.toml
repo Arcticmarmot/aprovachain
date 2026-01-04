@@ -5,7 +5,7 @@ edition = "2024"
 authors = ["marmot"]
 
 [workspace]
-members = ["account", "schedule", "front", "spec", "keygen", "validator", "engine", "methods", "methods/pass",
+members = ["account", "schedule", "front", "spec", "keygen", "validator", "engine", "methods", "methods/pass", "methods/fibonacci",
     "methods/ledger_guest", "apps", "apps/ledger", "prover", "db", "prover/server", "orderer", "orderer/consensus",
     "primitives", "tx", "contract", "network", "chain", "platform", "schedule", "engine", "task"]
 

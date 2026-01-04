@@ -2155,6 +2155,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28dea519a9695b9977216879a3ebfddf92f1c08c05d984f8996aecd6ecdc811d"
 
 [[package]]
+name = "fibonacci"
+version = "0.1.0"
+dependencies = [
+ "apps",
+ "primitives",
+ "risc0-zkvm",
+]
+
+[[package]]
 name = "find-msvc-tools"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2266,6 +2275,7 @@ version = "0.1.0"
 dependencies = [
  "account",
  "anyhow",
+ "apps",
  "clap",
  "dotenvy",
  "hex",
@@ -3269,7 +3279,6 @@ dependencies = [
  "ledger",
  "primitives",
  "risc0-zkvm",
- "spec",
 ]
 
 [[package]]
