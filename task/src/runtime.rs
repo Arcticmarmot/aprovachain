@@ -12,11 +12,9 @@ use tokio::sync::Semaphore;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::SeqCst;
 use tx::envelope::TxEnvelope;
-use platform::config::{ProveConfig, ProveMode, QueueConfig};
+use platform::config::{ ProveMode, QueueConfig};
 const MAX_PROVE: usize = 1;
 static INFLIGHT: AtomicUsize = AtomicUsize::new(0);
-
-
 
 pub async fn run_task(db_handle: DBHandle, cmd_handle: P2pCmdHandle,
                       sk: AccountSigningKey, schedule: TaskSchedule, mut shutdown_rx: Receiver<bool>,

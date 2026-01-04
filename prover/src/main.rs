@@ -40,6 +40,7 @@ async fn main() -> Result<()> {
         "native" => ProveMode::Native,
         "simulate" => ProveMode::Simulate {
             latency: prover_config.latency,
+            offset: prover_config.offset
         },
         _ => panic!("unknown prove mode"),
     };

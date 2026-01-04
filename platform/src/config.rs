@@ -10,12 +10,13 @@ fn default_tx_capacity() -> u32 { 100 }
 pub struct ProveConfig {
     pub mode: String,   // "real" | "fake"
     pub latency: u64,
+    pub offset: u64
 }
 
 #[derive(Debug, Clone)]
 pub enum ProveMode {
     Native,
-    Simulate { latency: u64 }
+    Simulate { latency: u64, offset: u64 }
 }
 
 

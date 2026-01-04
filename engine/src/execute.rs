@@ -1,9 +1,10 @@
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use risc0_zkvm::{default_executor, default_prover, Digest, ExecutorEnv, ProverOpts, Receipt};
 use account::address::ContractAddress;
 use apps::ctr_io::{AccessSet, CtrInput, ReadSet};
 use db::handle::DBHandle;
 use platform::config::ProveMode;
+use platform::rand::sample_prove_time_ms;
 use primitives::hash::{sha256, Hash32};
 use tx::attestation::{TxAttestation, TxAttestationWire};
 use tx::envelope::{TxEnvelope, TxEnvelopeWire};
@@ -52,16 +53,17 @@ pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<Receipt> 
     Ok(receipt)
 }
 
-pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<Receipt> {
+pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, latency: u64) -> Result<Receipt> {
     #[cfg(feature = "cuda")]
     tracing::info!("server: CUDA feature ENABLED (will use GPU backend if possible)");
+    let latency_dur = Duration::from_millis(latency);
     // 搭建虚拟机环境传入 input
     let env = ExecutorEnv::builder()
         .write(&ctr_input.encode_bcs())
         .unwrap()
         .build().map_err(EngineError::ExecutorEnvBuild)?;
     // opts 里选 succinct
-    let opt = ProverOpts::fast();
+    let opt = ProverOpts::groth16();
     // 根据虚拟机环境和 ELF 文件生成证明
     let prover = default_prover();
 
@@ -72,8 +74,25 @@ pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<
     tracing::info!(target: "engine::execute", ?elapsed, "prove time: ");
     tracing::info!(target: "engine::execute", ?proof);
 
+    let left_dur = latency_dur - elapsed;
+    let iters = burn_cpu_for(left_dur);
+    tracing::info!(target: "engine::execute", %iters);
+
     let receipt = proof.receipt;
     Ok(receipt)
+}
+
+fn burn_cpu_for(dur: Duration) -> u64 {
+    let start = Instant::now();
+    let mut x: u64 = 0x1234_5678_9abc_def0;
+    let mut iters: u64 = 0;
+    while start.elapsed() < dur {
+        // 一点点算术搅动，避免被优化掉
+        x = x.wrapping_mul(6364136223846793005).wrapping_add(1);
+        std::hint::black_box(x);
+        iters += 1;
+    }
+    iters
 }
 
 pub fn cycles_by_pre_exec(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<u32> {
@@ -160,8 +179,10 @@ pub fn exec_tx(db_handle: &DBHandle, envelope: &TxEnvelope, ctr_addr_str: &Strin
         ProveMode::Native => {
             generate_receipt(&ctr_input, &elf)?
         }
-        ProveMode::Simulate { latency } => {
-            generate_simulate_receipt(&ctr_input, &elf)?
+        ProveMode::Simulate { latency, offset } => {
+            let sample_latency = sample_prove_time_ms(latency, offset);
+            tracing::info!(target: "engine::execute", %sample_latency);
+            generate_simulate_receipt(&ctr_input, &elf, sample_latency)?
         }
     };
     
