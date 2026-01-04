@@ -53,6 +53,7 @@ tokio = { version = "1.0", features = ["signal", "net", "io-util", "io-std", "ma
 bcs = { version = "0.1" }
 axum = { version = "0.8" }
 once_cell = { version = "1" }
+csv = { version = "1" }
 risc0-zkvm = { version = "3" }
 risc0-build = { version = "3" }
 libp2p = { version = "0.56", features = [

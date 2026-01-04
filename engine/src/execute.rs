@@ -3,7 +3,9 @@ use risc0_zkvm::{default_executor, default_prover, Digest, ExecutorEnv, ProverOp
 use account::address::ContractAddress;
 use apps::ctr_io::{AccessSet, CtrInput, ReadSet};
 use db::handle::DBHandle;
+use platform::bench::{bench_csv_append, bench_csv_path};
 use platform::config::ProveMode;
+use platform::file::aprova_proj_dir;
 use platform::rand::sample_prove_time_ms;
 use primitives::hash::{sha256, Hash32};
 use tx::attestation::{TxAttestation, TxAttestationWire};
@@ -54,6 +56,8 @@ pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, scheme: String) -> 
     tracing::info!(target: "engine::execute", ?proof);
 
     let receipt = proof.receipt;
+
+    bench_csv_append(&bench_csv_path("hello"), elapsed.as_millis() as u64).unwrap();
     Ok(receipt)
 }
 
@@ -77,16 +81,17 @@ pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, scheme: St
 
     let start_prove = Instant::now();
     let proof = prover.prove_with_opts(env, &elf, &opt).map_err(EngineError::ProofGenerate)?;
-    let end_prove = Instant::now();
-    let elapsed = end_prove - start_prove;
+    let elapsed = Instant::now().saturating_duration_since(start_prove);
     tracing::info!(target: "engine::execute", ?elapsed, "prove time: ");
     tracing::info!(target: "engine::execute", ?proof);
 
-    let left_dur = latency_dur - elapsed;
+    let left_dur = latency_dur.saturating_sub(elapsed);
     let iters = burn_cpu_for(left_dur);
     tracing::info!(target: "engine::execute", %iters);
 
     let receipt = proof.receipt;
+    bench_csv_append(&bench_csv_path("hello"), elapsed.as_millis() as u64).unwrap();
+
     Ok(receipt)
 }
 

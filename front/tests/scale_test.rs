@@ -9,6 +9,7 @@ use common::setup::init_test;
 use server::context::SubmitTxResponse;
 use crate::common::setup::{extract_ctr_addr, req_by_wire, sleep_for};
 use apps::ctr_io::AccessSet;
+use platform::bench::{bench_csv_begin, bench_csv_path};
 use platform::config::load_base_config;
 use primitives::trans::u64_to_be_vec;
 use tx::intent::TxPayload;
@@ -18,6 +19,8 @@ const FIBONACCI_ITERS: &[u64] = &[100, 1_000, 10_000, 20_000, 100_000];
 #[tokio::test]
 pub async fn scale_test() {
     init_test();
+    let csv_path = bench_csv_path("hello");
+    bench_csv_begin(&csv_path).unwrap();
     let base = load_base_config();
     let chain_id = ChainId(base.chain_id);
     let slot_secs = base.slot_secs;

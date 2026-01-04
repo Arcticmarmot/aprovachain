@@ -10,3 +10,5 @@ directories = { workspace = true }
 serde_yaml = { workspace = true }
 serde = { workspace = true }
 rand_distr = { workspace = true }
+csv = { workspace = true}
+anyhow = { workspace = true }
