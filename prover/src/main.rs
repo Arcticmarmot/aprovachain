@@ -34,20 +34,23 @@ async fn main() -> Result<()> {
 
     // 解析 NodeArgs
     let args = NodeArgs::parse();
-    let config = platform::config::load_base_config();
-    let prover_config = config.prove;
+    let base = platform::config::load_base_config();
+    let scale_csv = base.scale_csv;
+    let queue_config = base.queue;
+    let prover_config = base.prove;
     let prove_mode = match prover_config.mode.as_str() {
         "native" => ProveMode::Native {
-            scheme: prover_config.scheme
+            scheme: prover_config.scheme,
+            scale_csv
         },
         "simulate" => ProveMode::Simulate {
             scheme: prover_config.scheme,
             latency: prover_config.latency,
-            offset: prover_config.offset
+            offset: prover_config.offset,
+            scale_csv
         },
         _ => panic!("unknown prove mode"),
     };
-    let queue_config = config.queue;
 
     // 初始化数据库
     let db_file_mode = args.db_file_mode;

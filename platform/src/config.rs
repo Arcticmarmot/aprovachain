@@ -15,10 +15,9 @@ pub struct ProveConfig {
 
 #[derive(Debug, Clone)]
 pub enum ProveMode {
-    Native { scheme: String },
-    Simulate { scheme: String, latency: u64, offset: u64 }
+    Native { scheme: String, scale_csv: String },
+    Simulate { scheme: String, latency: u64, offset: u64, scale_csv: String }
 }
-
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct DispatchConfig {
@@ -26,8 +25,6 @@ pub struct DispatchConfig {
     pub ema_k: u32,
     pub score: DispatchScoreConfig,
 }
-
-
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct DispatchScoreConfig {
@@ -41,18 +38,15 @@ pub struct TimelinessScoreConfig {
     pub timeout: u128,
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct IntegrityScoreConfig {
     pub fake: u128,
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct QueueConfig {
     pub discipline: String, // fcfs | spt | edf | spt_edf | edf_spt
 }
-
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct BaseConfig {
@@ -61,6 +55,8 @@ pub struct BaseConfig {
 
     #[serde(default="default_slot_secs")]
     pub slot_secs: u64,
+    
+    pub scale_csv: String,
     
     pub consensus: ConsensusConfig,
 

@@ -5,7 +5,6 @@ use apps::ctr_io::{AccessSet, CtrInput, ReadSet};
 use db::handle::DBHandle;
 use platform::bench::{bench_csv_append, bench_csv_path};
 use platform::config::ProveMode;
-use platform::file::aprova_proj_dir;
 use platform::rand::sample_prove_time_ms;
 use primitives::hash::{sha256, Hash32};
 use tx::attestation::{TxAttestation, TxAttestationWire};
@@ -31,7 +30,7 @@ pub fn verify_and_build_tx(tx_bytes: &[u8]) -> Result<TxAttestation> {
     Ok(tx)
 }
 
-pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, scheme: String) -> Result<Receipt> {
+pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, prove_scheme: String, scale_csv: String) -> Result<Receipt> {
     #[cfg(feature = "cuda")]
     tracing::info!("server: CUDA feature ENABLED (will use GPU backend if possible)");
     // 搭建虚拟机环境传入 input
@@ -39,7 +38,7 @@ pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, scheme: String) -> 
         .write(&ctr_input.encode_bcs())
         .unwrap()
         .build().map_err(EngineError::ExecutorEnvBuild)?;
-    let opt = match scheme.as_str() {
+    let opt = match prove_scheme.as_str() {
         "succinct" => { ProverOpts::succinct() }
         "fast" => { ProverOpts::fast() }
         "groth16" => { ProverOpts::groth16() }
@@ -50,18 +49,24 @@ pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, scheme: String) -> 
 
     let start_prove = Instant::now();
     let proof = prover.prove_with_opts(env, &elf, &opt).map_err(EngineError::ProofGenerate)?;
-    let end_prove = Instant::now();
-    let elapsed = end_prove - start_prove;
+    let elapsed = Instant::now().saturating_duration_since(start_prove);
     tracing::info!(target: "engine::execute", ?elapsed, "prove time: ");
     tracing::info!(target: "engine::execute", ?proof);
 
     let receipt = proof.receipt;
 
-    bench_csv_append(&bench_csv_path("hello"), elapsed.as_millis() as u64).unwrap();
+    let cycles = proof.stats.total_cycles;
+    let prove_time = elapsed.as_millis();
+    let receipt_size = bcs::to_bytes(&receipt).expect("encode receipt failed").len();
+    let csv_name = format!("{scale_csv}-{prove_scheme}.csv");
+    let scale_csv_path = bench_csv_path(&csv_name);
+    bench_csv_append(&scale_csv_path, cycles, prove_time, receipt_size).expect("bench csv append failed");
+
     Ok(receipt)
 }
 
-pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, scheme: String, latency: u64) -> Result<Receipt> {
+pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>,
+                                 prove_scheme: String, latency: u64, scale_csv: String) -> Result<Receipt> {
     #[cfg(feature = "cuda")]
     tracing::info!("server: CUDA feature ENABLED (will use GPU backend if possible)");
     let latency_dur = Duration::from_millis(latency);
@@ -71,7 +76,7 @@ pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, scheme: St
         .unwrap()
         .build().map_err(EngineError::ExecutorEnvBuild)?;
     // opts 里选 succinct
-    let opt = match scheme.as_str() {
+    let opt = match prove_scheme.as_str() {
         "succinct" => { ProverOpts::succinct() }
         "fast" => { ProverOpts::fast() }
         "groth16" => { ProverOpts::groth16() }
@@ -88,9 +93,14 @@ pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, scheme: St
     let left_dur = latency_dur.saturating_sub(elapsed);
     let iters = burn_cpu_for(left_dur);
     tracing::info!(target: "engine::execute", %iters);
-
     let receipt = proof.receipt;
-    bench_csv_append(&bench_csv_path("hello"), elapsed.as_millis() as u64).unwrap();
+
+    let cycles = proof.stats.total_cycles;
+    let prove_time = elapsed.as_millis();
+    let receipt_size = bcs::to_bytes(&receipt).expect("encode receipt failed").len();
+    let csv_name = format!("{scale_csv}-{prove_scheme}.csv");
+    let scale_csv_path = bench_csv_path(&csv_name);
+    bench_csv_append(&scale_csv_path, cycles, prove_time, receipt_size).expect("bench csv append failed");
 
     Ok(receipt)
 }
@@ -189,13 +199,13 @@ pub fn exec_tx(db_handle: &DBHandle, envelope: &TxEnvelope, ctr_addr_str: &Strin
         read_set,
     };
     let receipt = match prove_mode {
-        ProveMode::Native { scheme } => {
-            generate_receipt(&ctr_input, &elf, scheme)?
+        ProveMode::Native { scheme, scale_csv } => {
+            generate_receipt(&ctr_input, &elf, scheme, scale_csv)?
         }
-        ProveMode::Simulate { scheme, latency, offset } => {
+        ProveMode::Simulate { scheme, latency, offset, scale_csv } => {
             let sample_latency = sample_prove_time_ms(latency, offset);
             tracing::info!(target: "engine::execute", %sample_latency);
-            generate_simulate_receipt(&ctr_input, &elf, scheme, sample_latency)?
+            generate_simulate_receipt(&ctr_input, &elf, scheme, sample_latency, scale_csv)?
         }
     };
     

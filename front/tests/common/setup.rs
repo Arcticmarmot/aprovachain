@@ -13,6 +13,7 @@ pub const KOL_SERVER: &'static str = "main16n6z9xz7j5nled2neqsj8qtmcwdnqz6gwsks9
 pub async fn sleep_for(secs: u64) {
     sleep(Duration::from_secs(secs)).await
 }
+
 pub async fn sleep_slot() {
     let base = load_base_config();
     sleep(Duration::from_secs(base.slot_secs)).await

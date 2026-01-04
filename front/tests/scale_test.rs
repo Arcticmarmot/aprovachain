@@ -14,20 +14,24 @@ use platform::config::load_base_config;
 use primitives::trans::u64_to_be_vec;
 use tx::intent::TxPayload;
 
-const FIBONACCI_ITERS: &[u64] = &[100, 1_000, 10_000, 20_000, 100_000];
+const FIBONACCI_ITERS: &[u64] = &[100, 1_000, 10_000, 20_000, 32_000];
 
 #[tokio::test]
 pub async fn scale_test() {
     init_test();
-    let csv_path = bench_csv_path("hello");
-    bench_csv_begin(&csv_path).unwrap();
+
     let base = load_base_config();
     let chain_id = ChainId(base.chain_id);
     let slot_secs = base.slot_secs;
+    let scale_csv = base.scale_csv;
+    let prove_scheme = base.prove.scheme;
+    let csv_name = format!("{scale_csv}-{prove_scheme}.csv");
+    let csv_path = bench_csv_path(&csv_name);
+    bench_csv_begin(&csv_path).unwrap();
 
     // deploy fibonacci
     let ctr_addr_str = deploy_fibonacci().await;
-    sleep_for(slot_secs).await;
+    sleep_for(slot_secs + 1).await;
 
     for (index, &iters) in FIBONACCI_ITERS.iter().enumerate() {
         let scale = index as u32 + 16;
