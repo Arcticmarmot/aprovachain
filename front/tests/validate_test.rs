@@ -44,17 +44,17 @@ pub async fn validate_test() {
     let csv_name = format!("{scale_csv}-{prove_scheme}-validate.csv");
     let csv_path = bench_csv_path(&csv_name);
     bench_csv_begin(&csv_path).unwrap();
+    sleep_for(slot_secs + 1).await;
 
     // deploy fibonacci
     let ctr_addr_str = deploy_fibonacci().await;
     sleep_for(slot_secs + 1).await;
 
     for (index, &iters) in FIBONACCI_ITERS.iter().enumerate() {
-        let scale = index as u32 + 16;
+        let scale = 20;
         exec_fibonacci(chain_id, iters, scale, ctr_addr_str.clone()).await;
-        // sleep_for(1).await;
+        sleep_for(1).await;
     }
-
 }
 
 async fn exec_fibonacci(chain_id: ChainId, iters: u64, scale: u32, ctr_addr_str: String) {

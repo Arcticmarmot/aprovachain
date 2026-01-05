@@ -10,6 +10,7 @@ pub enum TxServiceCode {
     Success,
     Conflict,
     Timeout,
+    ValidTx,
     InvalidTx,
     FakeReceipt,
     FakeInput,

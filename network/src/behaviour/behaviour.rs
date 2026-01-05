@@ -50,7 +50,7 @@ impl PeerBehaviour {
         let gossipsub_cfg = gossipsub::ConfigBuilder::default()
             .protocol_id_prefix(APROVA_GOSSIP_PROTO)
             .validation_mode(gossipsub::ValidationMode::Strict)
-            .max_transmit_size(5 * 1024 * 1024)
+            .max_transmit_size(1024 * 1024 * 1024)
             .build().expect("build gossipsub config");
         let mut gossipsub = gossipsub::Behaviour::new(
             MessageAuthenticity::Signed(local_key.clone()),

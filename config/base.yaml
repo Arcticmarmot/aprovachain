@@ -1,9 +1,9 @@
 chain_id: 1000
-slot_secs: 6
+slot_secs: 40
 scale_csv: "scale-prove" # cycles, cycle_label, scale, prove_time, receipt_size
 consensus:
   protocol: "solo"
-  tx_capacity: 100
+  tx_capacity: 1000
   leader_id: "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE"
   members:
     - "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE" # smolensk
