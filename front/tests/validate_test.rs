@@ -14,10 +14,26 @@ use platform::config::load_base_config;
 use primitives::trans::u64_to_be_vec;
 use tx::intent::TxPayload;
 
-const FIBONACCI_ITERS: &[u64] = &[100, 1_000, 10_000, 20_000, 32_000];
+const FIBONACCI_ITERS: &[u64] = &[
+    100, 100, 100, 100, 100,
+    100, 100, 100, 100, 100,
+    100, 100, 100, 100, 100,
+    100, 100, 100, 100, 100,
+    100, 100, 100, 100, 100,
+    100, 100, 100, 100, 100,
+    100, 100, 100, 100, 100,
+    100, 100, 100, 100, 100,
+    100, 100, 100, 100, 100,
+    100, 100, 100, 100, 100,
+    100, 100, 100, 100, 100,
+    100, 100, 100, 100, 100,
+];
+
+const GROTH16_TIME: u64 = 30;
+const SUCCINCT_TIME: u64 = 30;
 
 #[tokio::test]
-pub async fn scale_test() {
+pub async fn validate_test() {
     init_test();
 
     let base = load_base_config();
@@ -25,7 +41,7 @@ pub async fn scale_test() {
     let slot_secs = base.slot_secs;
     let scale_csv = base.scale_csv;
     let prove_scheme = base.prove.scheme;
-    let csv_name = format!("{scale_csv}-{prove_scheme}.csv");
+    let csv_name = format!("{scale_csv}-{prove_scheme}-validate.csv");
     let csv_path = bench_csv_path(&csv_name);
     bench_csv_begin(&csv_path).unwrap();
 
@@ -36,8 +52,9 @@ pub async fn scale_test() {
     for (index, &iters) in FIBONACCI_ITERS.iter().enumerate() {
         let scale = index as u32 + 16;
         exec_fibonacci(chain_id, iters, scale, ctr_addr_str.clone()).await;
-        sleep_for(slot_secs + 1).await;
+        // sleep_for(1).await;
     }
+
 }
 
 async fn exec_fibonacci(chain_id: ChainId, iters: u64, scale: u32, ctr_addr_str: String) {

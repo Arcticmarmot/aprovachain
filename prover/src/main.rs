@@ -115,7 +115,7 @@ async fn main() -> Result<()> {
                     }
                     P2pEvent::BlockReceived(block_bytes) => {
                         tracing::info!(target:"executor::event", "executor received block");
-                        if let Err(err) = on_block_received(&db_handle, block_bytes) {
+                        if let Err(err) = on_block_received(&db_handle, block_bytes).await {
                             tracing::warn!(target:"executor::event::block", %err);
                         }
                     },

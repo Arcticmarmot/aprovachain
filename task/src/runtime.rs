@@ -57,6 +57,6 @@ pub fn handle_envelope(db_handle: &DBHandle, cmd_handle: &P2pCmdHandle, sk: &Acc
     tracing::info!(target: "task::runtime", len=?tx_bytes.len(), "tx_size");
 
     // 广播交易
-    cmd_handle.publish_tx(tx_bytes)?;
+    cmd_handle.publish_tx(tx_bytes.clone())?;
     Ok(())
 }

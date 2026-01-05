@@ -2,7 +2,7 @@ use anyhow::{anyhow, Context, Result};
 use account::executor::ExecutorId;
 use db::handle::DBHandle;
 use engine::execute::{pre_exec_tx, verify_and_build_envelope};
-use engine::verify::verify_and_apply_block;
+use engine::validate::verify_and_apply_block;
 use schedule::dispatch::assign_executor_for_tx;
 use task::schedule::TaskSchedule;
 use tx::intent::TxPayload;
@@ -45,6 +45,6 @@ pub async fn on_envelope_received(schedule: TaskSchedule, self_exec_id: Executor
     Ok(())
 }
 
-pub fn on_block_received(db_handle: &DBHandle, block_bytes: Vec<u8>) -> Result<()> {
-    verify_and_apply_block(db_handle, block_bytes)
+pub async fn on_block_received(db_handle: &DBHandle, block_bytes: Vec<u8>) -> Result<()> {
+    verify_and_apply_block(db_handle, block_bytes).await
 }

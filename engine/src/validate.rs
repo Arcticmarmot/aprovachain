@@ -1,4 +1,7 @@
+use std::time::Instant;
 use anyhow::{ensure, Context, Result};
+use risc0_zkvm::VerifierContext;
+use tokio::task::JoinSet;
 use account::address::ContractAddress;
 use account::executor::ExecutorId;
 use apps::ctr_io::{CtrInput, CtrOutput, CtrResult};
@@ -11,7 +14,8 @@ use schedule::dispatch::assign_executor_for_tx;
 use tx::attestation::TxAttestation;
 use tx::intent::TxPayload;
 
-pub fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>) -> Result<()> {
+pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>) -> Result<()> {
+    let validate_time = Instant::now();
     // 解码 block
     let block = OrderedBlock::try_decode_bcs(&block_bytes)?;
     let header = block.header;
@@ -37,14 +41,23 @@ pub fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>) -> Res
         })
         .collect::<Result<Vec<TxAttestation>>>()?;
     let mut catalog = TxServiceCatalog::new();
+    let mut js = JoinSet::new();
 
     for tx in txs {
         let tx_id = tx.tx_id;
         let exec_id = ExecutorId(tx.verifying_key.clone());
-        let code = verify_and_apply_tx(db_handle, tx, header.height)?;
-        catalog.insert(tx_id, (exec_id, code));
+        let tx_db_handle = db_handle.clone();
+        js.spawn_blocking(move || {
+            (tx_id, (exec_id, verify_and_apply_tx(&tx_db_handle, tx, header.height)))
+        });
+
     }
-    
+    while let Some(res) = js.join_next().await {
+        let (tx_id, (exec_id, code)) = res?;
+        catalog.insert(tx_id, (exec_id, code?));
+        // collect code
+    }
+
     // 每条 tx 的业务层校验交易
     let ledger_block = LedgerBlock::new(block, catalog);
     // 存储 block
@@ -57,6 +70,9 @@ pub fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>) -> Res
     if let Some(block) = db_handle.load_block(header.height)? {
         tracing::info!(target: "executor::block", ?block, "=======BLOCK=======\r\n");
     }
+    let elapsed = Instant::now().saturating_duration_since(validate_time);
+    tracing::info!(target: "engine::execute", ?elapsed, "validate time: ");
+
     Ok(())
 }
 
@@ -113,6 +129,8 @@ pub fn verify_and_apply_tx(db_handle: &DBHandle, tx: TxAttestation, curr_height:
             };
 
             let image_id = ctr.image_id;
+
+            let verify_time = Instant::now();
             let receipt = match receipt_opt {
                 Some(receipt) => receipt,
                 None => {
@@ -124,6 +142,9 @@ pub fn verify_and_apply_tx(db_handle: &DBHandle, tx: TxAttestation, curr_height:
                 tracing::error!(target:"engine::verify", %err, "fake receipt");
                 return Ok(TxServiceCode::FakeReceipt);
             }
+
+            let verify_elapsed = Instant::now().saturating_duration_since(verify_time);
+            tracing::info!(target: "engine::execute", ?verify_elapsed, "verify time: ");
 
             let ctr_output_bytes: Vec<u8> = match receipt.journal.decode() {
                 Ok(bytes) => bytes,

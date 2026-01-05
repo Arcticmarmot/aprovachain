@@ -1,5 +1,5 @@
 chain_id: 1000
-slot_secs: 5
+slot_secs: 6
 scale_csv: "scale-prove" # cycles, cycle_label, scale, prove_time, receipt_size
 consensus:
   protocol: "solo"
@@ -11,9 +11,9 @@ consensus:
     - "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9" # kol-server
 prove:
   mode: "native" # "native" | "simulate"
-  scheme: "groth16" # "succinct" | "fast" | "groth16"
-  latency: 500
-  offset: 50
+  scheme: "succinct" # "succinct" | "fast" | "groth16"
+  latency: 50
+  offset: 5
 
 dispatch:
   window_size: 16

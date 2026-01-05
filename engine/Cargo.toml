@@ -19,6 +19,7 @@ platform = { workspace = true }
 account = { workspace = true }
 apps = { workspace = true }
 bcs = { workspace = true }
+tokio = { workspace = true }
 
 [features]
 default = []
