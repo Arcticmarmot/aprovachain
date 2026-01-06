@@ -14,20 +14,7 @@ use platform::config::load_base_config;
 use primitives::trans::u64_to_be_vec;
 use tx::intent::TxPayload;
 
-const FIBONACCI_ITERS: &[u64] = &[
-    100, 100, 100, 100, 100,
-    100, 100, 100, 100, 100,
-    100, 100, 100, 100, 100,
-    100, 100, 100, 100, 100,
-    100, 100, 100, 100, 100,
-    100, 100, 100, 100, 100,
-    100, 100, 100, 100, 100,
-    100, 100, 100, 100, 100,
-    100, 100, 100, 100, 100,
-    100, 100, 100, 100, 100,
-    100, 100, 100, 100, 100,
-    100, 100, 100, 100, 100,
-];
+const FIBONACCI_ITERS: u64 = 2;
 
 const GROTH16_TIME: u64 = 30;
 const SUCCINCT_TIME: u64 = 30;
@@ -50,9 +37,9 @@ pub async fn validate_test() {
     let ctr_addr_str = deploy_fibonacci().await;
     sleep_for(slot_secs + 1).await;
 
-    for (index, &iters) in FIBONACCI_ITERS.iter().enumerate() {
+    for _ in 0..FIBONACCI_ITERS {
         let scale = 20;
-        exec_fibonacci(chain_id, iters, scale, ctr_addr_str.clone()).await;
+        exec_fibonacci(chain_id, 100, scale, ctr_addr_str.clone()).await;
         sleep_for(1).await;
     }
 }

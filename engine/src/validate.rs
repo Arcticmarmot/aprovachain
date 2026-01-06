@@ -89,7 +89,7 @@ pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>) 
         let sem = verify_sem.clone();
         verify_js.spawn(async move {
             let _permit = sem.acquire_owned().await.unwrap();
-            verify_tx(&tx_db_handle, idx, tx, curr_height)
+            verify_tx(&tx_db_handle, idx, tx)
         });
     }
 
@@ -164,7 +164,7 @@ pub fn apply_tx(db_handle: &DBHandle, apply_info: ApplyInfo, curr_height: u128) 
         }
     }
 }
-pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation, curr_height: u128) -> Result<VerifyReport> {
+pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation) -> Result<VerifyReport> {
     let tx_id = tx.tx_id;
     let executor_id = ExecutorId(tx.verifying_key.clone());
     // helper：快速返回 Reject
