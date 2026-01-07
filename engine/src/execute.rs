@@ -3,7 +3,7 @@ use risc0_zkvm::{default_executor, default_prover, Digest, ExecutorEnv, ProverOp
 use account::address::ContractAddress;
 use apps::ctr_io::{AccessSet, CtrInput, ReadSet};
 use db::handle::DBHandle;
-use platform::bench::{bench_csv_append, bench_csv_path};
+use platform::bench::{bench_csv_path, bench_prove_receipt_csv_append};
 use platform::config::ProveMode;
 use platform::rand::sample_prove_time_ms;
 use primitives::hash::{sha256, Hash32};
@@ -30,7 +30,8 @@ pub fn verify_and_build_tx(tx_bytes: &[u8]) -> Result<TxAttestation> {
     Ok(tx)
 }
 
-pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, prove_scheme: String, scale_csv: String) -> Result<Receipt> {
+pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, enable_prove_receipt_recording: bool,
+                        prove_scheme: String, prove_receipt_csv: String) -> Result<Receipt> {
     #[cfg(feature = "cuda")]
     tracing::info!("server: CUDA feature ENABLED (will use GPU backend if possible)");
     // 搭建虚拟机环境传入 input
@@ -55,18 +56,19 @@ pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, prove_scheme: Strin
 
     let receipt = proof.receipt;
 
-    let cycles = proof.stats.total_cycles;
-    let prove_time = elapsed.as_millis();
-    let receipt_size = bcs::to_bytes(&receipt).expect("encode receipt failed").len();
-    let csv_name = format!("{scale_csv}-{prove_scheme}.csv");
-    let scale_csv_path = bench_csv_path(&csv_name);
-    bench_csv_append(&scale_csv_path, cycles, prove_time, receipt_size).expect("bench csv append failed");
-
+    if enable_prove_receipt_recording {
+        let cycles = proof.stats.total_cycles;
+        let prove_time = elapsed.as_millis();
+        let receipt_size = bcs::to_bytes(&receipt).expect("encode receipt failed").len();
+        let csv_name = format!("{prove_receipt_csv}-{prove_scheme}.csv");
+        let prove_receipt_csv_path = bench_csv_path(&csv_name);
+        bench_prove_receipt_csv_append(&prove_receipt_csv_path, cycles, prove_time, receipt_size).expect("bench csv append failed");
+    }
     Ok(receipt)
 }
 
-pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>,
-                                 prove_scheme: String, latency: u64, scale_csv: String) -> Result<Receipt> {
+pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, enable_prove_receipt_recording: bool,
+                                 prove_scheme: String, latency: u64, prove_receipt_csv: String) -> Result<Receipt> {
     #[cfg(feature = "cuda")]
     tracing::info!("server: CUDA feature ENABLED (will use GPU backend if possible)");
     let latency_dur = Duration::from_millis(latency);
@@ -94,14 +96,14 @@ pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>,
     let iters = burn_cpu_for(left_dur);
     tracing::info!(target: "engine::execute", %iters);
     let receipt = proof.receipt;
-
-    let cycles = proof.stats.total_cycles;
-    let prove_time = elapsed.as_millis();
-    let receipt_size = bcs::to_bytes(&receipt).expect("encode receipt failed").len();
-    let csv_name = format!("{scale_csv}-{prove_scheme}.csv");
-    let scale_csv_path = bench_csv_path(&csv_name);
-    bench_csv_append(&scale_csv_path, cycles, prove_time, receipt_size).expect("bench csv append failed");
-
+    if enable_prove_receipt_recording {
+        let cycles = proof.stats.total_cycles;
+        let prove_time = elapsed.as_millis();
+        let receipt_size = bcs::to_bytes(&receipt).expect("encode receipt failed").len();
+        let csv_name = format!("{prove_receipt_csv}-{prove_scheme}.csv");
+        let prove_receipt_csv_path = bench_csv_path(&csv_name);
+        bench_prove_receipt_csv_append(&prove_receipt_csv_path, cycles, prove_time, receipt_size).expect("bench csv append failed");
+    }
     Ok(receipt)
 }
 
@@ -199,13 +201,13 @@ pub fn exec_tx(db_handle: &DBHandle, envelope: &TxEnvelope, ctr_addr_str: &Strin
         read_set,
     };
     let receipt = match prove_mode {
-        ProveMode::Native { scheme, scale_csv } => {
-            generate_receipt(&ctr_input, &elf, scheme, scale_csv)?
+        ProveMode::Native { scheme, enable_prove_receipt_recording, prove_receipt_csv } => {
+            generate_receipt(&ctr_input, &elf, enable_prove_receipt_recording, scheme, prove_receipt_csv)?
         }
-        ProveMode::Simulate { scheme, latency, offset, scale_csv } => {
+        ProveMode::Simulate { scheme, latency, offset, enable_prove_receipt_recording, prove_receipt_csv } => {
             let sample_latency = sample_prove_time_ms(latency, offset);
             tracing::info!(target: "engine::execute", %sample_latency);
-            generate_simulate_receipt(&ctr_input, &elf, scheme, sample_latency, scale_csv)?
+            generate_simulate_receipt(&ctr_input, &elf, enable_prove_receipt_recording, scheme, sample_latency, prove_receipt_csv)?
         }
     };
     

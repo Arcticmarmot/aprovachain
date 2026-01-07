@@ -10,7 +10,7 @@ use tokio::sync::{mpsc, watch};
 use account::executor::ExecutorId;
 use db::handle::DBHandle;
 use network::behaviour::behaviour::PeerRole;
-use platform::config::ProveMode;
+use platform::config::{ProveMode, ValidateMode};
 use prover::handle::{on_block_received, on_envelope_received};
 use server::runtime::run_server;
 use task::schedule::{DisciplineKind, TaskSchedule};
@@ -35,21 +35,38 @@ async fn main() -> Result<()> {
     // 解析 NodeArgs
     let args = NodeArgs::parse();
     let base = platform::config::load_base_config();
-    let scale_csv = base.scale_csv;
+    let prove_receipt_csv = base.prove_receipt_csv;
+    let enable_prove_receipt_recording = base.enable_prove_receipt_recording;
     let queue_config = base.queue;
     let prover_config = base.prove;
+
+    let verify_receipt_csv = base.verify_receipt_csv;
+    let enable_verify_receipt_recording = base.enable_verify_receipt_recording;
+    let validate_block_csv = base.validate_block_csv;
+    let enable_validate_block_recording = base.enable_validate_block_recording;
+    let prove_scheme = prover_config.scheme.clone();
     let prove_mode = match prover_config.mode.as_str() {
         "native" => ProveMode::Native {
-            scheme: prover_config.scheme,
-            scale_csv
+            scheme: prove_scheme,
+            enable_prove_receipt_recording,
+            prove_receipt_csv,
         },
         "simulate" => ProveMode::Simulate {
-            scheme: prover_config.scheme,
+            scheme: prove_scheme,
             latency: prover_config.latency,
             offset: prover_config.offset,
-            scale_csv
+            enable_prove_receipt_recording,
+            prove_receipt_csv
         },
         _ => panic!("unknown prove mode"),
+    };
+
+    let validate_mode = ValidateMode {
+        prove_scheme: prover_config.scheme,
+        enable_validate_block_recording,
+        validate_block_csv,
+        enable_verify_receipt_recording,
+        verify_receipt_csv,
     };
 
     // 初始化数据库
@@ -115,7 +132,7 @@ async fn main() -> Result<()> {
                     }
                     P2pEvent::BlockReceived(block_bytes) => {
                         tracing::info!(target:"executor::event", "executor received block");
-                        if let Err(err) = on_block_received(&db_handle, block_bytes).await {
+                        if let Err(err) = on_block_received(&db_handle, block_bytes, validate_mode.clone()).await {
                             tracing::warn!(target:"executor::event::block", %err);
                         }
                     },

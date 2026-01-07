@@ -9,7 +9,7 @@ use common::setup::init_test;
 use server::context::SubmitTxResponse;
 use crate::common::setup::{extract_ctr_addr, req_by_wire, sleep_for};
 use apps::ctr_io::AccessSet;
-use platform::bench::{bench_csv_begin, bench_csv_path};
+use platform::bench::{bench_csv_path, bench_prove_receipt_csv_begin};
 use platform::config::load_base_config;
 use primitives::trans::u64_to_be_vec;
 use tx::intent::TxPayload;
@@ -17,17 +17,17 @@ use tx::intent::TxPayload;
 const FIBONACCI_ITERS: &[u64] = &[100, 1_000, 10_000, 20_000, 32_000];
 
 #[tokio::test]
-pub async fn scale_test() {
+pub async fn prove_receipt_test() {
     init_test();
 
     let base = load_base_config();
     let chain_id = ChainId(base.chain_id);
     let slot_secs = base.slot_secs;
-    let scale_csv = base.scale_csv;
+    let prove_receipt = base.prove_receipt_csv;
     let prove_scheme = base.prove.scheme;
-    let csv_name = format!("{scale_csv}-{prove_scheme}.csv");
+    let csv_name = format!("{prove_receipt}-{prove_scheme}");
     let csv_path = bench_csv_path(&csv_name);
-    bench_csv_begin(&csv_path).unwrap();
+    bench_prove_receipt_csv_begin(&csv_path).unwrap();
 
     // deploy fibonacci
     let ctr_addr_str = deploy_fibonacci().await;

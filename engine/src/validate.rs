@@ -10,11 +10,14 @@ use chain::block::{OrderedBlock, LedgerBlock};
 use chain::catalog::{TxServiceCatalog, TxServiceCode};
 use contract::contract::Contract;
 use db::handle::DBHandle;
+use platform::bench::{bench_csv_path, bench_verify_receipt_csv_append};
+use platform::config::ValidateMode;
 use primitives::hash::{sha256, Hash32};
 use schedule::dispatch::assign_executor_for_tx;
 use tx::attestation::TxAttestation;
 use tx::id::TxAttestationId;
 use tx::intent::TxPayload;
+use crate::execute::cycles_by_pre_exec;
 
 pub struct VerifyReport {
     idx: usize,
@@ -49,7 +52,7 @@ pub enum ApplyInfo {
     }
 }
 
-pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>) -> Result<()> {
+pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, validate_mode: ValidateMode) -> Result<()> {
     let validate_time = Instant::now();
     // 解码 block
     let block = OrderedBlock::try_decode_bcs(&block_bytes)?;
@@ -85,11 +88,13 @@ pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>) 
 
     for (idx, tx) in txs.into_iter().enumerate() {
         let tx_db_handle = db_handle.clone();
-        let curr_height = header.height;
         let sem = verify_sem.clone();
+        let verify_receipt_csv = validate_mode.verify_receipt_csv.clone();
+        let prove_scheme = validate_mode.prove_scheme.clone();
         verify_js.spawn(async move {
             let _permit = sem.acquire_owned().await.unwrap();
-            verify_tx(&tx_db_handle, idx, tx)
+            verify_tx(&tx_db_handle, idx, tx, validate_mode.enable_verify_receipt_recording,
+                      verify_receipt_csv, prove_scheme)
         });
     }
 
@@ -164,7 +169,8 @@ pub fn apply_tx(db_handle: &DBHandle, apply_info: ApplyInfo, curr_height: u128) 
         }
     }
 }
-pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation) -> Result<VerifyReport> {
+pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation,
+                 enable_verify_receipt_recording: bool, verify_receipt_csv: String, prove_scheme: String) -> Result<VerifyReport> {
     let tx_id = tx.tx_id;
     let executor_id = ExecutorId(tx.verifying_key.clone());
     // helper：快速返回 Reject
@@ -197,7 +203,6 @@ pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation) -> Result<
     match &intent.payload {
         TxPayload::Exec { ctr_addr_str, input, .. } => {
             // schedule 指派校验（只读）
-            let assign_time = Instant::now();
 
             let envelope_id = &envelope.tx_id();
             match assign_executor_for_tx(db_handle, envelope_id, intent.timestamp)? {
@@ -209,8 +214,6 @@ pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation) -> Result<
                 }
                 None => {}
             }
-            let assign_elapsed = Instant::now().saturating_duration_since(assign_time);
-            tracing::info!(target: "engine::execute", ?assign_elapsed, "verify time: ");
 
             // load contract -> image_id（只读）
             let ctr_addr = match ContractAddress::parse_bech32m_with_id(intent.chain_id, ctr_addr_str) {
@@ -273,6 +276,21 @@ pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation) -> Result<
                 input: input.clone(),
                 read_set: read_set.clone(),
             };
+
+            if enable_verify_receipt_recording {
+                let elf_hash = ctr.elf_hash;
+                let elf = match db_handle.load_elf(elf_hash)? {
+                    Some(elf) => elf,
+                    None => return Ok(reject(TxServiceCode::InvalidTx)),
+                };
+                let cycles = cycles_by_pre_exec(&ctr_input, &elf)?;
+                let verify_time = verify_elapsed.as_millis();
+                let csv_name = format!("{verify_receipt_csv}-{prove_scheme}");
+                let scale_csv_path = bench_csv_path(&csv_name);
+                bench_verify_receipt_csv_append(&scale_csv_path, cycles as u64, verify_time)
+                    .expect("bench csv append failed");
+            }
+
             if input_hash != sha256(ctr_input.encode_bcs()) {
                 return Ok(reject(TxServiceCode::FakeInput));
             }

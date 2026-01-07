@@ -9,37 +9,37 @@ use common::setup::init_test;
 use server::context::SubmitTxResponse;
 use crate::common::setup::{extract_ctr_addr, req_by_wire, sleep_for};
 use apps::ctr_io::AccessSet;
-use platform::bench::{bench_csv_begin, bench_csv_path};
+use platform::bench::{bench_csv_path, bench_verify_receipt_csv_begin};
 use platform::config::load_base_config;
 use primitives::trans::u64_to_be_vec;
 use tx::intent::TxPayload;
 
-const FIBONACCI_ITERS: u64 = 2;
+const FIBONACCI_ITERS: &[u64] = &[100, 1_000, 10_000, 20_000, 32_000];
 
 const GROTH16_TIME: u64 = 30;
 const SUCCINCT_TIME: u64 = 30;
 
 #[tokio::test]
-pub async fn validate_test() {
+pub async fn verify_receipt_test() {
     init_test();
 
     let base = load_base_config();
     let chain_id = ChainId(base.chain_id);
     let slot_secs = base.slot_secs;
-    let scale_csv = base.scale_csv;
+    let verify_receipt = base.verify_receipt_csv;
     let prove_scheme = base.prove.scheme;
-    let csv_name = format!("{scale_csv}-{prove_scheme}-validate.csv");
+    let csv_name = format!("{verify_receipt}-{prove_scheme}");
     let csv_path = bench_csv_path(&csv_name);
-    bench_csv_begin(&csv_path).unwrap();
+    bench_verify_receipt_csv_begin(&csv_path).unwrap();
     sleep_for(slot_secs + 1).await;
 
     // deploy fibonacci
     let ctr_addr_str = deploy_fibonacci().await;
     sleep_for(slot_secs + 1).await;
 
-    for _ in 0..FIBONACCI_ITERS {
-        let scale = 20;
-        exec_fibonacci(chain_id, 100, scale, ctr_addr_str.clone()).await;
+    for (index, &iters) in FIBONACCI_ITERS.iter().enumerate() {
+        let scale = index as u32 + 16;
+        exec_fibonacci(chain_id, iters, scale, ctr_addr_str.clone()).await;
         sleep_for(1).await;
     }
 }

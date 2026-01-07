@@ -3,6 +3,7 @@ use account::executor::ExecutorId;
 use db::handle::DBHandle;
 use engine::execute::{pre_exec_tx, verify_and_build_envelope};
 use engine::validate::verify_and_apply_block;
+use platform::config::ValidateMode;
 use schedule::dispatch::assign_executor_for_tx;
 use task::schedule::TaskSchedule;
 use tx::intent::TxPayload;
@@ -45,6 +46,6 @@ pub async fn on_envelope_received(schedule: TaskSchedule, self_exec_id: Executor
     Ok(())
 }
 
-pub async fn on_block_received(db_handle: &DBHandle, block_bytes: Vec<u8>) -> Result<()> {
-    verify_and_apply_block(db_handle, block_bytes).await
+pub async fn on_block_received(db_handle: &DBHandle, block_bytes: Vec<u8>, validate_mode: ValidateMode) -> Result<()> {
+    verify_and_apply_block(db_handle, block_bytes, validate_mode).await
 }

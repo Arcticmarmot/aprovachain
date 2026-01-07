@@ -1,5 +1,5 @@
 use risc0_zkvm::guest::env;
-use apps::ctr_io::{CtrInput, CtrOutcome, CtrOutput, CtrResult, NamespaceKey, WriteSet, ReadSet, find_entry};
+use apps::ctr_io::{CtrInput, CtrOutcome, CtrOutput, CtrResult, WriteSet, ReadSet};
 use primitives::hash::{sha256};
 use primitives::trans::{u64_from_be_slice, u64_to_be_vec};
 

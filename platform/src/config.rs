@@ -2,12 +2,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use serde::Deserialize;
 
-fn default_chain_id() -> u64 { 1000 }
-fn default_slot_secs() -> u64 { 12 }
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ProveConfig {
-    pub mode: String,   // "real" | "fake"
+    pub mode: String,
     pub scheme: String,
     pub latency: u64,
     pub offset: u64
@@ -15,8 +12,27 @@ pub struct ProveConfig {
 
 #[derive(Debug, Clone)]
 pub enum ProveMode {
-    Native { scheme: String, scale_csv: String },
-    Simulate { scheme: String, latency: u64, offset: u64, scale_csv: String }
+    Native { 
+        scheme: String,
+        enable_prove_receipt_recording: bool,
+        prove_receipt_csv: String,
+    },
+    Simulate { 
+        scheme: String, 
+        latency: u64, 
+        offset: u64,
+        enable_prove_receipt_recording: bool,
+        prove_receipt_csv: String
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ValidateMode {
+    pub prove_scheme: String,
+    pub enable_verify_receipt_recording: bool,
+    pub verify_receipt_csv: String,
+    pub enable_validate_block_recording: bool,
+    pub validate_block_csv: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -50,13 +66,21 @@ pub struct QueueConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct BaseConfig {
-    #[serde(default="default_chain_id")]
     pub chain_id: u64,
 
-    #[serde(default="default_slot_secs")]
     pub slot_secs: u64,
     
-    pub scale_csv: String,
+    pub enable_prove_receipt_recording: bool,
+    
+    pub prove_receipt_csv: String,
+
+    pub enable_verify_receipt_recording: bool,
+
+    pub verify_receipt_csv: String,
+
+    pub enable_validate_block_recording: bool,
+
+    pub validate_block_csv: String,
     
     pub consensus: ConsensusConfig,
 

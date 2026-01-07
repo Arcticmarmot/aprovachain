@@ -1,6 +1,11 @@
 chain_id: 1000
 slot_secs: 12
-scale_csv: "scale-prove" # cycles, cycle_label, scale, prove_time, receipt_size
+enable_prove_receipt_recording: false
+prove_receipt_csv: "prove-receipt" # cycles, cycle_label, scale, prove_time, receipt_size
+enable_verify_receipt_recording: true
+verify_receipt_csv: "verify-receipt" # cycles, verify_time,
+enable_validate_block_recording: false
+validate_block_csv: "validate-block"
 consensus:
   protocol: "solo"
   tx_capacity: 1000
@@ -11,7 +16,7 @@ consensus:
     - "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9" # kol-server
 prove:
   mode: "native" # "native" | "simulate"
-  scheme: "groth16" # "succinct" | "fast" | "groth16"
+  scheme: "fast" # "succinct" | "fast" | "groth16"
   latency: 50
   offset: 5
 
