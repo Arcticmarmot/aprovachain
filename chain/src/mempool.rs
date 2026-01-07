@@ -102,7 +102,7 @@ impl MempoolHandle {
 
     pub fn simulate_pack_block(&mut self, parent: &BlockHeader, count: usize, simulate_size: usize) -> Result<OrderedBlock> {
         // 1. mempool为空，出空块
-        if self.mempool.count() == 0 {
+        if self.mempool.count() == 0 || simulate_size == 0 {
             let empty_block = OrderedBlock::empty(parent)?;
             return Ok(empty_block)
         }

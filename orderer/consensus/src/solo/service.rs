@@ -10,11 +10,11 @@ use platform::config::ConsensusConfig;
 use crate::error::{ConsensusError, Result};
 use crate::solo::protocol::{SoloCmd, SoloCmdHandle, SoloEventHandle};
 
-pub const PACK_TX_COUNT: usize = 100;
-
 pub struct SoloService {
     pub mode: String,
     pub simulate_size: usize,
+    pub simulate_size_array: Vec<usize>,
+    pub simulate_index: usize,
     pub slot_secs: u64,
     pub local_id: PeerId,
     pub leader_id: PeerId,
@@ -33,6 +33,8 @@ impl SoloService {
         Self {
             mode: cons_config.mode,
             simulate_size: cons_config.simulate_size,
+            simulate_size_array: cons_config.simulate_size_array,
+            simulate_index: 0,
             slot_secs,
             local_id,
             leader_id,
@@ -51,8 +53,21 @@ impl SoloService {
                         Ok(block)
                     }
                     "simulate" => {
+                        let simulate_size;
+                        if self.simulate_size != 0 {
+                            simulate_size = self.simulate_size;
+                        } else {
+                            tracing::info!(target: "solo::event", simulate_index=%self.simulate_index);
+                            if self.simulate_index >= self.simulate_size_array.len() {
+                                simulate_size = 0;
+                            } else {
+                                simulate_size = self.simulate_size_array[self.simulate_index];
+                                self.simulate_index += 1;
+                            }
+                        }
                         let block = self.mempool_handle
-                            .simulate_pack_block(&tip_header, self.tx_capacity, self.simulate_size)?;
+                            .simulate_pack_block(&tip_header, self.tx_capacity, simulate_size)?;
+
                         Ok(block)
                     }
                     _ => {

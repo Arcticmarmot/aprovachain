@@ -10,7 +10,7 @@ use chain::block::{OrderedBlock, LedgerBlock};
 use chain::catalog::{TxServiceCatalog, TxServiceCode};
 use contract::contract::Contract;
 use db::handle::DBHandle;
-use platform::bench::{bench_csv_path, bench_validate_block_csv_append, bench_validate_block_csv_begin, bench_verify_receipt_csv_append};
+use platform::bench::{bench_csv_path, bench_validate_block_csv_append, bench_verify_receipt_csv_append};
 use platform::config::ValidateMode;
 use primitives::hash::{sha256, Hash32};
 use schedule::dispatch::assign_executor_for_tx;
@@ -20,7 +20,7 @@ use tx::intent::TxPayload;
 use crate::execute::cycles_by_pre_exec;
 
 
-const VERIFY_WORKERS: usize = 4;
+const VERIFY_WORKERS: usize = 16;
 
 pub struct VerifyReport {
     idx: usize,
@@ -135,20 +135,20 @@ pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, 
     let validate_elapsed = Instant::now().saturating_duration_since(validate_time);
     tracing::info!(target: "engine::execute", ?validate_elapsed, "validate time: ");
 
-    if validate_mode.enable_validate_block_recording && tx_num == validate_mode.simulate_size {
+    if validate_mode.enable_validate_block_recording && validate_mode.simulate_size_array.contains(&tx_num) {
         let validate_time = validate_elapsed.as_millis();
         let validate_block_csv = validate_mode.validate_block_csv;
         let prove_scheme = validate_mode.prove_scheme;
         let csv_name = format!("{validate_block_csv}-{prove_scheme}");
         let validate_block_csv_path = bench_csv_path(&csv_name);
-        let simulate_size = validate_mode.simulate_size;
+        let simulate_size = tx_num;
         bench_validate_block_csv_append(&validate_block_csv_path, simulate_size, validate_time)
             .expect("bench csv append failed");
     }
     // TODO: delete the tracing info
-    // if let Some(block) = db_handle.load_block(header.height)? {
-    //     tracing::info!(target: "executor::block", ?block, "=======BLOCK=======\r\n");
-    // }
+    if let Some(block) = db_handle.load_block(header.height)? {
+        tracing::info!(target: "executor::block", ?block, "=======BLOCK=======\r\n");
+    }
 
     Ok(())
 }

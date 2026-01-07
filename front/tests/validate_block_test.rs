@@ -14,9 +14,9 @@ use platform::config::load_base_config;
 use primitives::trans::u64_to_be_vec;
 use tx::intent::TxPayload;
 
-const FIBONACCI_ITERS: &[u64] = &[100];
+const FIBONACCI_ITERS: u64 = 100;
 
-const MAX_TIME: u64 = 30;
+const SLEEP_TIME: &[u64] = &[60, 60, 60, 60, 60, 120, 120];
 
 #[tokio::test]
 pub async fn validate_block_test() {
@@ -25,6 +25,7 @@ pub async fn validate_block_test() {
     let base = load_base_config();
     let chain_id = ChainId(base.chain_id);
     let slot_secs = base.slot_secs;
+    let simulate_size_array = base.consensus.simulate_size_array;
     let validate_block = base.validate_block_csv;
     let prove_scheme = base.prove.scheme;
     let csv_name = format!("{validate_block}-{prove_scheme}");
@@ -36,10 +37,10 @@ pub async fn validate_block_test() {
     let ctr_addr_str = deploy_fibonacci().await;
     sleep_for(slot_secs + 1).await;
 
-    for (index, &iters) in FIBONACCI_ITERS.iter().enumerate() {
-        let scale = index as u32 + 16;
-        exec_fibonacci(chain_id, iters, scale, ctr_addr_str.clone()).await;
-        sleep_for(MAX_TIME).await;
+    for (index, &size) in simulate_size_array.iter().enumerate() {
+        let scale = 16;
+        exec_fibonacci(chain_id, FIBONACCI_ITERS, scale, ctr_addr_str.clone()).await;
+        sleep_for(SLEEP_TIME[index]).await;
     }
 }
 

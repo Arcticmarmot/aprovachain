@@ -30,6 +30,7 @@ pub enum ProveMode {
 pub struct ValidateMode {
     pub prove_scheme: String,
     pub simulate_size: usize,
+    pub simulate_size_array: Vec<usize>,
     pub enable_verify_receipt_recording: bool,
     pub verify_receipt_csv: String,
     pub enable_validate_block_recording: bool,
@@ -96,6 +97,7 @@ pub struct BaseConfig {
 pub struct ConsensusConfig {
     pub mode: String,
     pub simulate_size: usize,
+    pub simulate_size_array: Vec<usize>,
     pub protocol: String,
     pub tx_capacity: usize,
     pub leader_id: String,
