@@ -63,7 +63,7 @@ pub fn select_executor_for_tx(tx_id: &TxEnvelopeId, metrics: &Metrics) -> Option
 }
 
 pub fn assign_executor_for_tx(db_handle: &DBHandle, envelope_id: &TxEnvelopeId, envelope_ts: u128) -> Result<Option<ExecutorId>> {
-    tracing::info!(target: "schedule::tx", %envelope_id);
+    tracing::debug!(target: "schedule::tx", %envelope_id);
     let stats_window = db_handle.load_stats_window(WINDOW_SIZE, envelope_ts)?;
     // 启动期 slot 长度
     if stats_window.len() >= WARMUP_SIZE {

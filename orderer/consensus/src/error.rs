@@ -17,6 +17,8 @@ pub enum ConsensusError {
     SendCftEvent(#[from] tokio::sync::mpsc::error::SendError<CftEvent>),
     #[error("bcs parse failed")]
     BcsParse(#[from] bcs::Error),
+    #[error("bad consensus mode")]
+    ConsensusMode
 }
 
 pub type Result<T> = std::result::Result<T, ConsensusError>;

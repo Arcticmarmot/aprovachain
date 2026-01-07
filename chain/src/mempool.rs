@@ -8,6 +8,7 @@ use tx::id::TxAttestationId;
 use crate::block::{OrderedBlock, BlockHeader};
 use crate::error::Result;
 use sha2::{Digest, Sha256};
+use tx::intent::TxPayload;
 
 #[derive(Clone)]
 pub struct Mempool {
@@ -86,6 +87,59 @@ impl MempoolHandle {
                 self.pending_txs.push(tx);
             }
         }
+
+        let tx_root = merkel_root(&candidate_ids);
+        let timestamp = unix_time_millis()?;
+
+        let header = BlockHeader {
+            parent_hash: parent.hash(),
+            height: parent.height + 1,
+            tx_root,
+            timestamp
+        };
+        Ok(OrderedBlock::new(header, candidate_wires))
+    }
+
+    pub fn simulate_pack_block(&mut self, parent: &BlockHeader, count: usize, simulate_size: usize) -> Result<OrderedBlock> {
+        // 1. mempool为空，出空块
+        if self.mempool.count() == 0 {
+            let empty_block = OrderedBlock::empty(parent)?;
+            return Ok(empty_block)
+        }
+        // 2. 复制 + 排序 交易
+        let mut txs: Vec<TxAttestation> = self.mempool.txs.iter().cloned().collect();
+        
+        txs.sort();
+        let tx = txs[0].clone();
+        let (candidate_ids, candidate_wires) = match &tx.outcome.envelope.intent.payload {
+            TxPayload::Exec { .. } => {
+                let mut candidate_ids: Vec<TxAttestationId> = Vec::with_capacity(simulate_size);
+                let mut candidate_wires: Vec<TxAttestationWire> = Vec::with_capacity(simulate_size);
+                for _ in 0..simulate_size {
+                    let tx = tx.clone();
+                    candidate_ids.push(tx.tx_id);
+                    candidate_wires.push(TxAttestationWire::from(&tx));
+                    if self.mempool.remove_tx(&tx) {
+                        self.pending_txs.push(tx);
+                    }
+                }
+                (candidate_ids, candidate_wires)
+            },
+            _ => {
+                let count = min(count, self.mempool.count());
+                let mut candidate_ids: Vec<TxAttestationId> = Vec::with_capacity(count);
+                let mut candidate_wires: Vec<TxAttestationWire> = Vec::with_capacity(count);
+                for tx in txs.into_iter().take(count) {
+                    candidate_ids.push(tx.tx_id);
+                    candidate_wires.push(TxAttestationWire::from(&tx));
+                    if self.mempool.remove_tx(&tx) {
+                        self.pending_txs.push(tx);
+                    }
+                }
+                (candidate_ids, candidate_wires)
+            }
+        };
+        
 
         let tx_root = merkel_root(&candidate_ids);
         let timestamp = unix_time_millis()?;

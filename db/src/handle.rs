@@ -67,7 +67,7 @@ impl DBHandle {
         match self.load_ts_height(ts)? {
             Some(end_height) => {
                 let start_height= end_height.saturating_sub(window_size as u128);
-                tracing::info!(target: "db::window", %start_height, %end_height, "window");
+                tracing::debug!(target: "db::window", %start_height, %end_height, "window");
                 let mut stats = Vec::with_capacity(window_size);
                 for height in start_height..end_height {
                     match self.load_catalog(height)? {

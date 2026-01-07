@@ -54,3 +54,26 @@ pub fn bench_verify_receipt_csv_append(path: &Path, cycles: u64, verify_time: u1
         .context("write bench csv row")?;
     Ok(())
 }
+
+pub fn bench_validate_block_csv_begin(path: &Path) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("create bench dir: {}", parent.display()))?;
+    }
+    // cycles,prove_time,receipt_size
+    fs::write(path, "size,validate_time\n")
+        .with_context(|| format!("init bench csv: {}", path.display()))?;
+    Ok(())
+}
+
+pub fn bench_validate_block_csv_append(path: &Path, size: usize, validate_time: u128) -> Result<()> {
+    let mut f = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .with_context(|| format!("open bench csv append: {}", path.display()))?;
+    writeln!(f, "{},{},", size, validate_time)
+        .context("write bench csv row")?;
+    Ok(())
+}
+

@@ -1,14 +1,16 @@
 chain_id: 1000
-slot_secs: 12
+slot_secs: 60
 enable_prove_receipt_recording: false
 prove_receipt_csv: "prove-receipt" # cycles, cycle_label, scale, prove_time, receipt_size
-enable_verify_receipt_recording: true
+enable_verify_receipt_recording: false
 verify_receipt_csv: "verify-receipt" # cycles, verify_time,
-enable_validate_block_recording: false
+enable_validate_block_recording: true
 validate_block_csv: "validate-block"
 consensus:
+  mode: "simulate"
+  simulate_size: 10000
   protocol: "solo"
-  tx_capacity: 1000
+  tx_capacity: 10000
   leader_id: "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE"
   members:
     - "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE" # smolensk
@@ -16,7 +18,7 @@ consensus:
     - "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9" # kol-server
 prove:
   mode: "native" # "native" | "simulate"
-  scheme: "groth16" # "succinct" | "fast" | "groth16"
+  scheme: "succinct" # "succinct" | "fast" | "groth16"
   latency: 50
   offset: 5
 

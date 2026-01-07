@@ -8,7 +8,7 @@ use network::runtime::{init_p2p, run_p2p};
 use tokio::sync::{mpsc, watch};
 use db::handle::DBHandle;
 use network::behaviour::behaviour::PeerRole;
-use platform::bench::{bench_csv_path, bench_verify_receipt_csv_begin};
+use platform::bench::{bench_csv_path, bench_validate_block_csv_begin, bench_verify_receipt_csv_begin};
 use platform::config::ValidateMode;
 use validator::bootstrap::{init_env, init_logging};
 use validator::handle::{on_block_received};
@@ -39,13 +39,23 @@ async fn main() -> Result<()> {
     let validate_block_csv = base.validate_block_csv;
     let enable_validate_block_recording = base.enable_validate_block_recording;
 
-    let prove_scheme = prover_config.scheme.clone();
-    let csv_name = format!("{verify_receipt_csv}-{prove_scheme}");
-    let csv_path = bench_csv_path(&csv_name);
+    if enable_verify_receipt_recording {
+        let prove_scheme = prover_config.scheme.clone();
+        let csv_name = format!("{verify_receipt_csv}-{prove_scheme}");
+        let csv_path = bench_csv_path(&csv_name);
+        bench_verify_receipt_csv_begin(&csv_path)?;
+    }
+    
+    if enable_validate_block_recording {
+        let prove_scheme = prover_config.scheme.clone();
+        let csv_name = format!("{validate_block_csv}-{prove_scheme}");
+        let csv_path = bench_csv_path(&csv_name);
+        bench_validate_block_csv_begin(&csv_path)?;
+    }
 
-    bench_verify_receipt_csv_begin(&csv_path)?;
     let validate_mode = ValidateMode {
         prove_scheme: prover_config.scheme,
+        simulate_size: base.consensus.simulate_size,
         enable_validate_block_recording,
         validate_block_csv,
         enable_verify_receipt_recording,

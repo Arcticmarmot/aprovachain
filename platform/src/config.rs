@@ -29,6 +29,7 @@ pub enum ProveMode {
 #[derive(Debug, Clone)]
 pub struct ValidateMode {
     pub prove_scheme: String,
+    pub simulate_size: usize,
     pub enable_verify_receipt_recording: bool,
     pub verify_receipt_csv: String,
     pub enable_validate_block_recording: bool,
@@ -93,6 +94,8 @@ pub struct BaseConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConsensusConfig {
+    pub mode: String,
+    pub simulate_size: usize,
     pub protocol: String,
     pub tx_capacity: usize,
     pub leader_id: String,

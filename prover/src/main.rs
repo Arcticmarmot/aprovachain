@@ -63,6 +63,7 @@ async fn main() -> Result<()> {
 
     let validate_mode = ValidateMode {
         prove_scheme: prover_config.scheme,
+        simulate_size: base.consensus.simulate_size,
         enable_validate_block_recording,
         validate_block_csv,
         enable_verify_receipt_recording,

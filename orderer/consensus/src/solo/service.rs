@@ -7,12 +7,14 @@ use chain::block::{OrderedBlock, BlockHeader};
 use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
 use platform::config::ConsensusConfig;
-use crate::error::Result;
+use crate::error::{ConsensusError, Result};
 use crate::solo::protocol::{SoloCmd, SoloCmdHandle, SoloEventHandle};
 
 pub const PACK_TX_COUNT: usize = 100;
 
 pub struct SoloService {
+    pub mode: String,
+    pub simulate_size: usize,
     pub slot_secs: u64,
     pub local_id: PeerId,
     pub leader_id: PeerId,
@@ -29,6 +31,8 @@ impl SoloService {
                mempool_handle: MempoolHandle,
                cons_config: ConsensusConfig) -> Self {
         Self {
+            mode: cons_config.mode,
+            simulate_size: cons_config.simulate_size,
             slot_secs,
             local_id,
             leader_id,
@@ -41,8 +45,20 @@ impl SoloService {
     pub fn pack_block(&mut self) -> Result<OrderedBlock> {
         match self.chain_state.tip_header_opt {
             Some(tip_header) => {
-                let block = self.mempool_handle.pack_block(&tip_header, self.tx_capacity)?;
-                Ok(block)
+                match self.mode.as_str() {
+                    "native" => {
+                        let block = self.mempool_handle.pack_block(&tip_header, self.tx_capacity)?;
+                        Ok(block)
+                    }
+                    "simulate" => {
+                        let block = self.mempool_handle
+                            .simulate_pack_block(&tip_header, self.tx_capacity, self.simulate_size)?;
+                        Ok(block)
+                    }
+                    _ => {
+                        Err(ConsensusError::ConsensusMode)
+                    }
+                }
             },
             None => {
                 let genesis = OrderedBlock::genesis()?;

@@ -10,7 +10,7 @@ use chain::block::{OrderedBlock, LedgerBlock};
 use chain::catalog::{TxServiceCatalog, TxServiceCode};
 use contract::contract::Contract;
 use db::handle::DBHandle;
-use platform::bench::{bench_csv_path, bench_verify_receipt_csv_append};
+use platform::bench::{bench_csv_path, bench_validate_block_csv_append, bench_validate_block_csv_begin, bench_verify_receipt_csv_append};
 use platform::config::ValidateMode;
 use primitives::hash::{sha256, Hash32};
 use schedule::dispatch::assign_executor_for_tx;
@@ -18,6 +18,9 @@ use tx::attestation::TxAttestation;
 use tx::id::TxAttestationId;
 use tx::intent::TxPayload;
 use crate::execute::cycles_by_pre_exec;
+
+
+const VERIFY_WORKERS: usize = 4;
 
 pub struct VerifyReport {
     idx: usize,
@@ -78,13 +81,13 @@ pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, 
             TxAttestation::try_from(tx).with_context(|| "tx decode failed")
         })
         .collect::<Result<Vec<TxAttestation>>>()?;
-    tracing::info!(target:"engine::verify", tx_num=txs.len(), "tx num");
+    let tx_num = txs.len();
+    tracing::info!(target:"engine::verify", %tx_num, "tx num");
 
 
     // Stage A: 并行 verify（重 CPU + 只读 DB + journal decode）
     let mut verify_js: JoinSet<Result<VerifyReport>> = JoinSet::new();
-    let verify_workers = 16;
-    let verify_sem = Arc::new(Semaphore::new(verify_workers));
+    let verify_sem = Arc::new(Semaphore::new(VERIFY_WORKERS));
 
     for (idx, tx) in txs.into_iter().enumerate() {
         let tx_db_handle = db_handle.clone();
@@ -129,13 +132,23 @@ pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, 
     // 更新 chain_state
     db_handle.save_chain_state(&header)?;
 
-    let elapsed = Instant::now().saturating_duration_since(validate_time);
-    tracing::info!(target: "engine::execute", ?elapsed, "validate time: ");
+    let validate_elapsed = Instant::now().saturating_duration_since(validate_time);
+    tracing::info!(target: "engine::execute", ?validate_elapsed, "validate time: ");
 
-    // TODO: delete the tracing info
-    if let Some(block) = db_handle.load_block(header.height)? {
-        tracing::info!(target: "executor::block", ?block, "=======BLOCK=======\r\n");
+    if validate_mode.enable_validate_block_recording && tx_num == validate_mode.simulate_size {
+        let validate_time = validate_elapsed.as_millis();
+        let validate_block_csv = validate_mode.validate_block_csv;
+        let prove_scheme = validate_mode.prove_scheme;
+        let csv_name = format!("{validate_block_csv}-{prove_scheme}");
+        let validate_block_csv_path = bench_csv_path(&csv_name);
+        let simulate_size = validate_mode.simulate_size;
+        bench_validate_block_csv_append(&validate_block_csv_path, simulate_size, validate_time)
+            .expect("bench csv append failed");
     }
+    // TODO: delete the tracing info
+    // if let Some(block) = db_handle.load_block(header.height)? {
+    //     tracing::info!(target: "executor::block", ?block, "=======BLOCK=======\r\n");
+    // }
 
     Ok(())
 }
@@ -203,12 +216,13 @@ pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation,
     match &intent.payload {
         TxPayload::Exec { ctr_addr_str, input, .. } => {
             // schedule 指派校验（只读）
-
             let envelope_id = &envelope.tx_id();
             match assign_executor_for_tx(db_handle, envelope_id, intent.timestamp)? {
                 Some(expect_exec_id) => {
                     if expect_exec_id.verifying_key() != tx.verifying_key {
-                        tracing::error!(target: "engine::verify", %expect_exec_id, schedule_exec_id=%ExecutorId(tx.verifying_key));
+                        if enable_verify_receipt_recording {
+                            tracing::error!(target: "engine::verify", %expect_exec_id, schedule_exec_id=%ExecutorId(tx.verifying_key));
+                        }
                         return Ok(reject(TxServiceCode::InvalidTx));
                     }
                 }
@@ -243,13 +257,16 @@ pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation,
             };
 
             // proof verify（最重）
+
             let verify_time = Instant::now();
             if let Err(err) = receipt.verify(image_id) {
                 tracing::error!(target:"engine::verify", %err, "fake receipt");
                 return Ok(reject(TxServiceCode::FakeReceipt));
             }
             let verify_elapsed = Instant::now().saturating_duration_since(verify_time);
-            tracing::info!(target: "engine::execute", ?verify_elapsed, "verify time: ");
+            if enable_verify_receipt_recording {
+                tracing::info!(target: "engine::execute", ?verify_elapsed, "verify time: ");
+            }
 
             // decode journal -> CtrOutput（只做一次）
             let ctr_output_bytes: Vec<u8> = match receipt.journal.decode() {
