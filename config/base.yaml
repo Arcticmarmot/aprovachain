@@ -16,7 +16,7 @@ consensus:
     - "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9" # kol-server
 prove:
   mode: "native" # "native" | "simulate"
-  scheme: "fast" # "succinct" | "fast" | "groth16"
+  scheme: "groth16" # "succinct" | "fast" | "groth16"
   latency: 50
   offset: 5
 

@@ -16,8 +16,7 @@ use tx::intent::TxPayload;
 
 const FIBONACCI_ITERS: &[u64] = &[100, 1_000, 10_000, 20_000, 32_000];
 
-const GROTH16_TIME: u64 = 30;
-const SUCCINCT_TIME: u64 = 30;
+const GPU_MAX_TIME: u64 = 10;
 
 #[tokio::test]
 pub async fn verify_receipt_test() {
@@ -40,7 +39,7 @@ pub async fn verify_receipt_test() {
     for (index, &iters) in FIBONACCI_ITERS.iter().enumerate() {
         let scale = index as u32 + 16;
         exec_fibonacci(chain_id, iters, scale, ctr_addr_str.clone()).await;
-        sleep_for(1).await;
+        sleep_for(GPU_MAX_TIME).await;
     }
 }
 

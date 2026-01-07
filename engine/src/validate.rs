@@ -284,7 +284,7 @@ pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation,
                     None => return Ok(reject(TxServiceCode::InvalidTx)),
                 };
                 let cycles = cycles_by_pre_exec(&ctr_input, &elf)?;
-                let verify_time = verify_elapsed.as_millis();
+                let verify_time = verify_elapsed.as_micros();
                 let csv_name = format!("{verify_receipt_csv}-{prove_scheme}");
                 let scale_csv_path = bench_csv_path(&csv_name);
                 bench_verify_receipt_csv_append(&scale_csv_path, cycles as u64, verify_time)
