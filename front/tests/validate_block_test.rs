@@ -16,7 +16,7 @@ use tx::intent::TxPayload;
 
 const FIBONACCI_ITERS: u64 = 100;
 
-const SLEEP_TIME: &[u64] = &[60, 60, 60, 60, 60, 120, 120];
+const SLEEP_TIME: &[u64] = &[12, 12, 60, 60, 60, 120, 120];
 
 #[tokio::test]
 pub async fn validate_block_test() {

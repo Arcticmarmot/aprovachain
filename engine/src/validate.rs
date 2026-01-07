@@ -94,8 +94,10 @@ pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, 
         let sem = verify_sem.clone();
         let verify_receipt_csv = validate_mode.verify_receipt_csv.clone();
         let prove_scheme = validate_mode.prove_scheme.clone();
-        verify_js.spawn(async move {
-            let _permit = sem.acquire_owned().await.unwrap();
+        let permit = sem.acquire_owned().await.unwrap();
+
+        verify_js.spawn_blocking(move || {
+            let _permit = permit;
             verify_tx(&tx_db_handle, idx, tx, validate_mode.enable_verify_receipt_recording,
                       verify_receipt_csv, prove_scheme)
         });
