@@ -6,25 +6,20 @@ use ledger::call::LedgerCall;
 pub struct WorkloadCfg {
     pub num_accounts: usize,
     pub num_txs: usize,
-
     /// 热点集合占比：0.01 表示 1% 账户是热点
     pub hot_ratio: f64,
     /// 选账户时落在热点集合的概率：0.90 表示 90% 的访问打到热点
     pub p_hot: f64,
-
     /// 四类操作比例（百分比，加起来必须 = 100）
     pub pct_transfer: u32,
     pub pct_query: u32,
     pub pct_mint: u32,
     pub pct_burn: u32,
-
     /// 金额范围（先用最简单的均匀分布）
     pub min_amount: u64,
     pub max_amount: u64,
-
     /// 是否先给每个账户 Mint 一笔初始余额（让 Burn/Transfer 更不容易失败）
     pub with_init_mint: bool,
-    pub init_balance: u64,
 }
 
 /// 生成 simplified smallbank 数据集：输出 Vec<LedgerCall>
@@ -95,7 +90,7 @@ pub fn gen_simplified_smallbank(
 pub fn workload_low() -> WorkloadCfg {
     WorkloadCfg {
         num_accounts: 1000,
-        num_txs: 10,
+        num_txs: 20,
         hot_ratio: 0.10,
         p_hot: 0.20,
         pct_transfer: 25,
@@ -105,14 +100,13 @@ pub fn workload_low() -> WorkloadCfg {
         min_amount: 1,
         max_amount: 100,
         with_init_mint: true,
-        init_balance: 1_0000,
     }
 }
 
 pub fn workload_high() -> WorkloadCfg {
     WorkloadCfg {
         num_accounts: 1_000,
-        num_txs: 10,
+        num_txs: 20,
         hot_ratio: 0.01,
         p_hot: 0.90,
         pct_transfer: 40,
@@ -122,6 +116,5 @@ pub fn workload_high() -> WorkloadCfg {
         min_amount: 1,
         max_amount: 100,
         with_init_mint: true,
-        init_balance: 1_0000,
     }
 }

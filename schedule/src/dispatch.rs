@@ -11,7 +11,7 @@ use crate::weight::{metrics_to_weights, total_weights};
 
 /// 定义窗口大小
 pub const WINDOW_SIZE: usize = 32;
-pub const WARMUP_SIZE: usize = 4;
+pub const WARMUP_SIZE: usize = 10;
 
 /// 根据一定大小窗口的区块数据计算指标
 pub fn compute_metrics_by_window(stats_window: &[TxServiceCatalog]) -> Metrics {

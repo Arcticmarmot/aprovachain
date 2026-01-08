@@ -5,13 +5,17 @@ use front::handler::{build_envelope_wire, parse_tx_args, send_envelope, send_env
 use platform::config::load_base_config;
 use server::context::SubmitTxResponse;
 use tx::envelope::TxEnvelopeWire;
-
+use anyhow::Result;
 pub const SMOLENSK: &'static str = "main1guwa5cdjvwtc8m86tmrjtkknqtee759k77j7qz";
 pub const KOL_SERVER: &'static str = "main16n6z9xz7j5nled2neqsj8qtmcwdnqz6gwsks9f";
 
 
 pub async fn sleep_for(secs: u64) {
     sleep(Duration::from_secs(secs)).await
+}
+
+pub async fn sleep_for_millis(millis: u64) {
+    sleep(Duration::from_millis(millis)).await
 }
 
 pub async fn sleep_for_slot(slot_secs: u64) {
@@ -83,6 +87,15 @@ pub async fn req_by_wire_to(url: String, wire: TxEnvelopeWire) -> SubmitTxRespon
     tracing::info!(target:"apps::resp", "parsed_resp: {:?}", parsed_resp);
     parsed_resp
 }
+
+pub async fn try_req_by_wire_to(url: String, wire: TxEnvelopeWire) -> Result<SubmitTxResponse> {
+    let resp = send_envelope_to(url, wire).await?;
+    tracing::info!(target:"apps::resp", "Response: {:?}", resp);
+    let parsed_resp = resp.json::<SubmitTxResponse>().await?;
+    tracing::info!(target:"apps::resp", "parsed_resp: {:?}", parsed_resp);
+    Ok(parsed_resp)
+}
+
 pub fn extract_ctr_addr(resp: SubmitTxResponse) -> anyhow::Result<String> {
     match resp {
         SubmitTxResponse::Deploy { ctr_addr_str, .. } => Ok(ctr_addr_str),
