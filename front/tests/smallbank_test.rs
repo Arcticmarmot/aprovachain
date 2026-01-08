@@ -9,7 +9,7 @@ use front::handler::{build_envelope_wire, create_build_spec_by_sk, parse_tx_args
 use spec::chain::ChainId;
 use common::setup::init_test;
 use server::context::SubmitTxResponse;
-use crate::common::setup::{extract_ctr_addr, req_by_wire, req_get_catalogs, sleep_for, sleep_for_millis, sleep_for_slot, try_req_by_wire_to};
+use crate::common::setup::{extract_ctr_addr, req_by_wire, req_get_catalogs, sleep_for_millis, sleep_for_slot, try_req_by_wire_to};
 use bench::accounts::{accounts_to_map, load_accounts};
 use bench::smallbank::{gen_simplified_smallbank, workload_high, workload_low};
 use ledger::call::{generate_access_set, LedgerCall};
@@ -27,7 +27,7 @@ pub async fn smallbank_test() {
     let accounts_map = accounts_to_map(chain_id, &accounts);
     let user_addr_strings: Vec<String> = accounts_map.keys().cloned().collect();
 
-    let smallbank = gen_simplified_smallbank(&user_addr_strings, &workload_high(), 1024u64);
+    let smallbank = gen_simplified_smallbank(&user_addr_strings, &workload_low(), 1024u64);
     tracing::info!(target: "smallbank", len=?smallbank.len());
 
     sleep_for_slot(slot_secs).await;
@@ -38,10 +38,10 @@ pub async fn smallbank_test() {
         tracing::info!(target:"apps::resp", %index, ?call);
         send_call(call, chain_id,
                   ctr_addr_str.clone(), &accounts_map).await;
-        sleep_for_millis(50).await;
+        sleep_for_millis(180).await;
     }
 
-    sleep_for_slot(slot_secs * 2).await;
+    sleep_for_slot(slot_secs * 15).await;
     let response = req_get_catalogs().await;
     tracing::info!(target:"smallbank", ?response);
 }
@@ -70,7 +70,7 @@ async fn send_call(call: &LedgerCall, chain_id: ChainId,
             accounts_map.get(addr).unwrap()
         }
     };
-    let tx_scale = 17;
+    let tx_scale = 18;
     let spec = create_build_spec_by_sk(chain_id, &sk, tx_scale, payload).expect("build spec failed");
     let wire = build_envelope_wire(spec).expect("build envelope failed");
 

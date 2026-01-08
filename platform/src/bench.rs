@@ -11,6 +11,11 @@ pub fn bench_csv_path(filename: &str) -> PathBuf {
     proj.data_local_dir().join("bench").join(format!("{}.csv", filename))
 }
 
+pub fn bench_smallbank_csv_path(filename: &str) -> PathBuf {
+    let proj = aprova_proj_dir().expect("proj dir not found");
+    proj.data_local_dir().join("smallbank").join(format!("{}.csv", filename))
+}
+
 pub fn bench_prove_receipt_csv_begin(path: &Path) -> Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
