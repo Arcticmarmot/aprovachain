@@ -11,6 +11,7 @@ network = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 risc0-zkvm = { workspace = true}
+hex = { workspace = true }
 primitives = { workspace = true }
 chain = { workspace = true }
 thiserror = { workspace = true }

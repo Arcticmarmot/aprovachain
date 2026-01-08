@@ -36,6 +36,7 @@ async fn main() -> Result<()> {
     // 解析 NodeArgs
     let args = NodeArgs::parse();
     let base = platform::config::load_base_config();
+    let provers = base.provers;
     let chain_id = ChainId(base.chain_id);
     let workload_config = base.workload;
     let prove_receipt_csv = base.prove_receipt_csv;
@@ -69,6 +70,7 @@ async fn main() -> Result<()> {
 
     let validate_mode = ValidateMode {
         prove_scheme: prover_config.scheme,
+        provers,
         simulate_size: base.consensus.simulate_size,
         simulate_size_array: base.consensus.simulate_size_array,
         enable_validate_block_recording,

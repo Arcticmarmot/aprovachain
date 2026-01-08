@@ -6,6 +6,11 @@ enable_verify_receipt_recording: false
 verify_receipt_csv: "verify-receipt" # cycles, verify_time,
 enable_validate_block_recording: false
 validate_block_csv: "validate-block"
+provers:
+  - "88d6d8e53dfae02fac118064124467ec5833b9b0a115d428f7782ccac5862a6f" # aprova-1
+  - "c1b1d1aaba1e85d92bc3f9435b110909d9a0e1f73c2c242871a4edefdcd293ea" # aprova-2
+  - "f09721496653b0f86a7ef85dbfd8585cb6e560006007389b2283b1a2fc14af2e" # aprova-3
+  - "46bfd3164494fea65f58b848b0a702ad931e335354612f1b05259606b930d36d" # aprova-4
 consensus:
   mode: "native" # "native" | "simulate"
   simulate_size: 100
@@ -24,12 +29,12 @@ prove:
   offset: 5
 workload:
   accounts_num: 1000
-  tx_num: 20
+  tx_num: 200
   init_balance: 100000000
 dispatch:
   mode: "even" # "native" | "even"
   window_size: 16
-  warmup_size: 10
+  warmup_size: 0
   ema_k: 8
   # max_score 10000
   score:

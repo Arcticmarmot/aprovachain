@@ -33,6 +33,7 @@ async fn main() -> Result<()> {
     let args = NodeArgs::parse();
     let base = platform::config::load_base_config();
     let prover_config = base.prove;
+    let provers = base.provers;
     let dispatch_config = base.dispatch;
     let verify_receipt_csv = base.verify_receipt_csv;
     let enable_verify_receipt_recording = base.enable_verify_receipt_recording;
@@ -55,6 +56,7 @@ async fn main() -> Result<()> {
 
     let validate_mode = ValidateMode {
         prove_scheme: prover_config.scheme,
+        provers,
         simulate_size: base.consensus.simulate_size,
         simulate_size_array: base.consensus.simulate_size_array,
         enable_validate_block_recording,

@@ -2013,6 +2013,7 @@ dependencies = [
  "chain",
  "contract",
  "db",
+ "hex",
  "network",
  "platform",
  "primitives",

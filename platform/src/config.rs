@@ -19,6 +19,8 @@ pub struct BaseConfig {
     pub enable_validate_block_recording: bool,
 
     pub validate_block_csv: String,
+    
+    pub provers: Vec<String>,
 
     pub workload: WorkloadConfig,
 
@@ -65,6 +67,7 @@ pub enum ProveMode {
 #[derive(Debug, Clone)]
 pub struct ValidateMode {
     pub prove_scheme: String,
+    pub provers: Vec<String>,
     pub simulate_size: usize,
     pub simulate_size_array: Vec<usize>,
     pub enable_verify_receipt_recording: bool,

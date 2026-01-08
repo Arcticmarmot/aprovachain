@@ -43,21 +43,21 @@ pub async fn smallbank_test() {
     tracing::info!(target: "smallbank", ?smallbank);
 
 
-    sleep_for(slot_secs + 1).await;
+    sleep_for_slot(slot_secs).await;
     let ctr_addr_str = deploy_ledger().await;
-    sleep_for(slot_secs + 1).await;
+    sleep_for_slot(slot_secs).await;
 
-    for (index,url) in PROVER_URLS.iter().enumerate() {
-        send_call(&smallbank[index], chain_id, url.to_string(),
-                  ctr_addr_str.clone(), &accounts_map).await;
-        sleep_for_millis(50).await;
-    }
+    // for (index,url) in PROVER_URLS.iter().enumerate() {
+    //     send_call(&smallbank[index], chain_id, url.to_string(),
+    //               ctr_addr_str.clone(), &accounts_map).await;
+    //     sleep_for_millis(100).await;
+    // }
 
     for (index, call) in smallbank.iter().enumerate() {
         tracing::info!(target:"apps::resp", %index, ?call);
         send_call(call, chain_id, "http://aprova-1.mining-tuna.ts.net:8888/api/submit-tx".to_string(),
                   ctr_addr_str.clone(), &accounts_map).await;
-        sleep_for_millis(500).await;
+        sleep_for_millis(100).await;
     }
     sleep_for_slot(slot_secs).await;
     let response = req_get_catalogs().await;

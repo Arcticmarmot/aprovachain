@@ -5,17 +5,19 @@ use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use account::address::{ChainAddrBytes, ContractAddress};
 use account::executor::ExecutorId;
+use account::keypair::{AccountVerifyingKey, AccountVerifyingKeyBytes};
 use apps::ctr_io::{CtrInput, CtrOutput, CtrResult, ReadSet, WriteSet};
 use chain::block::{OrderedBlock, LedgerBlock};
 use chain::catalog::{TxServiceCatalog, TxServiceCode};
+use chain::catalog::TxServiceCode::Success;
 use contract::contract::Contract;
 use db::handle::DBHandle;
 use platform::bench::{bench_csv_path, bench_validate_block_csv_append, bench_verify_receipt_csv_append};
 use platform::config::{DispatchConfig, ValidateMode};
-use primitives::hash::{sha256, Hash32};
+use primitives::hash::{sha256, Hash32, HASH32_ZERO};
 use schedule::dispatch::assign_executor_for_tx;
 use tx::attestation::TxAttestation;
-use tx::id::TxAttestationId;
+use tx::id::{TxAttestationId, TxId};
 use tx::intent::TxPayload;
 use crate::execute::cycles_by_pre_exec;
 
@@ -126,6 +128,15 @@ pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, 
         catalog.insert(tx_id, (executor_id, code));
     }
 
+    if header.height == 0 {
+        catalog = TxServiceCatalog::new();
+        for vk_hex in validate_mode.provers {
+            let vk_bytes: AccountVerifyingKeyBytes = hex::decode(vk_hex)?.as_slice().try_into()?;
+            let vk = AccountVerifyingKey::from_bytes(&vk_bytes)?;
+            catalog.insert(TxId::new(HASH32_ZERO), (ExecutorId(vk), Success));
+        }
+    }
+
     // 每条 tx 的业务层校验交易
     let ledger_block = LedgerBlock::new(block, catalog);
     // 存储 block
@@ -185,7 +196,7 @@ pub fn apply_tx(db_handle: &DBHandle, apply_info: ApplyInfo, curr_height: u128) 
     }
 }
 pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation,
-                 enable_verify_receipt_recording: bool, 
+                 enable_verify_receipt_recording: bool,
                  verify_receipt_csv: String, prove_scheme: String, dispatch_config: DispatchConfig) -> Result<VerifyReport> {
     let tx_id = tx.tx_id;
     let executor_id = ExecutorId(tx.verifying_key.clone());
