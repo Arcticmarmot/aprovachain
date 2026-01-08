@@ -19,7 +19,7 @@ pub struct BaseConfig {
     pub enable_validate_block_recording: bool,
 
     pub validate_block_csv: String,
-    
+
     pub provers: Vec<String>,
 
     pub workload: WorkloadConfig,

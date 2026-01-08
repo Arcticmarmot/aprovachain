@@ -14,7 +14,7 @@ use contract::contract::Contract;
 use db::handle::DBHandle;
 use platform::bench::{bench_csv_path, bench_validate_block_csv_append, bench_verify_receipt_csv_append};
 use platform::config::{DispatchConfig, ValidateMode};
-use primitives::hash::{sha256, Hash32, HASH32_ZERO};
+use primitives::hash::{sha256, Hash32};
 use schedule::dispatch::assign_executor_for_tx;
 use tx::attestation::TxAttestation;
 use tx::id::{TxAttestationId, TxId};

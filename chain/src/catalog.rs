@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::fmt::{Display, Formatter};
 use std::ops::{Deref, DerefMut};
 use serde::{Deserialize, Serialize};
 use account::executor::ExecutorId;
@@ -10,12 +11,21 @@ pub enum TxServiceCode {
     Success,
     Conflict,
     Timeout,
-    ValidTx,
     InvalidTx,
     FakeReceipt,
     FakeInput,
-    NotAssigned,
     BadRequest,
+}
+
+impl Display for TxServiceCode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TxServiceCode::Success => { write!(f, "{}", "success") }
+            TxServiceCode::Conflict => { write!(f, "{}", "conflict") }
+            TxServiceCode::Timeout => { write!(f, "{}", "timeout") }
+            _ => { write!(f, "{}", "invalid") }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -71,7 +71,10 @@ pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, enable_pro
                                  prove_scheme: String, latency: u64, prove_receipt_csv: String) -> Result<Receipt> {
     #[cfg(feature = "cuda")]
     tracing::info!("server: CUDA feature ENABLED (will use GPU backend if possible)");
-    let latency_dur = Duration::from_millis(latency);
+    let mut latency_dur = Duration::from_millis(latency);
+    let scale = cycles_by_pre_exec(&ctr_input, &elf)?;
+    latency_dur *= u32::pow(2, scale - 16);
+    tracing::info!(target: "engine::execute", ?latency_dur);
     // 搭建虚拟机环境传入 input
     let env = ExecutorEnv::builder()
         .write(&ctr_input.encode_bcs())

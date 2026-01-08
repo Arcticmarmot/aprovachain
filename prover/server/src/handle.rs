@@ -8,6 +8,7 @@ use axum::extract::State;
 use axum::Json;
 use account::executor::ExecutorId;
 use engine::execute::{build_tx_outcome, pre_exec_tx, verify_and_build_envelope};
+use platform::bench::{bench_csv_path, bench_smallbank_csv_append, bench_smallbank_csv_begin};
 use schedule::dispatch::assign_executor_for_tx;
 use tx::intent::TxPayload;
 
@@ -73,7 +74,7 @@ pub async fn get_catalogs(State(state): State<AppState>, _: Bytes) -> ApiResult<
     let db_handle = state.db_handle;
     let ts = platform::clock::unix_time_millis()?;
     let catalogs = db_handle.load_stats_window(usize::MAX, ts)?;
-    tracing::info!(target:"node::server", ?catalogs);
+    // tracing::info!(target:"node::server", ?catalogs);
     let mut stats = HashMap::new();
     for catalog in &catalogs {
         for (_, (_, code)) in catalog.iter() {
@@ -90,6 +91,14 @@ pub async fn get_catalogs(State(state): State<AppState>, _: Bytes) -> ApiResult<
     }
     tracing::info!(target:"node::server", ?stats);
     tracing::info!(target:"node::server", ?stats_by_prover);
+
+    // 存储为 csv
+    let catalog_stats = bench_csv_path("catalog_stats");
+    bench_smallbank_csv_begin(&catalog_stats).expect("catalog_stats csv begin");
+    for ((prover_id, code), count) in &stats_by_prover {
+        bench_smallbank_csv_append(&catalog_stats, prover_id.to_string(), code.to_string(), *count)
+            .expect("catalog_stats csv append");
+    }
 
     let resp = Json(SubmitTxResponse::CatalogStore);
     Ok(resp)

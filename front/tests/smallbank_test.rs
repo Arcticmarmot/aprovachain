@@ -9,24 +9,12 @@ use front::handler::{build_envelope_wire, create_build_spec_by_sk, parse_tx_args
 use spec::chain::ChainId;
 use common::setup::init_test;
 use server::context::SubmitTxResponse;
-use crate::common::setup::{extract_ctr_addr, req_by_wire, req_by_wire_to, req_get_catalogs, sleep_for, sleep_for_millis, sleep_for_slot, try_req_by_wire_to};
+use crate::common::setup::{extract_ctr_addr, req_by_wire, req_get_catalogs, sleep_for, sleep_for_millis, sleep_for_slot, try_req_by_wire_to};
 use bench::accounts::{accounts_to_map, load_accounts};
 use bench::smallbank::{gen_simplified_smallbank, workload_high, workload_low};
 use ledger::call::{generate_access_set, LedgerCall};
 use platform::config::load_base_config;
 use tx::intent::TxPayload;
-pub const PROVER_URLS: &[&str] = &[
-    // "http://cairo.mining-tuna.ts.net:8888/api/submit-tx",
-    // "http://minsk.mining-tuna.ts.net:8888/api/submit-tx",
-    // "http://mecca.mining-tuna.ts.net:8888/api/submit-tx",
-    // "http://smolensk.mining-tuna.ts.net:8888/api/submit-tx",
-    // "http://belgrade.mining-tuna.ts.net:8888/api/submit-tx",
-    "http://aprova-1.mining-tuna.ts.net:8888/api/submit-tx",
-    "http://aprova-2.mining-tuna.ts.net:8888/api/submit-tx",
-    "http://aprova-3.mining-tuna.ts.net:8888/api/submit-tx",
-    "http://aprova-4.mining-tuna.ts.net:8888/api/submit-tx",
-];
-
 #[tokio::test]
 pub async fn smallbank_test() {
     init_test();
@@ -40,31 +28,25 @@ pub async fn smallbank_test() {
     let user_addr_strings: Vec<String> = accounts_map.keys().cloned().collect();
 
     let smallbank = gen_simplified_smallbank(&user_addr_strings, &workload_high(), 1024u64);
-    tracing::info!(target: "smallbank", ?smallbank);
-
+    tracing::info!(target: "smallbank", len=?smallbank.len());
 
     sleep_for_slot(slot_secs).await;
     let ctr_addr_str = deploy_ledger().await;
     sleep_for_slot(slot_secs).await;
 
-    // for (index,url) in PROVER_URLS.iter().enumerate() {
-    //     send_call(&smallbank[index], chain_id, url.to_string(),
-    //               ctr_addr_str.clone(), &accounts_map).await;
-    //     sleep_for_millis(100).await;
-    // }
-
     for (index, call) in smallbank.iter().enumerate() {
         tracing::info!(target:"apps::resp", %index, ?call);
-        send_call(call, chain_id, "http://aprova-1.mining-tuna.ts.net:8888/api/submit-tx".to_string(),
+        send_call(call, chain_id,
                   ctr_addr_str.clone(), &accounts_map).await;
-        sleep_for_millis(100).await;
+        sleep_for_millis(50).await;
     }
-    sleep_for_slot(slot_secs).await;
+
+    sleep_for_slot(slot_secs * 2).await;
     let response = req_get_catalogs().await;
     tracing::info!(target:"smallbank", ?response);
 }
 
-async fn send_call(call: &LedgerCall, chain_id: ChainId, url: String,
+async fn send_call(call: &LedgerCall, chain_id: ChainId,
                         ctr_addr_str: String, accounts_map: &HashMap<String, AccountSigningKey>) {
     let input = call.encode_bcs();
     let access_set = generate_access_set(chain_id, input.clone()).unwrap();
@@ -92,7 +74,7 @@ async fn send_call(call: &LedgerCall, chain_id: ChainId, url: String,
     let spec = create_build_spec_by_sk(chain_id, &sk, tx_scale, payload).expect("build spec failed");
     let wire = build_envelope_wire(spec).expect("build envelope failed");
 
-    try_req_by_wire_to(url, wire).await;
+    req_by_wire(wire).await;
 }
 
 async fn deploy_ledger() -> String {

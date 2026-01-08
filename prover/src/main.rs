@@ -23,6 +23,10 @@ struct NodeArgs {
     #[clap(next_help_heading = "database file mode")]
     #[arg(short, long, env, value_enum)]
     db_file_mode: DBFileMode,
+
+    #[clap(next_help_heading = "simulate prove level")]
+    #[arg(short, long, env)]
+    simulate_level: u8,
 }
 
 #[tokio::main]
@@ -45,13 +49,21 @@ async fn main() -> Result<()> {
     let prover_config = base.prove;
 
     let dispatch_config = base.dispatch;
-    
-    
+
+
     let verify_receipt_csv = base.verify_receipt_csv;
     let enable_verify_receipt_recording = base.enable_verify_receipt_recording;
     let validate_block_csv = base.validate_block_csv;
     let enable_validate_block_recording = base.enable_validate_block_recording;
     let prove_scheme = prover_config.scheme.clone();
+    let simulate_prove_level = args.simulate_level;
+    let latency = match simulate_prove_level {
+        0 => { prover_config.latency },
+        1 => { 10_000 },
+        2 => { 500 },
+        3 => { 100 },
+        _ => { panic!("bad simulate prove level") }
+    };
     let prove_mode = match prover_config.mode.as_str() {
         "native" => ProveMode::Native {
             scheme: prove_scheme,
@@ -60,8 +72,8 @@ async fn main() -> Result<()> {
         },
         "simulate" => ProveMode::Simulate {
             scheme: prove_scheme,
-            latency: prover_config.latency,
-            offset: prover_config.offset,
+            latency,
+            offset: latency / 10,
             enable_prove_receipt_recording,
             prove_receipt_csv
         },
