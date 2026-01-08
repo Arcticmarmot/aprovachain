@@ -13,6 +13,7 @@ use network::behaviour::behaviour::PeerRole;
 use platform::config::{ProveMode, ValidateMode};
 use prover::handle::{on_block_received, on_envelope_received};
 use server::runtime::run_server;
+use spec::chain::ChainId;
 use task::schedule::{DisciplineKind, TaskSchedule};
 use task::runtime::run_task;
 
@@ -35,6 +36,8 @@ async fn main() -> Result<()> {
     // 解析 NodeArgs
     let args = NodeArgs::parse();
     let base = platform::config::load_base_config();
+    let chain_id = ChainId(base.chain_id);
+    let workload_config = base.workload;
     let prove_receipt_csv = base.prove_receipt_csv;
     let enable_prove_receipt_recording = base.enable_prove_receipt_recording;
     let queue_config = base.queue;
@@ -75,6 +78,7 @@ async fn main() -> Result<()> {
     let db_file_mode = args.db_file_mode;
     let _ = init_db(db_file_mode)?;
     let db_handle = DBHandle::new()?;
+    db_handle.init_ledger_data_entry(chain_id, workload_config.init_balance)?;
     tracing::info!(target:"executor::init", "rocksdb({db_file_mode:?}) init success...");
 
     // 新建 envelope 任务队列

@@ -1,0 +1,96 @@
+mod common;
+
+mod single;
+
+use clap::Parser;
+use front::handler::{build_envelope_wire, create_build_spec_by_sk, parse_tx_args, send_envelope, TxArgs};
+use spec::chain::ChainId;
+use common::setup::init_test;
+use server::context::SubmitTxResponse;
+use crate::common::setup::{extract_ctr_addr, req_by_wire, sleep_for};
+use bench::accounts::{accounts_to_map, load_accounts};
+use bench::smallbank::{gen_simplified_smallbank, workload_high, workload_low};
+use ledger::call::{generate_access_set, LedgerCall};
+use platform::config::load_base_config;
+use tx::intent::TxPayload;
+
+#[tokio::test]
+pub async fn smallbank_test() {
+    init_test();
+
+    let base = load_base_config();
+    let chain_id = ChainId(base.chain_id);
+    let slot_secs = base.slot_secs;
+    let prove_scheme = base.prove.scheme;
+
+    let accounts = load_accounts();
+
+    let accounts_num = accounts.len();
+    let accounts_map = accounts_to_map(chain_id, &accounts);
+    let user_addr_strings: Vec<String> = accounts_map.keys().cloned().collect();
+
+    let smallbank = gen_simplified_smallbank(&user_addr_strings, &workload_high(), 1024u64);
+    tracing::info!(target: "smallbank", ?smallbank);
+
+
+    sleep_for(slot_secs + 1).await;
+    let ctr_addr_str = deploy_ledger().await;
+    sleep_for(slot_secs + 1).await;
+
+    for (index, call) in smallbank.iter().enumerate() {
+        tracing::info!(target:"apps::resp", %index, ?call);
+        let input = call.encode_bcs();
+        let access_set = generate_access_set(chain_id, input.clone()).unwrap();
+
+        let payload = TxPayload::Exec {
+            ctr_addr_str: ctr_addr_str.clone(),
+            input,
+            access_set,
+        };
+        let tx_scale = 17;
+
+        let sk = match call {
+            LedgerCall::Transfer { from, .. } => {
+                accounts_map.get(from).unwrap()
+            }
+            LedgerCall::Mint { to, .. } => {
+                accounts_map.get(to).unwrap()
+            }
+            LedgerCall::Burn { from,  .. } => {
+                accounts_map.get(from).unwrap()
+            }
+            LedgerCall::QueryBalance { addr } => {
+                accounts_map.get(addr).unwrap()
+            }
+        };
+        let spec = create_build_spec_by_sk(chain_id, &sk, tx_scale, payload).expect("build spec failed");
+        let wire = build_envelope_wire(spec).expect("build envelope failed");
+
+        req_by_wire(wire).await;
+        sleep_for(1).await;
+    }
+
+
+}
+
+async fn deploy_ledger() -> String {
+    let args = TxArgs::try_parse_from([
+        "apps",
+        "--chain-id", "1000",
+        "--scale", "16",
+        "--payload-type", "Deploy",
+        "--deploy-elf", concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/elf/ledger_guest.bin"),
+    ]).expect("parse args");
+
+    tracing::info!(target:"apps::init", "TxArgs: {:?}", args);
+
+    let tx_build_spec = parse_tx_args(&args).unwrap();
+
+    let tx_envelope_wire = build_envelope_wire(tx_build_spec).unwrap();
+    let response = send_envelope(tx_envelope_wire.clone()).await.unwrap();
+    let parsed_resp = response.json::<SubmitTxResponse>().await.unwrap();
+    tracing::info!(target:"apps::resp", "Response: {:?}", parsed_resp);
+
+    let ctr_addr_str = extract_ctr_addr(parsed_resp).unwrap();
+    ctr_addr_str
+}

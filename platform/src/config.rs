@@ -3,6 +3,41 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct BaseConfig {
+    pub chain_id: u64,
+
+    pub slot_secs: u64,
+
+    pub enable_prove_receipt_recording: bool,
+
+    pub prove_receipt_csv: String,
+
+    pub enable_verify_receipt_recording: bool,
+
+    pub verify_receipt_csv: String,
+
+    pub enable_validate_block_recording: bool,
+
+    pub validate_block_csv: String,
+    
+    pub workload: WorkloadConfig,
+
+    pub consensus: ConsensusConfig,
+
+    pub prove: ProveConfig,
+
+    pub dispatch: DispatchConfig,
+
+    pub queue: QueueConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct WorkloadConfig {
+    pub accounts_num: usize,
+    pub init_balance: u64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct ProveConfig {
     pub mode: String,
     pub scheme: String,
@@ -66,32 +101,7 @@ pub struct QueueConfig {
     pub discipline: String, // fcfs | spt | edf | spt_edf | edf_spt
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct BaseConfig {
-    pub chain_id: u64,
 
-    pub slot_secs: u64,
-    
-    pub enable_prove_receipt_recording: bool,
-    
-    pub prove_receipt_csv: String,
-
-    pub enable_verify_receipt_recording: bool,
-
-    pub verify_receipt_csv: String,
-
-    pub enable_validate_block_recording: bool,
-
-    pub validate_block_csv: String,
-    
-    pub consensus: ConsensusConfig,
-
-    pub prove: ProveConfig,
-
-    pub dispatch: DispatchConfig,
-
-    pub queue: QueueConfig,
-}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConsensusConfig {

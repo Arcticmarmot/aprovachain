@@ -5,8 +5,11 @@ use chain::block::{BlockHeader, LedgerBlock, OrderedBlock};
 use contract::contract::{Contract, ContractWire};
 use primitives::hash::Hash32;
 use apps::ctr_io::{NamespaceKey, ReadSet, WriteSet};
+use bench::accounts::{accounts_to_keys, load_accounts};
 use chain::catalog::TxServiceCatalog;
 use platform::config::load_base_config;
+use primitives::trans::u64_to_be_vec;
+use spec::chain::ChainId;
 use crate::error::DBError;
 use crate::runtime::dbh;
 use crate::error::Result;
@@ -50,6 +53,15 @@ impl DBHandle {
 
     pub fn cf_elfs(&self) -> &ColumnFamily {
         self.dbh.cf_handle("elfs").expect("cf 'elfs' must be exist")
+    }
+
+    pub fn init_ledger_data_entry(&self, chain_id: ChainId, balance: u64) -> Result<()> {
+        let accounts = load_accounts();
+        let ns_keys = accounts_to_keys(chain_id, &accounts);
+        for ns_key in ns_keys {
+            self.save_data_entry(&ns_key, u64_to_be_vec(balance))?;
+        }
+        Ok(())
     }
     
     pub fn load_ts_height(&self, ts: u128) -> Result<Option<u128>> {

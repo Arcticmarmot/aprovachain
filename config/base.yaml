@@ -1,5 +1,5 @@
 chain_id: 1000
-slot_secs: 12
+slot_secs: 8
 enable_prove_receipt_recording: false
 prove_receipt_csv: "prove-receipt" # cycles, cycle_label, scale, prove_time, receipt_size
 enable_verify_receipt_recording: false
@@ -7,7 +7,7 @@ verify_receipt_csv: "verify-receipt" # cycles, verify_time,
 enable_validate_block_recording: false
 validate_block_csv: "validate-block"
 consensus:
-  mode: "simulate" # "native" | "simulate"
+  mode: "native" # "native" | "simulate"
   simulate_size: 100
   simulate_size_array: [1, 1, 10, 100, 1000, 10000]
   protocol: "solo"
@@ -18,12 +18,15 @@ consensus:
     - "12D3KooWEB9JUhgjPUuR5QVeokUNeRSpjcxxGaELnLvydLTpCFUZ" # mecca
     - "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9" # kol-server
 prove:
-  mode: "native" # "native" | "simulate"
-  scheme: "succinct" # "succinct" | "fast" | "groth16"
+  mode: "simulate" # "native" | "simulate"
+  scheme: "fast" # "succinct" | "fast" | "groth16"
   latency: 50
   offset: 5
-
+workload:
+  accounts_num: 1000
+  init_balance: 100000000
 dispatch:
+  mode: "even" # "native" | "even"
   window_size: 16
   ema_k: 8
   # max_score 10000
