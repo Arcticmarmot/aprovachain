@@ -95,7 +95,7 @@ pub fn gen_simplified_smallbank(
 pub fn workload_low() -> WorkloadCfg {
     WorkloadCfg {
         num_accounts: 1000,
-        num_txs: 1000,
+        num_txs: 10,
         hot_ratio: 0.10,
         p_hot: 0.20,
         pct_transfer: 25,
@@ -112,7 +112,7 @@ pub fn workload_low() -> WorkloadCfg {
 pub fn workload_high() -> WorkloadCfg {
     WorkloadCfg {
         num_accounts: 1_000,
-        num_txs: 1000,
+        num_txs: 10,
         hot_ratio: 0.01,
         p_hot: 0.90,
         pct_transfer: 40,

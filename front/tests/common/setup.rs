@@ -1,7 +1,7 @@
 use std::time::Duration;
 use tokio::time::sleep;
 use front::bootstrap::{init_env, init_logging};
-use front::handler::{build_envelope_wire, parse_tx_args, send_envelope, send_envelope_to, TxArgs};
+use front::handler::{build_envelope_wire, parse_tx_args, send_envelope, send_envelope_to, send_for_catalogs, TxArgs};
 use platform::config::load_base_config;
 use server::context::SubmitTxResponse;
 use tx::envelope::TxEnvelopeWire;
@@ -12,6 +12,10 @@ pub const KOL_SERVER: &'static str = "main16n6z9xz7j5nled2neqsj8qtmcwdnqz6gwsks9
 
 pub async fn sleep_for(secs: u64) {
     sleep(Duration::from_secs(secs)).await
+}
+
+pub async fn sleep_for_slot(slot_secs: u64) {
+    sleep(Duration::from_secs(slot_secs + 1)).await
 }
 
 pub async fn sleep_slot() {
@@ -59,6 +63,14 @@ pub async fn req_by_args_to(url: String, args: &TxArgs) -> SubmitTxResponse {
 
 pub async fn req_by_wire(wire: TxEnvelopeWire) -> SubmitTxResponse {
     let resp = send_envelope(wire).await.unwrap();
+    let parsed_resp = resp.json::<SubmitTxResponse>().await.unwrap();
+    tracing::info!(target:"apps::resp", "Response: {:?}", parsed_resp);
+    parsed_resp
+}
+
+pub async fn req_get_catalogs() -> SubmitTxResponse {
+    let resp = send_for_catalogs().await.unwrap();
+    tracing::info!(target:"apps::resp", "Response: {:?}", resp);
     let parsed_resp = resp.json::<SubmitTxResponse>().await.unwrap();
     tracing::info!(target:"apps::resp", "Response: {:?}", parsed_resp);
     parsed_resp

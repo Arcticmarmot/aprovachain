@@ -7,7 +7,7 @@ use front::handler::{build_envelope_wire, create_build_spec_by_sk, parse_tx_args
 use spec::chain::ChainId;
 use common::setup::init_test;
 use server::context::SubmitTxResponse;
-use crate::common::setup::{extract_ctr_addr, req_by_wire, sleep_for};
+use crate::common::setup::{extract_ctr_addr, req_by_wire, req_get_catalogs, sleep_for, sleep_for_slot};
 use bench::accounts::{accounts_to_map, load_accounts};
 use bench::smallbank::{gen_simplified_smallbank, workload_high, workload_low};
 use ledger::call::{generate_access_set, LedgerCall};
@@ -69,8 +69,9 @@ pub async fn smallbank_test() {
         req_by_wire(wire).await;
         sleep_for(1).await;
     }
-
-
+    sleep_for_slot(slot_secs).await;
+    let response = req_get_catalogs().await;
+    tracing::info!(target:"smallbank", ?response);
 }
 
 async fn deploy_ledger() -> String {

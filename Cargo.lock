@@ -6261,6 +6261,7 @@ dependencies = [
  "anyhow",
  "apps",
  "axum",
+ "chain",
  "contract",
  "db",
  "engine",

@@ -5,6 +5,7 @@ use account::executor::ExecutorId;
 use network::handle::{P2pCmdHandle};
 use account::keypair::{AccountSigningKey};
 use apps::ctr_io::AccessSet;
+use chain::catalog::TxServiceCatalog;
 use db::handle::DBHandle;
 use platform::config::ProveMode;
 use primitives::hash::Hash32;
@@ -43,6 +44,7 @@ pub enum SubmitTxResponse {
         ctr_addr_str: String,
         executor_id: ExecutorId,
     },
+    CatalogStore,
     Invalid {
         message: String,
     }
@@ -75,6 +77,9 @@ impl Debug for SubmitTxResponse {
                 writeln!(f, "  ctr_addr_str: {}, ", ctr_addr_str)?;
                 writeln!(f, "  executor_id: {}, ", executor_id)?;
             },
+            SubmitTxResponse::CatalogStore => {
+                writeln!(f, "  catalog store ")?;
+            }
             SubmitTxResponse::Invalid { message } => {
                 writeln!(f, "  message: {}, ", message)?;
             }

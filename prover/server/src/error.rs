@@ -55,6 +55,8 @@ pub enum ServerError {
     GenesisTs,
     #[error("contract exec failed: {message}")]
     ContractExec { message: String },
+    #[error("system time error")]
+    SystemTime(#[from] std::time::SystemTimeError),
 }
 
 impl IntoResponse for ServerError {

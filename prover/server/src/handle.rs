@@ -1,3 +1,4 @@
+use std::collections::{BTreeMap, HashMap};
 use tx::attestation::TxAttestation;
 use crate::pipeline::resp_from_outcome;
 use crate::context::{AppState, SubmitTxResponse};
@@ -6,12 +7,13 @@ use axum::body::{Bytes};
 use axum::extract::State;
 use axum::Json;
 use account::executor::ExecutorId;
+use chain::catalog::TxServiceCode;
 use engine::execute::{build_tx_outcome, pre_exec_tx, verify_and_build_envelope};
 use schedule::dispatch::assign_executor_for_tx;
 use tx::intent::TxPayload;
 
 /// 交易提交处理函数
-pub async fn submit_tx(State(state) : State<AppState>, envelope_bytes: Bytes) -> ApiResult<SubmitTxResponse> {
+pub async fn submit_tx(State(state): State<AppState>, envelope_bytes: Bytes) -> ApiResult<SubmitTxResponse> {
     // 加载状态信息
     let db_handle = state.db_handle;
     let cmd_handle = state.cmd_handle;
@@ -65,4 +67,32 @@ pub async fn submit_tx(State(state) : State<AppState>, envelope_bytes: Bytes) ->
         }
     }
 }
+
+pub async fn get_catalogs(State(state): State<AppState>, _: Bytes) -> ApiResult<SubmitTxResponse> {
+    tracing::info!(target:"node::server", "get catalogs");
+    let db_handle = state.db_handle;
+    let ts = platform::clock::unix_time_millis()?;
+    let catalogs = db_handle.load_stats_window(usize::MAX, ts)?;
+    tracing::info!(target:"node::server", ?catalogs);
+    let mut stats = HashMap::new();
+    for catalog in &catalogs {
+        for (_, (_, code)) in catalog.iter() {
+            let entry: &mut usize = stats.entry(code).or_default();
+            *entry += 1;
+        }
+    }
+    let mut stats_by_prover = HashMap::new();
+    for catalog in &catalogs {
+        for (_, (exec_id, code)) in catalog.iter() {
+            let entry: &mut usize = stats_by_prover.entry((exec_id, code)).or_default();
+            *entry += 1;
+        }
+    }
+    tracing::info!(target:"node::server", ?stats);
+    tracing::info!(target:"node::server", ?stats_by_prover);
+    
+    let resp = Json(SubmitTxResponse::CatalogStore);
+    Ok(resp)
+}
+
 

@@ -5,7 +5,7 @@ use account::executor::ExecutorId;
 use tx::id::TxId;
 use crate::error::Result;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TxServiceCode {
     Success,
     Conflict,
