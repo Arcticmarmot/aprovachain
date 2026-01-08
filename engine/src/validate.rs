@@ -133,7 +133,7 @@ pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, 
         for vk_hex in validate_mode.provers {
             let vk_bytes: AccountVerifyingKeyBytes = hex::decode(vk_hex)?.as_slice().try_into()?;
             let vk = AccountVerifyingKey::from_bytes(&vk_bytes)?;
-            catalog.insert(TxId::new(HASH32_ZERO), (ExecutorId(vk), Success));
+            catalog.insert(TxId::new(sha256(&vk_bytes)), (ExecutorId(vk), Success));
         }
     }
 
