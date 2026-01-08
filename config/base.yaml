@@ -24,10 +24,12 @@ prove:
   offset: 5
 workload:
   accounts_num: 1000
+  tx_num: 20
   init_balance: 100000000
 dispatch:
   mode: "even" # "native" | "even"
   window_size: 16
+  warmup_size: 10
   ema_k: 8
   # max_score 10000
   score:

@@ -16,11 +16,11 @@ use ledger::call::{generate_access_set, LedgerCall};
 use platform::config::load_base_config;
 use tx::intent::TxPayload;
 pub const PROVER_URLS: &[&str] = &[
-    "http://cairo.mining-tuna.ts.net:8888/api/submit-tx",
-    "http://minsk.mining-tuna.ts.net:8888/api/submit-tx",
-    "http://mecca.mining-tuna.ts.net:8888/api/submit-tx",
-    "http://smolensk.mining-tuna.ts.net:8888/api/submit-tx",
-    "http://belgrade.mining-tuna.ts.net:8888/api/submit-tx",
+    // "http://cairo.mining-tuna.ts.net:8888/api/submit-tx",
+    // "http://minsk.mining-tuna.ts.net:8888/api/submit-tx",
+    // "http://mecca.mining-tuna.ts.net:8888/api/submit-tx",
+    // "http://smolensk.mining-tuna.ts.net:8888/api/submit-tx",
+    // "http://belgrade.mining-tuna.ts.net:8888/api/submit-tx",
     "http://aprova-1.mining-tuna.ts.net:8888/api/submit-tx",
     "http://aprova-2.mining-tuna.ts.net:8888/api/submit-tx",
     "http://aprova-3.mining-tuna.ts.net:8888/api/submit-tx",
@@ -48,7 +48,6 @@ pub async fn smallbank_test() {
     sleep_for(slot_secs + 1).await;
 
     for (index,url) in PROVER_URLS.iter().enumerate() {
-        
         send_call(&smallbank[index], chain_id, url.to_string(),
                   ctr_addr_str.clone(), &accounts_map).await;
         sleep_for_millis(50).await;
@@ -56,9 +55,9 @@ pub async fn smallbank_test() {
 
     for (index, call) in smallbank.iter().enumerate() {
         tracing::info!(target:"apps::resp", %index, ?call);
-        send_call(call, chain_id, "http://localhost:8888/api/submit-tx".to_string(),
+        send_call(call, chain_id, "http://aprova-1.mining-tuna.ts.net:8888/api/submit-tx".to_string(),
                   ctr_addr_str.clone(), &accounts_map).await;
-        sleep_for_millis(50).await;
+        sleep_for_millis(500).await;
     }
     sleep_for_slot(slot_secs).await;
     let response = req_get_catalogs().await;

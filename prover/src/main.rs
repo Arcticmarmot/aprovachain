@@ -43,6 +43,9 @@ async fn main() -> Result<()> {
     let queue_config = base.queue;
     let prover_config = base.prove;
 
+    let dispatch_config = base.dispatch;
+    
+    
     let verify_receipt_csv = base.verify_receipt_csv;
     let enable_verify_receipt_recording = base.enable_verify_receipt_recording;
     let validate_block_csv = base.validate_block_csv;
@@ -119,10 +122,11 @@ async fn main() -> Result<()> {
     let server_shutdown_rx = shutdown_rx.clone();
     let server_queue = queue.clone();
     let server_prove_mode = prove_mode.clone();
+    let server_dispatch_config = dispatch_config.clone();
     // 开启 http 服务
     let server_handle = spawn(async move {
         let _ = run_server(server_sk, server_db_handle, p2p_cmd_hdl,
-                           server_queue, server_shutdown_rx, server_prove_mode).await;
+                           server_queue, server_shutdown_rx, server_prove_mode, server_dispatch_config).await;
     });
     tracing::info!(target:"executor::init", "server init success...");
 
@@ -132,13 +136,13 @@ async fn main() -> Result<()> {
                 match cmd {
                     P2pEvent::EnvelopeReceived(envelope_bytes) => {
                         tracing::info!(target:"executor::event", "executor received envelope");
-                        if let Err(err) = on_envelope_received(queue.clone(), self_exec_id, envelope_bytes).await {
+                        if let Err(err) = on_envelope_received(queue.clone(), self_exec_id, envelope_bytes, dispatch_config.clone()).await {
                             tracing::warn!(target:"executor::event", %err);
                         }
                     }
                     P2pEvent::BlockReceived(block_bytes) => {
                         tracing::info!(target:"executor::event", "executor received block");
-                        if let Err(err) = on_block_received(&db_handle, block_bytes, validate_mode.clone()).await {
+                        if let Err(err) = on_block_received(&db_handle, block_bytes, validate_mode.clone(), dispatch_config.clone()).await {
                             tracing::warn!(target:"executor::event::block", %err);
                         }
                     },

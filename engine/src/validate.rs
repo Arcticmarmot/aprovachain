@@ -11,7 +11,7 @@ use chain::catalog::{TxServiceCatalog, TxServiceCode};
 use contract::contract::Contract;
 use db::handle::DBHandle;
 use platform::bench::{bench_csv_path, bench_validate_block_csv_append, bench_verify_receipt_csv_append};
-use platform::config::ValidateMode;
+use platform::config::{DispatchConfig, ValidateMode};
 use primitives::hash::{sha256, Hash32};
 use schedule::dispatch::assign_executor_for_tx;
 use tx::attestation::TxAttestation;
@@ -55,7 +55,7 @@ pub enum ApplyInfo {
     }
 }
 
-pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, validate_mode: ValidateMode) -> Result<()> {
+pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, validate_mode: ValidateMode, dispatch_config: DispatchConfig) -> Result<()> {
     let validate_time = Instant::now();
     // 解码 block
     let block = OrderedBlock::try_decode_bcs(&block_bytes)?;
@@ -94,12 +94,12 @@ pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, 
         let sem = verify_sem.clone();
         let verify_receipt_csv = validate_mode.verify_receipt_csv.clone();
         let prove_scheme = validate_mode.prove_scheme.clone();
+        let dispatch_config = dispatch_config.clone();
         let permit = sem.acquire_owned().await.unwrap();
-
         verify_js.spawn_blocking(move || {
             let _permit = permit;
             verify_tx(&tx_db_handle, idx, tx, validate_mode.enable_verify_receipt_recording,
-                      verify_receipt_csv, prove_scheme)
+                      verify_receipt_csv, prove_scheme, dispatch_config)
         });
     }
 
@@ -185,7 +185,8 @@ pub fn apply_tx(db_handle: &DBHandle, apply_info: ApplyInfo, curr_height: u128) 
     }
 }
 pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation,
-                 enable_verify_receipt_recording: bool, verify_receipt_csv: String, prove_scheme: String) -> Result<VerifyReport> {
+                 enable_verify_receipt_recording: bool, 
+                 verify_receipt_csv: String, prove_scheme: String, dispatch_config: DispatchConfig) -> Result<VerifyReport> {
     let tx_id = tx.tx_id;
     let executor_id = ExecutorId(tx.verifying_key.clone());
     // helper：快速返回 Reject
@@ -219,7 +220,7 @@ pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation,
         TxPayload::Exec { ctr_addr_str, input, .. } => {
             // schedule 指派校验（只读）
             let envelope_id = &envelope.tx_id();
-            match assign_executor_for_tx(db_handle, envelope_id, intent.timestamp)? {
+            match assign_executor_for_tx(db_handle, envelope_id, intent.timestamp, dispatch_config)? {
                 Some(expect_exec_id) => {
                     if expect_exec_id.verifying_key() != tx.verifying_key {
                         if enable_verify_receipt_recording {

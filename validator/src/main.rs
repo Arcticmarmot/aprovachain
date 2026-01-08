@@ -33,7 +33,7 @@ async fn main() -> Result<()> {
     let args = NodeArgs::parse();
     let base = platform::config::load_base_config();
     let prover_config = base.prove;
-
+    let dispatch_config = base.dispatch;
     let verify_receipt_csv = base.verify_receipt_csv;
     let enable_verify_receipt_recording = base.enable_verify_receipt_recording;
     let validate_block_csv = base.validate_block_csv;
@@ -91,7 +91,8 @@ async fn main() -> Result<()> {
                 match cmd {
                     P2pEvent::BlockReceived(block_bytes) => {
                         tracing::info!(target:"node::event", "node received block");
-                        if let Err(err) = on_block_received(&db_handle, block_bytes, validate_mode.clone()).await {
+                        if let Err(err) = on_block_received(&db_handle, block_bytes, 
+                            validate_mode.clone(), dispatch_config.clone()).await {
                             tracing::warn!(target:"node::event::block", %err);
                         }
                     }

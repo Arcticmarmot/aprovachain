@@ -3,15 +3,12 @@ use std::ops::Deref;
 use account::executor::ExecutorId;
 use chain::catalog::{TxServiceCatalog, TxServiceCode};
 use db::handle::DBHandle;
+use platform::config::DispatchConfig;
 use tx::id::{TxEnvelopeId};
 use crate::error::{Result};
 use crate::event::EventRecord;
 use crate::metrics::*;
-use crate::weight::{metrics_to_weights, total_weights};
-
-/// 定义窗口大小
-pub const WINDOW_SIZE: usize = 32;
-pub const WARMUP_SIZE: usize = 10;
+use crate::weight::{metrics_to_even_weights, metrics_to_weights, total_weights};
 
 /// 根据一定大小窗口的区块数据计算指标
 pub fn compute_metrics_by_window(stats_window: &[TxServiceCatalog]) -> Metrics {
@@ -62,13 +59,41 @@ pub fn select_executor_for_tx(tx_id: &TxEnvelopeId, metrics: &Metrics) -> Option
     None
 }
 
-pub fn assign_executor_for_tx(db_handle: &DBHandle, envelope_id: &TxEnvelopeId, envelope_ts: u128) -> Result<Option<ExecutorId>> {
+pub fn select_even_executor_for_tx(tx_id: &TxEnvelopeId, metrics: &Metrics) -> Option<ExecutorId> {
+    if metrics.is_empty() { return None }
+    let weights = metrics_to_even_weights(&metrics);
+    tracing::info!(target: "schedule::weight", ?weights, "weights");
+    let rand = pseudo_random_u128(tx_id);
+    let total_weight = total_weights(&weights);
+    let ticket = rand % total_weight;
+    let mut acc = 0;
+    for (exec_id, weight) in weights {
+        acc += weight;
+        if acc >= ticket { return Some(exec_id) }
+    }
+    None
+}
+
+pub fn assign_executor_for_tx(db_handle: &DBHandle, envelope_id: &TxEnvelopeId,
+                              envelope_ts: u128, dispatch_config: DispatchConfig) -> Result<Option<ExecutorId>> {
     tracing::debug!(target: "schedule::tx", %envelope_id);
-    let stats_window = db_handle.load_stats_window(WINDOW_SIZE, envelope_ts)?;
-    // 启动期 slot 长度
-    if stats_window.len() >= WARMUP_SIZE {
-        let scores = compute_metrics_by_window(&stats_window);
-        Ok(select_executor_for_tx(envelope_id, &scores))
+    let mode = dispatch_config.mode;
+    let window_size = dispatch_config.window_size;
+    let warmup_size = dispatch_config.warmup_size;
+    let stats_window = db_handle.load_stats_window(window_size, envelope_ts)?;
+    if stats_window.len() >= warmup_size {
+        match mode.as_str() {
+            "even" => {
+                let scores = compute_metrics_by_window(&stats_window);
+                Ok(select_even_executor_for_tx(envelope_id, &scores))
+            }
+            "native" => {
+                // 启动期 slot 长度
+                let scores = compute_metrics_by_window(&stats_window);
+                Ok(select_executor_for_tx(envelope_id, &scores))
+            }
+            _ => { panic!("bad schedule mode") }
+        }
     } else {
         Ok(None)
     }

@@ -19,7 +19,7 @@ pub struct BaseConfig {
     pub enable_validate_block_recording: bool,
 
     pub validate_block_csv: String,
-    
+
     pub workload: WorkloadConfig,
 
     pub consensus: ConsensusConfig,
@@ -34,6 +34,7 @@ pub struct BaseConfig {
 #[derive(Debug, Clone, Deserialize)]
 pub struct WorkloadConfig {
     pub accounts_num: usize,
+    pub tx_num: usize,
     pub init_balance: u64,
 }
 
@@ -74,7 +75,9 @@ pub struct ValidateMode {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct DispatchConfig {
-    pub window_size: u32,
+    pub mode: String,
+    pub window_size: usize,
+    pub warmup_size: usize,
     pub ema_k: u32,
     pub score: DispatchScoreConfig,
 }

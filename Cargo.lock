@@ -6048,6 +6048,7 @@ dependencies = [
  "account",
  "chain",
  "db",
+ "platform",
  "thiserror 2.0.17",
  "tracing",
  "tx",

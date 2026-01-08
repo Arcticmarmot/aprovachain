@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{HashMap};
 use tx::attestation::TxAttestation;
 use crate::pipeline::resp_from_outcome;
 use crate::context::{AppState, SubmitTxResponse};
@@ -7,7 +7,6 @@ use axum::body::{Bytes};
 use axum::extract::State;
 use axum::Json;
 use account::executor::ExecutorId;
-use chain::catalog::TxServiceCode;
 use engine::execute::{build_tx_outcome, pre_exec_tx, verify_and_build_envelope};
 use schedule::dispatch::assign_executor_for_tx;
 use tx::intent::TxPayload;
@@ -20,6 +19,7 @@ pub async fn submit_tx(State(state): State<AppState>, envelope_bytes: Bytes) -> 
     let sk = state.sk;
     let schedule = state.schedule;
     let prove_mode = state.prove_mode;
+    let dispatch_config = state.dispatch_config;
     let self_exec_id = ExecutorId(sk.verifying_key());
 
     let envelope = verify_and_build_envelope(envelope_bytes.as_ref())?;
@@ -38,7 +38,7 @@ pub async fn submit_tx(State(state): State<AppState>, envelope_bytes: Bytes) -> 
         }
         TxPayload::Exec { ctr_addr_str, input, access_set } => {
             let envelope_id = envelope.tx_id();
-            let exec_id = match assign_executor_for_tx(&db_handle, &envelope_id, send_ts)? {
+            let exec_id = match assign_executor_for_tx(&db_handle, &envelope_id, send_ts, dispatch_config)? {
                 Some(exec_id) => { exec_id },
                 None => {
                     tracing::info!(target: "node::server", %envelope_id, "no metrics yet, fall back to self as executor");
@@ -90,7 +90,7 @@ pub async fn get_catalogs(State(state): State<AppState>, _: Bytes) -> ApiResult<
     }
     tracing::info!(target:"node::server", ?stats);
     tracing::info!(target:"node::server", ?stats_by_prover);
-    
+
     let resp = Json(SubmitTxResponse::CatalogStore);
     Ok(resp)
 }

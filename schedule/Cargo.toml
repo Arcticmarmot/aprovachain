@@ -10,3 +10,4 @@ db = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 chain = { workspace = true }
+platform = { workspace = true }

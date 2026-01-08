@@ -22,6 +22,14 @@ pub fn metrics_to_weights(metrics: &Metrics) -> Weights {
     weights
 }
 
+pub fn metrics_to_even_weights(metrics: &Metrics) -> Weights {
+    let mut weights = Weights::new();
+    for (exec_id, (_, _)) in metrics {
+        weights.insert(exec_id.clone(), 10_000);
+    }
+    weights
+}
+
 pub fn total_weights(weights: &Weights) -> u128 {
     weights.values().sum()
 }

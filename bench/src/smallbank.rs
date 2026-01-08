@@ -1,11 +1,12 @@
 use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;
 use ledger::call::LedgerCall;
+use platform::config::load_base_config;
 
 #[derive(Debug, Clone)]
 pub struct WorkloadCfg {
-    pub num_accounts: usize,
-    pub num_txs: usize,
+    pub account_num: usize,
+    pub tx_num: usize,
     /// 热点集合占比：0.01 表示 1% 账户是热点
     pub hot_ratio: f64,
     /// 选账户时落在热点集合的概率：0.90 表示 90% 的访问打到热点
@@ -28,14 +29,14 @@ pub fn gen_simplified_smallbank(
     cfg: &WorkloadCfg,
     seed: u64,
 ) -> Vec<LedgerCall> {
-    assert!(cfg.num_accounts > 0);
-    assert!(addrs.len() >= cfg.num_accounts);
+    assert!(cfg.account_num > 0);
+    assert!(addrs.len() >= cfg.account_num);
     assert!(cfg.min_amount <= cfg.max_amount);
 
     let sum = cfg.pct_transfer + cfg.pct_query + cfg.pct_mint + cfg.pct_burn;
     assert_eq!(sum, 100, "pct_* must sum to 100, got {sum:?}");
 
-    let n = cfg.num_accounts;
+    let n = cfg.account_num;
     let hot_size = ((cfg.hot_ratio * n as f64).round() as usize).clamp(1, n);
 
     let mut rng = StdRng::seed_from_u64(seed);
@@ -50,9 +51,9 @@ pub fn gen_simplified_smallbank(
         }
     };
 
-    let mut out = Vec::with_capacity(cfg.num_txs + if cfg.with_init_mint { n } else { 0 });
+    let mut out = Vec::with_capacity(cfg.tx_num + if cfg.with_init_mint { n } else { 0 });
 
-    for _ in 0..cfg.num_txs {
+    for _ in 0..cfg.tx_num {
         let amount = rng.random_range(cfg.min_amount..=cfg.max_amount);
         let op_roll = rng.random_range(0..100);
 
@@ -88,9 +89,11 @@ pub fn gen_simplified_smallbank(
 
 /// 两套配置：Low / High conflict（先按这个跑通）
 pub fn workload_low() -> WorkloadCfg {
+    let base = load_base_config();
+    let workload = base.workload;
     WorkloadCfg {
-        num_accounts: 1000,
-        num_txs: 20,
+        account_num: 1000,
+        tx_num: workload.tx_num,
         hot_ratio: 0.10,
         p_hot: 0.20,
         pct_transfer: 25,
@@ -104,9 +107,11 @@ pub fn workload_low() -> WorkloadCfg {
 }
 
 pub fn workload_high() -> WorkloadCfg {
+    let base = load_base_config();
+    let workload = base.workload;
     WorkloadCfg {
-        num_accounts: 1_000,
-        num_txs: 20,
+        account_num: workload.accounts_num,
+        tx_num: workload.tx_num,
         hot_ratio: 0.01,
         p_hot: 0.90,
         pct_transfer: 40,
