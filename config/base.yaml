@@ -35,11 +35,12 @@ workload:
   accounts_num: 1000
   tx_num: 10000
   tps: 28
-  load_multi: 1
+  load_multi: 0.9
   workload_set: "low"
+  with_slow: true
   init_balance: 100000000
 dispatch:
-  mode: "native" # "native" | "even"
+  mode: "even" # "native" | "even"
   window_size: 32
   warmup_size: 0
   ema_k: 2

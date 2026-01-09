@@ -55,6 +55,7 @@ pub async fn smallbank_test() {
     sleep_for_slot(slot_secs * 15).await;
     let response = req_get_catalogs().await;
     tracing::info!(target:"smallbank", ?response);
+    tracing::info!(target:"smallbank", ?tx_slot);
 }
 
 async fn send_call(call: &LedgerCall, chain_id: ChainId,

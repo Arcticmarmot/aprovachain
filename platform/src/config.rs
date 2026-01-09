@@ -39,6 +39,7 @@ pub struct WorkloadConfig {
     pub tx_num: usize,
     pub tps: f64,
     pub load_multi: f64,
+    pub with_slow: bool,
     pub workload_set: String,
     pub init_balance: u64,
 }
