@@ -106,7 +106,7 @@ pub async fn get_catalogs(State(state): State<AppState>, _: Bytes) -> ApiResult<
         &format!("catalog-stats-{dispatch_mode}-{cons_protocol}-{workload_set}-{load_multi}-{discipline}-{ema_k}K-{tx_num}-{tps}"));
     bench_smallbank_csv_begin(&catalog_stats).expect("catalog stats csv begin");
     for (code, count) in stats {
-        bench_smallbank_csv_append(&catalog_stats, "totol".to_string(), code.to_string(), *count)
+        bench_smallbank_csv_append(&catalog_stats, "totol".to_string(), code.to_string(), count)
             .expect("catalog stats csv append");
     }
     for ((prover_id, code), count) in &stats_by_prover {
