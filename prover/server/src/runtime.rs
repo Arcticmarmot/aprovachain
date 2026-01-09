@@ -5,7 +5,7 @@ use tokio::sync::watch::Receiver;
 use network::handle::{P2pCmdHandle};
 use account::keypair::AccountSigningKey;
 use db::handle::DBHandle;
-use platform::config::{DispatchConfig, ProveMode};
+use platform::config::{BaseConfig, DispatchConfig, ProveMode};
 use task::schedule::TaskSchedule;
 use crate::context::AppState;
 use crate::handle::{get_catalogs, submit_tx};
@@ -13,7 +13,7 @@ use crate::handle::{get_catalogs, submit_tx};
 pub async fn run_server(sk: AccountSigningKey, db_handle: DBHandle,
                         cmd_handle: P2pCmdHandle, schedule: TaskSchedule,
                         shutdown_rx: Receiver<bool>, prove_mode: ProveMode,
-                        dispatch_config: DispatchConfig) -> Result<()> {
+                        dispatch_config: DispatchConfig, server_base_config: BaseConfig) -> Result<()> {
     let state = AppState {
         db_handle,
         sk,
@@ -21,6 +21,7 @@ pub async fn run_server(sk: AccountSigningKey, db_handle: DBHandle,
         schedule,
         prove_mode,
         dispatch_config,
+        server_base_config
     };
     let router = Router::new()
         .route("/api/submit-tx", post(submit_tx))

@@ -11,7 +11,7 @@ use crate::metrics::*;
 use crate::weight::{metrics_to_even_weights, metrics_to_weights, total_weights};
 
 /// 根据一定大小窗口的区块数据计算指标
-pub fn compute_metrics_by_window(stats_window: &[TxServiceCatalog]) -> Metrics {
+pub fn compute_metrics_by_window(stats_window: &[TxServiceCatalog], ema_k: u128) -> Metrics {
     let mut metrics = Metrics::new();
     for block_stats in stats_window {
         // 记录每个事件的数量
@@ -33,10 +33,10 @@ pub fn compute_metrics_by_window(stats_window: &[TxServiceCatalog]) -> Metrics {
         for (exec_id, record) in event_records {
             let (integrity, timeliness): &mut (Integrity, Timeliness) = metrics.entry(exec_id).or_default();
             if let Some(itg_event) = record.compute_integrity_event() {
-                integrity.apply_event(itg_event);
+                integrity.apply_event(itg_event, ema_k);
             }
             if let Some(tln_event) = record.compute_timeliness_event() {
-                timeliness.apply_event(tln_event);
+                timeliness.apply_event(tln_event, ema_k);
             }
         }
     }
@@ -80,16 +80,17 @@ pub fn assign_executor_for_tx(db_handle: &DBHandle, envelope_id: &TxEnvelopeId,
     let mode = dispatch_config.mode;
     let window_size = dispatch_config.window_size;
     let warmup_size = dispatch_config.warmup_size;
+    let ema_k = dispatch_config.ema_k;
     let stats_window = db_handle.load_stats_window(window_size, envelope_ts)?;
     if stats_window.len() >= warmup_size {
         match mode.as_str() {
             "even" => {
-                let scores = compute_metrics_by_window(&stats_window);
+                let scores = compute_metrics_by_window(&stats_window, ema_k);
                 Ok(select_even_executor_for_tx(envelope_id, &scores))
             }
             "native" => {
                 // 启动期 slot 长度
-                let scores = compute_metrics_by_window(&stats_window);
+                let scores = compute_metrics_by_window(&stats_window, ema_k);
                 Ok(select_executor_for_tx(envelope_id, &scores))
             }
             _ => { panic!("bad schedule mode") }

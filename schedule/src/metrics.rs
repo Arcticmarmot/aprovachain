@@ -3,7 +3,7 @@ use account::executor::ExecutorId;
 
 pub type Score = u128;
 pub const MAX_SCORE: Score = 10_000;
-pub const EMA_K: u128 = 4;
+// pub const EMA_K: u128 = 4;
 pub type Metrics = BTreeMap<ExecutorId, (Integrity, Timeliness)>;
 
 #[derive(Debug)]
@@ -12,8 +12,8 @@ pub struct Integrity {
 }
 
 impl Integrity {
-    pub fn apply_event(&mut self, event: Score) {
-        self.score = ema_new_val(self.score, event);
+    pub fn apply_event(&mut self, event: Score, ema_k: u128) {
+        self.score = ema_new_val(self.score, event, ema_k);
     }
 }
 
@@ -31,15 +31,15 @@ impl Default for Timeliness {
 }
 
 impl Timeliness {
-    pub fn apply_event(&mut self, event: Score) {
-        self.score = ema_new_val(self.score, event);
+    pub fn apply_event(&mut self, event: Score, ema_k: u128) {
+        self.score = ema_new_val(self.score, event, ema_k);
     }
 }
 
 /// 整数版本的 EMA
 /// new = ((old * (K - 1)) + event) / K
-pub fn ema_new_val(old_val: Score, event: Score) -> Score {
-    let new_val = (old_val * (EMA_K - 1)) + event;
-    let round_new_val = (new_val + EMA_K / 2) / EMA_K;
+pub fn ema_new_val(old_val: Score, event: Score, ema_k: u128) -> Score {
+    let new_val = (old_val * (ema_k - 1)) + event;
+    let round_new_val = (new_val + ema_k / 2) / ema_k;
     round_new_val
 }

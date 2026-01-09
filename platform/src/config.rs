@@ -37,6 +37,9 @@ pub struct BaseConfig {
 pub struct WorkloadConfig {
     pub accounts_num: usize,
     pub tx_num: usize,
+    pub tps: f64,
+    pub load_multi: f64,
+    pub workload_set: String,
     pub init_balance: u64,
 }
 
@@ -81,7 +84,7 @@ pub struct DispatchConfig {
     pub mode: String,
     pub window_size: usize,
     pub warmup_size: usize,
-    pub ema_k: u32,
+    pub ema_k: u128,
     pub score: DispatchScoreConfig,
 }
 
@@ -106,8 +109,6 @@ pub struct IntegrityScoreConfig {
 pub struct QueueConfig {
     pub discipline: String, // fcfs | spt | edf | spt_edf | edf_spt
 }
-
-
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConsensusConfig {

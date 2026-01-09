@@ -40,6 +40,7 @@ async fn main() -> Result<()> {
     // 解析 NodeArgs
     let args = NodeArgs::parse();
     let base = platform::config::load_base_config();
+    let server_base_config = base.clone();
     let provers = base.provers;
     let chain_id = ChainId(base.chain_id);
     let workload_config = base.workload;
@@ -98,9 +99,6 @@ async fn main() -> Result<()> {
     db_handle.init_ledger_data_entry(chain_id, workload_config.init_balance)?;
     tracing::info!(target:"executor::init", "rocksdb({db_file_mode:?}) init success...");
 
-    // 新建 envelope 任务队列
-    let queue = TaskSchedule::create(DisciplineKind::EdfSpt);
-
     let (p2p_cmd_tx, p2p_cmd_rx) =
         mpsc::unbounded_channel::<P2pCmd>();
     let (p2p_event_tx, mut p2p_event_rx) =
@@ -121,6 +119,17 @@ async fn main() -> Result<()> {
     let self_exec_id = ExecutorId(sk.verifying_key());
     tracing::info!(target:"executor::init", %self_exec_id, "self executor id");
 
+    // 新建 envelope 任务队列
+    // fcfs | spt | edf | spt_edf | edf_spt
+    let queue = match queue_config.discipline.as_str() {
+        "fcfs" => { TaskSchedule::create(DisciplineKind::Fcfs) }
+        "spt" => { TaskSchedule::create(DisciplineKind::Spt) }
+        "edf" => { TaskSchedule::create(DisciplineKind::Edf) }
+        "spt_edf" => { TaskSchedule::create(DisciplineKind::SptEdf) }
+        "edf_spt" => { TaskSchedule::create(DisciplineKind::EdfSpt) }
+        _ => { panic!("bad discipline") }
+    };
+    
     let task_db_handle = db_handle.clone();
     let task_sk= sk.clone();
     let task_queue = queue.clone();
@@ -137,10 +146,12 @@ async fn main() -> Result<()> {
     let server_queue = queue.clone();
     let server_prove_mode = prove_mode.clone();
     let server_dispatch_config = dispatch_config.clone();
+
     // 开启 http 服务
     let server_handle = spawn(async move {
         let _ = run_server(server_sk, server_db_handle, p2p_cmd_hdl,
-                           server_queue, server_shutdown_rx, server_prove_mode, server_dispatch_config).await;
+                           server_queue, server_shutdown_rx, server_prove_mode, 
+                           server_dispatch_config, server_base_config).await;
     });
     tracing::info!(target:"executor::init", "server init success...");
 

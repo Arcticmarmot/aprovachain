@@ -22,12 +22,23 @@ pub async fn smallbank_test() {
     let base = load_base_config();
     let chain_id = ChainId(base.chain_id);
     let slot_secs = base.slot_secs;
+    let workload_config = base.workload;
+    let workload_set = workload_config.workload_set;
+    let workload_set = match workload_set.as_str() {
+        "high" => { workload_high() }
+        "low" => { workload_low() }
+        _ => { panic!("bad workload set param") }
+    };
+    let pct_transfer = workload_set.pct_transfer;
+    let workload_set_multi = (pct_transfer * 4 + (100 - pct_transfer) * 2) as f64 / 100f64;
+    let tx_slot = (workload_set_multi * 1000f64) / (workload_config.tps * workload_config.load_multi);
+    tracing::info!(target: "smallbank", %tx_slot);
 
     let accounts = load_accounts();
     let accounts_map = accounts_to_map(chain_id, &accounts);
     let user_addr_strings: Vec<String> = accounts_map.keys().cloned().collect();
 
-    let smallbank = gen_simplified_smallbank(&user_addr_strings, &workload_low(), 1024u64);
+    let smallbank = gen_simplified_smallbank(&user_addr_strings, &workload_set, 1024u64);
     tracing::info!(target: "smallbank", len=?smallbank.len());
 
     sleep_for_slot(slot_secs).await;
@@ -38,7 +49,7 @@ pub async fn smallbank_test() {
         tracing::info!(target:"apps::resp", %index, ?call);
         send_call(call, chain_id,
                   ctr_addr_str.clone(), &accounts_map).await;
-        sleep_for_millis(180).await;
+        sleep_for_millis(tx_slot as u64).await;
     }
 
     sleep_for_slot(slot_secs * 15).await;

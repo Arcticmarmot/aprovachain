@@ -6,7 +6,7 @@ use network::handle::{P2pCmdHandle};
 use account::keypair::{AccountSigningKey};
 use apps::ctr_io::AccessSet;
 use db::handle::DBHandle;
-use platform::config::{DispatchConfig, ProveMode};
+use platform::config::{BaseConfig, DispatchConfig, ProveMode};
 use primitives::hash::Hash32;
 use task::schedule::TaskSchedule;
 
@@ -18,6 +18,7 @@ pub struct AppState {
     pub schedule: TaskSchedule,
     pub prove_mode: ProveMode,
     pub dispatch_config: DispatchConfig,
+    pub server_base_config: BaseConfig,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

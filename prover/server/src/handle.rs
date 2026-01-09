@@ -72,7 +72,7 @@ pub async fn submit_tx(State(state): State<AppState>, envelope_bytes: Bytes) -> 
 pub async fn get_catalogs(State(state): State<AppState>, _: Bytes) -> ApiResult<SubmitTxResponse> {
     tracing::info!(target:"node::server", "get catalogs");
     let db_handle = state.db_handle;
-    let dispatch_mode = state.dispatch_config.mode;
+
     let ts = platform::clock::unix_time_millis()?;
     let catalogs = db_handle.load_stats_window(usize::MAX, ts)?;
     // tracing::info!(target:"node::server", ?catalogs);
@@ -94,7 +94,23 @@ pub async fn get_catalogs(State(state): State<AppState>, _: Bytes) -> ApiResult<
     tracing::info!(target:"node::server", ?stats_by_prover);
 
     // 存储为 csv
-    let catalog_stats = bench_smallbank_csv_path(&format!("{}-{}", "catalog-stats", dispatch_mode));
+    // workload:
+    // accounts_num: 1000
+    // tx_num: 1000
+    // tps: 14
+    // load_multi: 1
+    // workload_set: "high"
+    let dispatch_mode = state.dispatch_config.mode;
+    let base = state.server_base_config;
+    let cons_protocol = base.consensus.protocol;
+    let workload = base.workload;
+    let workload_set = workload.workload_set;
+    let ema_k = base.dispatch.ema_k;
+    let tx_num = workload.tx_num;
+    let load_multi = workload.load_multi;
+    let tps = workload.tps;
+    let catalog_stats = bench_smallbank_csv_path(
+        &format!("catalog-stats-{dispatch_mode}-{cons_protocol}-{workload_set}-{load_multi}-{ema_k}K-{tx_num}-{tps}"));
     bench_smallbank_csv_begin(&catalog_stats).expect("catalog stats csv begin");
     for ((prover_id, code), count) in &stats_by_prover {
         bench_smallbank_csv_append(&catalog_stats, prover_id.to_string(), code.to_string(), *count)

@@ -20,7 +20,7 @@ consensus:
   simulate_size: 100
   simulate_size_array: [1, 1, 10, 100, 1000, 10000]
   protocol: "solo"
-  tx_capacity: 10000
+  tx_capacity: 1000
   leader_id: "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE"
   members:
     - "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE" # smolensk
@@ -33,14 +33,16 @@ prove:
   offset: 50
 workload:
   accounts_num: 1000
-  tx_num: 1000
-  tps: 10
+  tx_num: 200
+  tps: 14
+  load_multi: 1
+  workload_set: "low"
   init_balance: 100000000
 dispatch:
   mode: "native" # "native" | "even"
-  window_size: 16
+  window_size: 32
   warmup_size: 0
-  ema_k: 8
+  ema_k: 4
   # max_score 10000
   score:
     timeliness:
