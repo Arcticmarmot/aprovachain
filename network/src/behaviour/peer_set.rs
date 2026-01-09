@@ -94,7 +94,7 @@ impl PeerSet {
                 Ok(())
             },
             Err(err) => {
-                tracing::warn!(target: "network::dial", %peer_id, ?err);
+                tracing::debug!(target: "network::dial", %peer_id, ?err);
                 Err(PeerError::DialPeer)
             }
         }
