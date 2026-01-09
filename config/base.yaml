@@ -1,5 +1,5 @@
 chain_id: 1000
-slot_secs: 3
+slot_secs: 12
 enable_prove_receipt_recording: false
 prove_receipt_csv: "prove-receipt" # cycles, cycle_label, scale, prove_time, receipt_size
 enable_verify_receipt_recording: false
@@ -34,8 +34,8 @@ prove:
 workload:
   accounts_num: 1000
   tx_num: 10000
-  tps: 28
-  load_multi: 0.9
+  tps: 24.2
+  load_multi: 1
   workload_set: "low"
   with_slow: true
   init_balance: 100000000
