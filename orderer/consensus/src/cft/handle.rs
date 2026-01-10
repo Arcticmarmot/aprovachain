@@ -42,18 +42,18 @@ pub fn handle_submit_agreement(service: &mut CftService,
     tracing::info!(target: "cft::agreement", ?agr);
     match agr {
         Agreement::CommitBlock { height, block_hash } => {
-            tracing::info!(target: "cft::agreement", "start commit");
             if service.is_leader() { return Ok(()) }
+
+            // NOTE: from 是轉發者 2026.1.10
             // if from != service.leader_id { return Ok(()); }
 
             let (staged_hash, staged_bytes) = match service.staged_blocks.get(&height) {
                 Some((h, b)) => (*h, b.clone()),
                 None => {
-                    tracing::error!(target: "cft::agreement", staged_block=?service.staged_blocks);
+                    tracing::error!(target: "cft::agreement", "invalid height");
                     return Ok(())
                 },
             };
-            tracing::info!(target: "cft::agreement", ?staged_hash);
 
             if staged_hash != block_hash {
                 tracing::warn!(target:"consensus::event", height, "ack hash mismatch");
@@ -76,7 +76,6 @@ pub fn handle_submit_agreement(service: &mut CftService,
                     }
                 }
             }
-            tracing::info!(target:"consensus::event", update_header=?header, "commit");
             service.update_chain_state(header)?;
             service.staged_blocks.remove(&height);
             Ok(())
@@ -84,8 +83,7 @@ pub fn handle_submit_agreement(service: &mut CftService,
         Agreement::ProposeBlock { height, block_hash, header_bytes } => {
             if service.is_leader() { return Ok(()); }
 
-            if from != service.leader_id { return Ok(()); }
-
+            // if from != service.leader_id { return Ok(()); }
 
             // 解码 block + 连续性检查
             let header = BlockHeader::try_decode_bcs(&header_bytes)?;
@@ -96,11 +94,14 @@ pub fn handle_submit_agreement(service: &mut CftService,
                 cft_event_hdl.agreement_commited(nack.encode_bcs())?;
                 return Ok(());
             }
-            if let Some((_, bytes)) = service.staged_blocks.get(&(height - 1)) {
-                tracing::warn!(target:"consensus::event", height, "block catch up");
-                let header = BlockHeader::try_decode_bcs(&bytes)?;
-                service.update_chain_state(header)?;
-            }
+
+            // catchup
+            // if let Some((_, bytes)) = service.staged_blocks.get(&(height - 1)) {
+            //     tracing::warn!(target:"consensus::event", height, "block catch up");
+            //     let header = BlockHeader::try_decode_bcs(&bytes)?;
+            //     service.update_chain_state(header)?;
+            // }
+
             if let Some((staged_hash, _bytes)) = service.staged_blocks.get(&height) {
                 if staged_hash != &block_hash {
                     tracing::warn!(target:"consensus::event", height, "block hash mismatch");
