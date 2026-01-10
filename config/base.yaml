@@ -21,7 +21,7 @@ consensus:
   simulate_size_array: [1, 1, 10, 100, 1000, 10000]
   protocol: "cft"
   tx_capacity: 10000
-  leader_id: "12D3KooW9xQWWJA7PLomVn1MN1frgJpyYZpuGbSL1iQYqzZ1uEeE"
+  leader_id: "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9"
   members:
 #    - "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE" # smolensk
 #    - "12D3KooWEB9JUhgjPUuR5QVeokUNeRSpjcxxGaELnLvydLTpCFUZ" # mecca
