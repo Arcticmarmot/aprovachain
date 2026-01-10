@@ -1,9 +1,11 @@
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 use libp2p::PeerId;
 use tokio::spawn;
 use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::Mutex;
 use tokio::time::sleep;
 use chain::block::{BlockHeader, OrderedBlock};
 use chain::chain::ChainState;
@@ -85,14 +87,12 @@ pub async fn slot_loop(cft_cmd_handle: CftCmdHandle, slot_secs: u64) {
     }
 }
 
-
-
-pub async fn start_cft_consensus(mut service: CftService,
-                             mut cft_cmd_rx: UnboundedReceiver<CftCmd>,
-                             cft_cmd_hdl: CftCmdHandle,
-                             cft_event_hdl: CftEventHandle) -> Result<()> {
+pub async fn start_cft_consensus(mut service: Arc<Mutex<CftService>>,
+                                 mut cft_cmd_rx: UnboundedReceiver<CftCmd>,
+                                 cft_cmd_hdl: CftCmdHandle,
+                                 cft_event_hdl: CftEventHandle) -> Result<()> {
     let slot_cmd_hdl = cft_cmd_hdl.clone();
-    let slot_secs = service.slot_secs;
+    let slot_secs = service.lock().await.slot_secs;
     spawn(async move {
         slot_loop(slot_cmd_hdl, slot_secs).await
     });
@@ -101,23 +101,28 @@ pub async fn start_cft_consensus(mut service: CftService,
     loop {
         tokio::select! {
             Some(input) = cft_cmd_rx.recv() => {
+                let mut service = service.lock().await;
                 match input {
                     CftCmd::NewSlot => {
-                        tracing::info!(target:"consensus::event", "tick tock");
-                        if let Err(err) = handle_new_slot(service, &cft_event_hdl) {
-                            tracing::info!(target:"consensus::event", %err);
+                        if service.is_leader() {
+                            tracing::info!(target:"consensus::event", "tick tock");
+                            if let Err(err) = handle_new_slot(&mut service, &cft_event_hdl) {
+                                tracing::info!(target:"consensus::event", %err);
+                            }
                         }
                     },
                     CftCmd::SubmitAgreement { from, agreement_bytes } => {
                         tracing::info!(target:"consensus::event", "submit agreement");
-                        if let Err(err) = handle_submit_agreement(service, &cft_event_hdl, from, agreement_bytes) {
+                        if let Err(err) = handle_submit_agreement(&mut service, &cft_event_hdl, from, agreement_bytes) {
                             tracing::info!(target:"consensus::event", %err);
                         }
                     },
                     CftCmd::SubmitTx {tx_bytes}=> {
-                        tracing::info!(target:"consensus::event", "received tx");
-                        if let Err(err) = handle_submit_tx(service, tx_bytes) {
-                            tracing::info!(target:"consensus::event", %err);
+                        if service.is_leader() {
+                            tracing::info!(target:"consensus::event", "received tx");
+                            if let Err(err) = handle_submit_tx(&mut service, tx_bytes) {
+                                tracing::info!(target:"consensus::event", %err);
+                            }
                         }
                     },
                 }

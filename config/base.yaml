@@ -1,5 +1,5 @@
 chain_id: 1000
-slot_secs: 12
+slot_secs: 3
 enable_prove_receipt_recording: false
 prove_receipt_csv: "prove-receipt" # cycles, cycle_label, scale, prove_time, receipt_size
 enable_verify_receipt_recording: false
@@ -8,27 +8,31 @@ enable_validate_block_recording: false
 validate_block_csv: "validate-block"
 provers:
   - "63d8d75d73303e66217ba9c48d654d6bb7e31ea5f8890459e0a51193dd5e8ab5" # smolensk
-  - "40c165755edcc714e564e43e692576951d600a4f416b471a436af5e786d944de" # mecca
+#  - "40c165755edcc714e564e43e692576951d600a4f416b471a436af5e786d944de" # mecca
 #  - "6df7ffc94bf76d992aa26d535fd4ef881703d243e70f7bc57a3fa3349c5e5d5e" # kol-server
 #  - "0fd61a0a7c9c79d028fe1aa3d761681eef9d61a48d8942dcf26b6737244df1d1" # cairo
-  - "88d6d8e53dfae02fac118064124467ec5833b9b0a115d428f7782ccac5862a6f" # aprova-1
-  - "c1b1d1aaba1e85d92bc3f9435b110909d9a0e1f73c2c242871a4edefdcd293ea" # aprova-2
-  - "f09721496653b0f86a7ef85dbfd8585cb6e560006007389b2283b1a2fc14af2e" # aprova-3
-  - "46bfd3164494fea65f58b848b0a702ad931e335354612f1b05259606b930d36d" # aprova-4
+#  - "88d6d8e53dfae02fac118064124467ec5833b9b0a115d428f7782ccac5862a6f" # aprova-1
+#  - "c1b1d1aaba1e85d92bc3f9435b110909d9a0e1f73c2c242871a4edefdcd293ea" # aprova-2
+#  - "f09721496653b0f86a7ef85dbfd8585cb6e560006007389b2283b1a2fc14af2e" # aprova-3
+#  - "46bfd3164494fea65f58b848b0a702ad931e335354612f1b05259606b930d36d" # aprova-4
 consensus:
   mode: "native" # "native" | "simulate"
   simulate_size: 100
   simulate_size_array: [1, 1, 10, 100, 1000, 10000]
   protocol: "cft"
   tx_capacity: 10000
-  leader_id: "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9"
+  leader_id: "12D3KooWK2XdMqgDizaidLY7t3Z8L8hkg2oviaDhRhg7q1FS5Kup"
   members:
 #    - "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE" # smolensk
 #    - "12D3KooWEB9JUhgjPUuR5QVeokUNeRSpjcxxGaELnLvydLTpCFUZ" # mecca
+    - "12D3KooWK2XdMqgDizaidLY7t3Z8L8hkg2oviaDhRhg7q1FS5Kup" # aprova-1
+    - "12D3KooWNrU7pw2gmPiLwSt6AADkqvXNQ5jQc3fULbaKShhqVWky" # aprova-2
+    - "12D3KooWS1XgBn8A2h5JGRJBeGZomkQveC48i5tvbesBYwZDCsMf" # aprova-3
+#    - "12D3KooWEaYMjTag1NrtG5GpwekhhXCpWPNxbbsXFs3cMGC3ENMi" # aprova-4
 #    - "12D3KooWAtBdtsUCzN9oe5fRjXb1K66hZ3EPbzi6iAKjv5Vq7WbS" # cairo
-    - "12D3KooW9xQWWJA7PLomVn1MN1frgJpyYZpuGbSL1iQYqzZ1uEeE" # belgrade
-    - "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9" # kol-server
-    - "12D3KooWGAHCnk9v1kaBHYon4CUrLLQpRZ8tVcsWAHbDjpzha4Nh" # singapore
+#    - "12D3KooW9xQWWJA7PLomVn1MN1frgJpyYZpuGbSL1iQYqzZ1uEeE" # belgrade
+#    - "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9" # kol-server
+#    - "12D3KooWGAHCnk9v1kaBHYon4CUrLLQpRZ8tVcsWAHbDjpzha4Nh" # singapore
 prove:
   mode: "simulate" # "native" | "simulate"
   scheme: "succinct" # "succinct" | "fast" | "groth16"

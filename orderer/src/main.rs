@@ -1,12 +1,13 @@
+use std::sync::Arc;
 use anyhow::{bail, Result};
 use clap::{Parser};
 use libp2p::identity::{Keypair};
 use libp2p::PeerId;
 use tokio::{spawn};
 use network::handle::*;
-use network::runtime::{init_p2p, run_p2p};
+use network::runtime::{init_p2p, load_node_sk_bytes, run_p2p};
 use orderer::bootstrap::{init_env, init_logging};
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{mpsc, watch, Mutex};
 use chain::chain::ChainState;
 use chain::mempool::{MempoolHandle};
 use consensus::solo::protocol::{SoloCmd, SoloCmdHandle, SoloEvent, SoloEventHandle};
@@ -44,20 +45,7 @@ async fn main() -> Result<()> {
     let p2p_cmd_hdl = P2pCmdHandle::new(p2p_cmd_tx.clone());
     let p2p_event_hdl = P2pEventHandle::new(p2p_event_tx.clone());
     let (_shutdown_tx, shutdown_rx) = watch::channel(false);
-    let (sk, peer_set, swarm) = init_p2p(PeerRole::Orderer)?;
-    // p2p 接收P2pCmd命令，发出P2pEvent事件
-    let p2p_shutdown_rx = shutdown_rx.clone();
-    spawn(async move {
-        let _ = run_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl, p2p_shutdown_rx).await;
-    });
-    tracing::info!(target:"orderer::init", "p2p init success...");
 
-    // 共识层初始化
-    let local_key = Keypair::ed25519_from_bytes(sk.to_bytes())?;
-    let local_id = PeerId::from(local_key.public());
-    tracing::info!(target:"orderer::init", "local_id: {:?}", local_id);
-
-    let chain_id = ChainId(base.chain_id);
 
     match cons_config.protocol.as_str() {
         "solo" => {
@@ -65,7 +53,20 @@ async fn main() -> Result<()> {
                 mpsc::unbounded_channel::<SoloCmd>();
             let (solo_event_tx, mut solo_event_rx) =
                 mpsc::unbounded_channel::<SoloEvent>();
+            let (sk, peer_set, swarm) = init_p2p(PeerRole::Orderer)?;
+            // p2p 接收P2pCmd命令，发出P2pEvent事件
+            let p2p_shutdown_rx = shutdown_rx.clone();
+            spawn(async move {
+                let _ = run_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl, p2p_shutdown_rx).await;
+            });
+            tracing::info!(target:"orderer::init", "p2p init success...");
 
+            // 共识层初始化
+            let local_key = Keypair::ed25519_from_bytes(sk.to_bytes())?;
+            let local_id = PeerId::from(local_key.public());
+            tracing::info!(target:"orderer::init", "local_id: {:?}", local_id);
+
+            let chain_id = ChainId(base.chain_id);
             let chain_state = ChainState {
                 chain_id,
                 tip_header_opt: None
@@ -113,16 +114,44 @@ async fn main() -> Result<()> {
             let (cft_event_tx, mut cft_event_rx) =
                 mpsc::unbounded_channel::<CftEvent>();
 
+            let chain_id = ChainId(base.chain_id);
+
+            let sk_bytes = load_node_sk_bytes()?;
+            let local_key = Keypair::ed25519_from_bytes(sk_bytes)?;
+            let local_id = PeerId::from(local_key.public());
             let chain_state = ChainState {
                 chain_id,
                 tip_header_opt: None
             };
             let mempool_handle = MempoolHandle::new();
-            let cft = CftService::new(slot_secs, local_id, chain_state, mempool_handle, cons_config)?;
+            let cft_service = CftService::new(
+                slot_secs,
+                local_id,
+                chain_state,
+                mempool_handle,
+                cons_config.clone(),
+            )?;
+
+            let is_leader = cft_service.is_leader();
+            let (_sk, peer_set, swarm) = if is_leader {
+                init_p2p(PeerRole::Orderer)?
+            } else {
+                init_p2p(PeerRole::Follower)?
+            };
+            let cft = Arc::new(Mutex::new(cft_service));
+
+            // p2p 接收P2pCmd命令，发出P2pEvent事件
+            let p2p_shutdown_rx = shutdown_rx.clone();
+            spawn(async move {
+                let _ = run_p2p(peer_set, swarm, p2p_cmd_rx, p2p_event_hdl, p2p_shutdown_rx).await;
+            });
+            tracing::info!(target:"orderer::init", "p2p init success...");
+
             tracing::info!(target:"orderer::init", ?cft);
             let cft_cmd_hdl = CftCmdHandle::new(cft_cmd_tx.clone());
             let cft_event_hdl = CftEventHandle::new(cft_event_tx.clone());
             spawn(async move {
+                let cft = Arc::clone(&cft);
                 start_cft_consensus(cft, cft_cmd_rx, cft_cmd_hdl, cft_event_hdl).await
             });
             tracing::info!(target:"orderer::init", "consensus init success(CFT)...");
@@ -132,18 +161,18 @@ async fn main() -> Result<()> {
                 tokio::select! {
                     Some(cmd) = p2p_event_rx.recv() => {
                         match cmd {
-                            P2pEvent::TxReceived(tx_bytes) => {
-                                tracing::info!(target:"orderer::event", "orderer received tx");
-                                if let Err(err) = on_cft_tx_received(tx_bytes, &cft_cmd_hdl) {
-                                    tracing::error!(target:"orderer::event", %err);
-                                }
-                            },
                             P2pEvent::AgreementReceived { from, bytes } => {
-                                tracing::info!(target:"orderer::event", "orderer received agreement");
+                                tracing::info!(target:"orderer::event", %from, "orderer received agreement");
                                 if let Err(err) = on_cft_agreement_received(from, bytes, &cft_cmd_hdl) {
                                     tracing::error!(target:"orderer::event", %err);
                                 }
                             }
+                            P2pEvent::TxReceived(tx_bytes) => {
+                                tracing::debug!(target:"orderer::event", "orderer received tx");
+                                if let Err(err) = on_cft_tx_received(tx_bytes, &cft_cmd_hdl) {
+                                    tracing::error!(target:"orderer::event", %err);
+                                }
+                            },
                             _ => { }
                         }
                     },

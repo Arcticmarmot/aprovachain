@@ -12,7 +12,7 @@ pub enum Agreement {
     ProposeBlock {
         height: u128,
         block_hash: Hash32,
-        block_bytes: Vec<u8>
+        header_bytes: Vec<u8>
     },
     CommitBlock {
         height: u128,

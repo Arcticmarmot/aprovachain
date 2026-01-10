@@ -13,6 +13,7 @@ const HEART_BEAT_INTERVAL: u64 = 30;
 pub enum PeerRole {
     Executor,
     Orderer,
+    Follower,
     Verifier
 }
 
@@ -69,6 +70,9 @@ impl PeerBehaviour {
             PeerRole::Orderer => {
                 gossipsub.subscribe(&tx_topic).expect("subscribe tx");
                 gossipsub.subscribe(&block_topic).expect("subscribe block");
+                gossipsub.subscribe(&agreement_topic).expect("subscribe agreement");
+            }
+            PeerRole::Follower => {
                 gossipsub.subscribe(&agreement_topic).expect("subscribe agreement");
             }
             PeerRole::Verifier => {

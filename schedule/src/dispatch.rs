@@ -40,7 +40,7 @@ pub fn compute_metrics_by_window(stats_window: &[TxServiceCatalog], ema_k: u128)
             }
         }
     }
-    tracing::info!(target: "schedule::metrics", ?metrics, "metrics");
+    tracing::debug!(target: "schedule::metrics", ?metrics, "metrics");
     metrics
 }
 

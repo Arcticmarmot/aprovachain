@@ -9,7 +9,7 @@ use front::handler::{build_envelope_wire, create_build_spec_by_sk, parse_tx_args
 use spec::chain::ChainId;
 use common::setup::init_test;
 use server::context::SubmitTxResponse;
-use crate::common::setup::{extract_ctr_addr, req_by_wire, req_get_catalogs, sleep_for_millis, sleep_for_slot, try_req_by_wire_to};
+use crate::common::setup::{extract_ctr_addr, req_by_wire, req_get_catalogs, sleep_for_millis, sleep_for_slot};
 use bench::accounts::{accounts_to_map, load_accounts};
 use bench::smallbank::{gen_simplified_smallbank, workload_high, workload_low};
 use ledger::call::{generate_access_set, LedgerCall};
@@ -31,6 +31,7 @@ pub async fn smallbank_test() {
     };
     let pct_transfer = workload_set.pct_transfer;
     let workload_set_multi = (pct_transfer * 4 + (100 - pct_transfer) * 2) as f64 / 100f64;
+    // let tx_slot = (workload_set_multi * 1000f64) / (workload_config.tps * workload_config.load_multi) + 20f64;
     let tx_slot = (workload_set_multi * 1000f64) / (workload_config.tps * workload_config.load_multi) + 20f64;
     tracing::info!(target: "smallbank", %tx_slot);
 

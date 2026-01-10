@@ -13,6 +13,11 @@ const BOOTNODE_ADDRS: &[&'static str] = &[
     "/ip4/100.70.254.75/tcp/33333", // minsk
     "/ip4/100.105.138.1/tcp/33333", // kol-server
     "/ip4/100.94.178.96/tcp/33333", // smolensk
+
+    "/ip4/192.168.1.103/tcp/33333", // smolensk
+    "/ip4/192.168.1.104/tcp/33333", // smolensk
+    "/ip4/192.168.1.105/tcp/33333", // smolensk
+    "/ip4/192.168.1.107/tcp/33333", // smolensk
 ];
 
 #[derive(Debug)]

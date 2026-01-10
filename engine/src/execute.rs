@@ -131,7 +131,7 @@ pub fn cycles_by_pre_exec(ctr_input: &CtrInput, elf: &Vec<u8>) -> Result<u32> {
         .build().map_err(EngineError::ExecutorEnvBuild)?;
     let executor = default_executor();
     let info = executor.execute(env, elf).map_err(EngineError::ExecuteElf)?;
-    tracing::info!(target: "engine::execute", ?info);
+    // tracing::info!(target: "engine::execute", ?info);
     let po2_vec: Vec<u32> = info.segments.iter().map(|s| s.po2).collect();
     let mut total_cycles: u128 = 0;
     for po2 in po2_vec {
