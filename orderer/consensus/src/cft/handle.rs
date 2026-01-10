@@ -171,7 +171,7 @@ pub fn handle_submit_agreement(service: &mut CftService,
                     }
                 }
             }
-
+            tracing::warn!(target:"consensus::event", update_header=?staged_block.header, "commit");
             service.update_chain_state(staged_block.header)?;
             service.staged_blocks.remove(&height);
             Ok(())
