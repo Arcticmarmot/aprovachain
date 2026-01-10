@@ -30,7 +30,6 @@ pub fn gen_simplified_smallbank(
     seed: u64,
 ) -> Vec<LedgerCall> {
     assert!(cfg.account_num > 0);
-    assert!(addrs.len() >= cfg.account_num);
     assert!(cfg.min_amount <= cfg.max_amount);
 
     let sum = cfg.pct_transfer + cfg.pct_query + cfg.pct_mint + cfg.pct_burn;

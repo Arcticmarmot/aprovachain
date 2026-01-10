@@ -40,6 +40,7 @@ pub struct WorkloadConfig {
     pub tps: f64,
     pub load_multi: f64,
     pub with_slow: bool,
+    pub test_name: String,
     pub workload_set: String,
     pub init_balance: u64,
 }

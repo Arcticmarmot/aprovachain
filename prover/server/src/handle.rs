@@ -99,12 +99,14 @@ pub async fn get_catalogs(State(state): State<AppState>, _: Bytes) -> ApiResult<
     let workload = base.workload;
     let workload_set = workload.workload_set;
     let with_slot = workload.with_slow;
+    let test_name = workload.test_name;
+    let slot_secs = base.slot_secs;
     let ema_k = base.dispatch.ema_k;
     let tx_num = workload.tx_num;
     let load_multi = workload.load_multi;
     let tps = workload.tps;
     let catalog_stats = bench_smallbank_csv_path(
-        &format!("catalog-stats-{dispatch_mode}-{cons_protocol}-{workload_set}-{load_multi}-{discipline}-{with_slot}-{ema_k}K-{tx_num}-{tps}"));
+        &format!("catalog-stats-{test_name}-{slot_secs}slot-{dispatch_mode}-{cons_protocol}-{workload_set}-{load_multi}-{discipline}-{with_slot}-{ema_k}K-{tx_num}-{tps}"));
     bench_smallbank_csv_begin(&catalog_stats).expect("catalog stats csv begin");
     for (code, count) in stats {
         bench_smallbank_csv_append(&catalog_stats, "totol".to_string(), code.to_string(), count)

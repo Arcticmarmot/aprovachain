@@ -1,3 +1,4 @@
+use std::cmp::max;
 use std::sync::Arc;
 use rocksdb::{ColumnFamily, WriteBatch, DB};
 use account::address::{ChainAddrBytes};
@@ -81,6 +82,7 @@ impl DBHandle {
                 let start_height= end_height.saturating_sub(window_size as u128);
                 tracing::info!(target: "db::window", %start_height, %end_height, "window");
                 let mut stats = Vec::new();
+                let end_height = max(0, end_height - 1);
                 for height in start_height..end_height {
                     match self.load_catalog(height)? {
                         Some(catalog) => {

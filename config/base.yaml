@@ -1,5 +1,5 @@
 chain_id: 1000
-slot_secs: 3
+slot_secs: 4
 enable_prove_receipt_recording: false
 prove_receipt_csv: "prove-receipt" # cycles, cycle_label, scale, prove_time, receipt_size
 enable_verify_receipt_recording: false
@@ -19,7 +19,7 @@ consensus:
   mode: "native" # "native" | "simulate"
   simulate_size: 100
   simulate_size_array: [1, 1, 10, 100, 1000, 10000]
-  protocol: "cft"
+  protocol: "solo" # "solo" | "cft"
   tx_capacity: 10000
   leader_id: "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9"
   members:
@@ -39,12 +39,13 @@ prove:
   latency: 500
   offset: 50
 workload:
-  accounts_num: 1000
+  accounts_num: 10000
   tx_num: 10000
-  tps: 28
+  tps: 60
   load_multi: 1
   workload_set: "low"
   with_slow: false
+  test_name: "conflict"
   init_balance: 100000000
 dispatch:
   mode: "native" # "native" | "even"
