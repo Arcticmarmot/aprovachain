@@ -1,5 +1,5 @@
 chain_id: 1000
-slot_secs: 4
+slot_secs: 8
 enable_prove_receipt_recording: false
 prove_receipt_csv: "prove-receipt" # cycles, cycle_label, scale, prove_time, receipt_size
 enable_verify_receipt_recording: false
@@ -43,7 +43,7 @@ workload:
   tx_num: 10000
   tps: 60
   load_multi: 1
-  workload_set: "low"
+  workload_set: "high"
   with_slow: false
   test_name: "conflict"
   init_balance: 100000000
