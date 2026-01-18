@@ -14,7 +14,7 @@ use platform::config::load_base_config;
 use primitives::trans::u64_to_be_vec;
 use tx::intent::TxPayload;
 
-const FIBONACCI_ITERS: &[u64] = &[100, 1_000, 10_000, 20_000, 32_000];
+const FIBONACCI_ITERS: &[u64] = &[100, 1_000, 10_000, 20_000, 50_000];
 
 #[tokio::test]
 pub async fn prove_receipt_test() {
@@ -28,6 +28,7 @@ pub async fn prove_receipt_test() {
     let csv_name = format!("{prove_receipt}-{prove_scheme}");
     let csv_path = bench_csv_path(&csv_name);
     bench_prove_receipt_csv_begin(&csv_path).unwrap();
+    sleep_for(slot_secs + 1).await;
 
     // deploy fibonacci
     let ctr_addr_str = deploy_fibonacci().await;
