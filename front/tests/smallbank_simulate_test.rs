@@ -53,7 +53,7 @@ pub async fn smallbank_test() {
         sleep_for_millis(tx_slot as u64).await;
     }
 
-    sleep_for_slot(slot_secs * 5).await;
+    sleep_for_slot(slot_secs * 15).await;
     let response = req_get_catalogs().await;
     tracing::info!(target:"smallbank", ?response);
     tracing::info!(target:"smallbank", ?tx_slot);
@@ -69,26 +69,21 @@ async fn send_call(call: &LedgerCall, chain_id: ChainId,
         input,
         access_set,
     };
-    let mut tx_scale;
-
     let sk = match call {
         LedgerCall::Transfer { from, .. } => {
-            tx_scale = 18;
             accounts_map.get(from).unwrap()
         }
         LedgerCall::Mint { to, .. } => {
-            tx_scale = 17;
             accounts_map.get(to).unwrap()
         }
         LedgerCall::Burn { from,  .. } => {
-            tx_scale = 17;
             accounts_map.get(from).unwrap()
         }
         LedgerCall::QueryBalance { addr } => {
-            tx_scale = 17;
             accounts_map.get(addr).unwrap()
         }
     };
+    let tx_scale = 18;
     let spec = create_build_spec_by_sk(chain_id, &sk, tx_scale, payload).expect("build spec failed");
     let wire = build_envelope_wire(spec).expect("build envelope failed");
 

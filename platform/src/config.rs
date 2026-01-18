@@ -42,6 +42,7 @@ pub struct WorkloadConfig {
     pub with_slow: bool,
     pub test_name: String,
     pub workload_set: String,
+    pub heterogeneous: String,
     pub init_balance: u64,
 }
 
@@ -87,25 +88,8 @@ pub struct DispatchConfig {
     pub window_size: usize,
     pub warmup_size: usize,
     pub ema_k: u128,
-    pub score: DispatchScoreConfig,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct DispatchScoreConfig {
-    pub timeliness: TimelinessScoreConfig,
-    pub integrity: IntegrityScoreConfig,
-}
-
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct TimelinessScoreConfig {
-    pub timeout: u128,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct IntegrityScoreConfig {
-    pub fake: u128,
-}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct QueueConfig {

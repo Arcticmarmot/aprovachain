@@ -41,9 +41,9 @@ async fn main() -> Result<()> {
     let args = NodeArgs::parse();
     let base = platform::config::load_base_config();
     let server_base_config = base.clone();
+    let workload_config = base.workload;
     let provers = base.provers;
     let chain_id = ChainId(base.chain_id);
-    let workload_config = base.workload;
     let prove_receipt_csv = base.prove_receipt_csv;
     let enable_prove_receipt_recording = base.enable_prove_receipt_recording;
     let queue_config = base.queue;
@@ -136,7 +136,7 @@ async fn main() -> Result<()> {
     let task_shutdown_rx = shutdown_rx.clone();
     let task_prove_mode = prove_mode.clone();
     let task_handle = spawn(async move {
-        run_task(task_db_handle, p2p_cmd_hdl, task_sk, task_queue, task_shutdown_rx, task_prove_mode, queue_config).await;
+        run_task(task_db_handle, p2p_cmd_hdl, task_sk, task_queue, task_shutdown_rx, task_prove_mode).await;
     });
 
     let server_db_handle = db_handle.clone();
@@ -161,13 +161,15 @@ async fn main() -> Result<()> {
                 match cmd {
                     P2pEvent::EnvelopeReceived(envelope_bytes) => {
                         tracing::info!(target:"executor::event", "executor received envelope");
-                        if let Err(err) = on_envelope_received(queue.clone(), self_exec_id, envelope_bytes, dispatch_config.clone()).await {
+                        if let Err(err) = on_envelope_received(queue.clone(), self_exec_id,
+                            envelope_bytes, dispatch_config.clone(), workload_config.clone()).await {
                             tracing::warn!(target:"executor::event", %err);
                         }
                     }
                     P2pEvent::BlockReceived(block_bytes) => {
                         tracing::info!(target:"executor::event", "executor received block");
-                        if let Err(err) = on_block_received(&db_handle, block_bytes, validate_mode.clone(), dispatch_config.clone()).await {
+                        if let Err(err) = on_block_received(&db_handle, block_bytes,
+                            validate_mode.clone(), dispatch_config.clone(), workload_config.clone()).await {
                             tracing::warn!(target:"executor::event::block", %err);
                         }
                     },

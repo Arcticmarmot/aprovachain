@@ -32,6 +32,7 @@ async fn main() -> Result<()> {
     // 解析 NodeArgs
     let args = NodeArgs::parse();
     let base = platform::config::load_base_config();
+    let workload_config = base.workload;
     let prover_config = base.prove;
     let provers = base.provers;
     let dispatch_config = base.dispatch;
@@ -94,7 +95,7 @@ async fn main() -> Result<()> {
                     P2pEvent::BlockReceived(block_bytes) => {
                         tracing::info!(target:"node::event", "node received block");
                         if let Err(err) = on_block_received(&db_handle, block_bytes, 
-                            validate_mode.clone(), dispatch_config.clone()).await {
+                            validate_mode.clone(), dispatch_config.clone(), workload_config.clone()).await {
                             tracing::warn!(target:"node::event::block", %err);
                         }
                     }

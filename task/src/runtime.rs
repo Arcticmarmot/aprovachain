@@ -18,7 +18,7 @@ static INFLIGHT: AtomicUsize = AtomicUsize::new(0);
 
 pub async fn run_task(db_handle: DBHandle, cmd_handle: P2pCmdHandle,
                       sk: AccountSigningKey, schedule: TaskSchedule, mut shutdown_rx: Receiver<bool>,
-                      prove_mode: ProveMode, _queue_config: QueueConfig) {
+                      prove_mode: ProveMode) {
     let prove_sem = Arc::new(Semaphore::new(MAX_PROVE));
     loop {
         tokio::select! {

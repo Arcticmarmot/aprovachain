@@ -1,23 +1,23 @@
 chain_id: 1000
-slot_secs: 12
-enable_prove_receipt_recording: true
+slot_secs: 6
+enable_prove_receipt_recording: false
 prove_receipt_csv: "prove-receipt" # cycles, cycle_label, scale, prove_time, receipt_size
 enable_verify_receipt_recording: false
 verify_receipt_csv: "verify-receipt" # cycles, verify_time,
 enable_validate_block_recording: false
 validate_block_csv: "validate-block"
 provers:
-#  - "63d8d75d73303e66217ba9c48d654d6bb7e31ea5f8890459e0a51193dd5e8ab5" # smolensk
+  - "63d8d75d73303e66217ba9c48d654d6bb7e31ea5f8890459e0a51193dd5e8ab5" # smolensk
 #  - "40c165755edcc714e564e43e692576951d600a4f416b471a436af5e786d944de" # mecca
 #  - "6df7ffc94bf76d992aa26d535fd4ef881703d243e70f7bc57a3fa3349c5e5d5e" # kol-server
 #  - "0fd61a0a7c9c79d028fe1aa3d761681eef9d61a48d8942dcf26b6737244df1d1" # cairo
-#  - "88d6d8e53dfae02fac118064124467ec5833b9b0a115d428f7782ccac5862a6f" # aprova-1
-#  - "c1b1d1aaba1e85d92bc3f9435b110909d9a0e1f73c2c242871a4edefdcd293ea" # aprova-2
-#  - "f09721496653b0f86a7ef85dbfd8585cb6e560006007389b2283b1a2fc14af2e" # aprova-3
-#  - "46bfd3164494fea65f58b848b0a702ad931e335354612f1b05259606b930d36d" # aprova-4
+  - "88d6d8e53dfae02fac118064124467ec5833b9b0a115d428f7782ccac5862a6f" # aprova-1
+  - "c1b1d1aaba1e85d92bc3f9435b110909d9a0e1f73c2c242871a4edefdcd293ea" # aprova-2
+  - "f09721496653b0f86a7ef85dbfd8585cb6e560006007389b2283b1a2fc14af2e" # aprova-3
+  - "46bfd3164494fea65f58b848b0a702ad931e335354612f1b05259606b930d36d" # aprova-4
   - "d56e1c3294b2d1f9be7d112d9350294448a4c50a67bbc094b781b4bb6a5e750a" # jhc-1
-#  - "fdeeca3bab2eb1b8edbd60fa4577ef8619ae032f6104a3eb3fd439e4fe4053d2" # jhc-2
-#  - "1b925e4b25591ff32c845eafd836f47f70f576cf0f268e235cadb353461f9726" # jhc-3
+  - "fdeeca3bab2eb1b8edbd60fa4577ef8619ae032f6104a3eb3fd439e4fe4053d2" # jhc-2
+  - "1b925e4b25591ff32c845eafd836f47f70f576cf0f268e235cadb353461f9726" # jhc-3
 consensus:
   mode: "native" # "native" | "simulate"
   simulate_size: 100
@@ -32,38 +32,34 @@ consensus:
 #    - "12D3KooWNrU7pw2gmPiLwSt6AADkqvXNQ5jQc3fULbaKShhqVWky" # aprova-2
 #    - "12D3KooWS1XgBn8A2h5JGRJBeGZomkQveC48i5tvbesBYwZDCsMf" # aprova-3
 #    - "12D3KooWEaYMjTag1NrtG5GpwekhhXCpWPNxbbsXFs3cMGC3ENMi" # aprova-4
-    - "12D3KooWAtBdtsUCzN9oe5fRjXb1K66hZ3EPbzi6iAKjv5Vq7WbS" # cairo
+#    - "12D3KooWAtBdtsUCzN9oe5fRjXb1K66hZ3EPbzi6iAKjv5Vq7WbS" # cairo
 #    - "12D3KooW9xQWWJA7PLomVn1MN1frgJpyYZpuGbSL1iQYqzZ1uEeE" # belgrade
-    - "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9" # kol-server
-    - "12D3KooWGAHCnk9v1kaBHYon4CUrLLQpRZ8tVcsWAHbDjpzha4Nh" # singapore
-    - "12D3KooWQBWPbaTYcdQx6LmEVau1vuwjXzG9QzNWuQdh2fHku1Q5" # jhc-1
-    - "12D3KooWSucW9iKNczQjJMQG4xPvGgJjK1ctVep4gtaCucn6EvEu" # jhc-2
-    - "12D3KooWBfzdEbJmQGUk5Gw3xVv4CwsVAKLFacfCEkhFtqed88dB" # jhc-3
+#    - "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9" # kol-server
+#    - "12D3KooWGAHCnk9v1kaBHYon4CUrLLQpRZ8tVcsWAHbDjpzha4Nh" # singapore
+#    - "12D3KooWQBWPbaTYcdQx6LmEVau1vuwjXzG9QzNWuQdh2fHku1Q5" # jhc-1
+#    - "12D3KooWSucW9iKNczQjJMQG4xPvGgJjK1ctVep4gtaCucn6EvEu" # jhc-2
+#    - "12D3KooWBfzdEbJmQGUk5Gw3xVv4CwsVAKLFacfCEkhFtqed88dB" # jhc-3
 prove:
   mode: "native" # "native" | "simulate"
-  scheme: "fast" # "succinct" | "fast" | "groth16"
+  scheme: "succinct" # "succinct" | "fast" | "groth16"
   latency: 500
   offset: 50
 workload:
   accounts_num: 10000
-  tx_num: 10000
-  tps: 60
+  tx_num: 1000
+  tps: 4.26
   load_multi: 1
-  workload_set: "high"
+  workload_set: "low"
   with_slow: false
-  test_name: "conflict"
+  heterogeneous: "G3C5"
+  test_name: ""
   init_balance: 100000000
 dispatch:
-  mode: "native" # "native" | "even"
+  mode: "static" # "native" | "static" | "even"
   window_size: 32
   warmup_size: 0
   ema_k: 2
   # max_score 10000
-  score:
-    timeliness:
-      timeout: 0
-    integrity:
-      fake: 4000
 queue:
   discipline: "edf_spt" # fcfs | spt | edf | spt_edf | edf_spt
 

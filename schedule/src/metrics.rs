@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use account::executor::ExecutorId;
 
 pub type Score = u128;
-pub const MAX_SCORE: Score = 10_000;
+pub const MAX_SCORE: Score = 1_000_000;
 // pub const EMA_K: u128 = 4;
 pub type Metrics = BTreeMap<ExecutorId, (Integrity, Timeliness)>;
 
@@ -27,7 +27,7 @@ pub struct Timeliness {
 }
 
 impl Default for Timeliness {
-    fn default() -> Self { Self { score: MAX_SCORE / 10 } }
+    fn default() -> Self { Self { score: MAX_SCORE / 100 } }
 }
 
 impl Timeliness {

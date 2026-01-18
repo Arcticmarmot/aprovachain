@@ -21,6 +21,7 @@ pub async fn submit_tx(State(state): State<AppState>, envelope_bytes: Bytes) -> 
     let schedule = state.schedule;
     let prove_mode = state.prove_mode;
     let dispatch_config = state.dispatch_config;
+    let workload_config = state.server_base_config.workload;
     let self_exec_id = ExecutorId(sk.verifying_key());
 
     let envelope = verify_and_build_envelope(envelope_bytes.as_ref())?;
@@ -39,7 +40,7 @@ pub async fn submit_tx(State(state): State<AppState>, envelope_bytes: Bytes) -> 
         }
         TxPayload::Exec { ctr_addr_str, input, access_set } => {
             let envelope_id = envelope.tx_id();
-            let exec_id = match assign_executor_for_tx(&db_handle, &envelope_id, send_ts, dispatch_config)? {
+            let exec_id = match assign_executor_for_tx(&db_handle, &envelope_id, send_ts, dispatch_config, workload_config)? {
                 Some(exec_id) => { exec_id },
                 None => {
                     tracing::info!(target: "node::server", %envelope_id, "no metrics yet, fall back to self as executor");
@@ -105,8 +106,9 @@ pub async fn get_catalogs(State(state): State<AppState>, _: Bytes) -> ApiResult<
     let tx_num = workload.tx_num;
     let load_multi = workload.load_multi;
     let tps = workload.tps;
+    let hetero = workload.heterogeneous;
     let catalog_stats = bench_smallbank_csv_path(
-        &format!("catalog-stats-{test_name}-{slot_secs}slot-{dispatch_mode}-{cons_protocol}-{workload_set}-{load_multi}-{discipline}-{with_slot}-{ema_k}K-{tx_num}-{tps}"));
+        &format!("catalog-stats-{hetero}-{test_name}-{slot_secs}slot-{dispatch_mode}-{cons_protocol}-{workload_set}-{load_multi}-{discipline}-{with_slot}-{ema_k}K-{tx_num}-{tps}"));
     bench_smallbank_csv_begin(&catalog_stats).expect("catalog stats csv begin");
     for (code, count) in stats {
         bench_smallbank_csv_append(&catalog_stats, "totol".to_string(), code.to_string(), count)
