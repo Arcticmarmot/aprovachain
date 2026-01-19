@@ -67,16 +67,16 @@ pub enum TxScale {
 impl TxScale {
     pub fn to_slot_count(&self) -> u32 {
         match self {
-            // TxScale::Tiny   => 1,
-            // TxScale::Small  => 2,
-            // TxScale::Medium => 4,
-            // TxScale::Large  => 8,
-            // TxScale::Huge   => 16,
-            TxScale::Tiny   => 6,
-            TxScale::Small  => 8,
-            TxScale::Medium => 12,
-            TxScale::Large  => 32,
-            TxScale::Huge   => 64,
+            TxScale::Tiny   => 1,
+            TxScale::Small  => 2,
+            TxScale::Medium => 4,
+            TxScale::Large  => 8,
+            TxScale::Huge   => 16,
+            // TxScale::Tiny   => 6,
+            // TxScale::Small  => 8,
+            // TxScale::Medium => 12,
+            // TxScale::Large  => 32,
+            // TxScale::Huge   => 64,
         }
     }
 }

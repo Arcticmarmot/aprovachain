@@ -48,57 +48,22 @@ pub fn metrics_to_static_weights(_metrics: &Metrics, workload_config: &WorkloadC
             weights.insert(ExecutorId::from_str("f09721496653b0f86a7ef85dbfd8585cb6e560006007389b2283b1a2fc14af2e").unwrap(), 145);
             weights.insert(ExecutorId::from_str("46bfd3164494fea65f58b848b0a702ad931e335354612f1b05259606b930d36d").unwrap(), 145);
         }
-        // "G3C5" => {
-        //     match exec_id.to_string().as_str() {
-        //         "d56e1c3294b2d1f9be7d112d9350294448a4c50a67bbc094b781b4bb6a5e750a" => { 3169 }
-        //         "fdeeca3bab2eb1b8edbd60fa4577ef8619ae032f6104a3eb3fd439e4fe4053d2" => { 3169 }
-        //         "1b925e4b25591ff32c845eafd836f47f70f576cf0f268e235cadb353461f9726" => { 3169 }
-        //         "63d8d75d73303e66217ba9c48d654d6bb7e31ea5f8890459e0a51193dd5e8ab5" => { 100 }
-        //         "88d6d8e53dfae02fac118064124467ec5833b9b0a115d428f7782ccac5862a6f" => { 100 }
-        //         "c1b1d1aaba1e85d92bc3f9435b110909d9a0e1f73c2c242871a4edefdcd293ea" => { 100 }
-        //         "f09721496653b0f86a7ef85dbfd8585cb6e560006007389b2283b1a2fc14af2e" => { 100 }
-        //         "46bfd3164494fea65f58b848b0a702ad931e335354612f1b05259606b930d36d" => { 100 }
-        //         _ => { panic!("bad heterogeneous") }
-        //     }
-        // }
-        //
-        // "G2C4" => {
-        //     match exec_id.to_string().as_str() {
-        //         "d56e1c3294b2d1f9be7d112d9350294448a4c50a67bbc094b781b4bb6a5e750a" => { 4701 }
-        //         "fdeeca3bab2eb1b8edbd60fa4577ef8619ae032f6104a3eb3fd439e4fe4053d2" => { 4701 }
-        //         "88d6d8e53dfae02fac118064124467ec5833b9b0a115d428f7782ccac5862a6f" => { 150 }
-        //         "c1b1d1aaba1e85d92bc3f9435b110909d9a0e1f73c2c242871a4edefdcd293ea" => { 150 }
-        //         "f09721496653b0f86a7ef85dbfd8585cb6e560006007389b2283b1a2fc14af2e" => { 150 }
-        //         "46bfd3164494fea65f58b848b0a702ad931e335354612f1b05259606b930d36d" => { 150 }
-        //         _ => { panic!("bad heterogeneous") }
-        //     }
-        // }
-        // "H2M2L2" => {
-        //     match exec_id.to_string().as_str() {
-        //         "d56e1c3294b2d1f9be7d112d9350294448a4c50a67bbc094b781b4bb6a5e750a" => { 3169 }
-        //         "fdeeca3bab2eb1b8edbd60fa4577ef8619ae032f6104a3eb3fd439e4fe4053d2" => { 3169 }
-        //         "1b925e4b25591ff32c845eafd836f47f70f576cf0f268e235cadb353461f9726" => { 3169 }
-        //         "63d8d75d73303e66217ba9c48d654d6bb7e31ea5f8890459e0a51193dd5e8ab5" => { 100 }
-        //         "88d6d8e53dfae02fac118064124467ec5833b9b0a115d428f7782ccac5862a6f" => { 100 }
-        //         "c1b1d1aaba1e85d92bc3f9435b110909d9a0e1f73c2c242871a4edefdcd293ea" => { 100 }
-        //         "f09721496653b0f86a7ef85dbfd8585cb6e560006007389b2283b1a2fc14af2e" => { 100 }
-        //         "46bfd3164494fea65f58b848b0a702ad931e335354612f1b05259606b930d36d" => { 100 }
-        //         _ => { panic!("bad heterogeneous") }
-        //     }
-        // }
-        // "H2M4" => {
-        //     match exec_id.to_string().as_str() {
-        //         "d56e1c3294b2d1f9be7d112d9350294448a4c50a67bbc094b781b4bb6a5e750a" => { 3164 }
-        //         "fdeeca3bab2eb1b8edbd60fa4577ef8619ae032f6104a3eb3fd439e4fe4053d2" => { 3164 }
-        //         "1b925e4b25591ff32c845eafd836f47f70f576cf0f268e235cadb353461f9726" => { 3164 }
-        //         "63d8d75d73303e66217ba9c48d654d6bb7e31ea5f8890459e0a51193dd5e8ab5" => { 101 }
-        //         "88d6d8e53dfae02fac118064124467ec5833b9b0a115d428f7782ccac5862a6f" => { 101 }
-        //         "c1b1d1aaba1e85d92bc3f9435b110909d9a0e1f73c2c242871a4edefdcd293ea" => { 101 }
-        //         "f09721496653b0f86a7ef85dbfd8585cb6e560006007389b2283b1a2fc14af2e" => { 101 }
-        //         "46bfd3164494fea65f58b848b0a702ad931e335354612f1b05259606b930d36d" => { 101 }
-        //         _ => { panic!("bad heterogeneous") }
-        //     }
-        // }
+        "H2M4" => {
+            weights.insert(ExecutorId::from_str("63d8d75d73303e66217ba9c48d654d6bb7e31ea5f8890459e0a51193dd5e8ab5").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("40c165755edcc714e564e43e692576951d600a4f416b471a436af5e786d944de").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("88d6d8e53dfae02fac118064124467ec5833b9b0a115d428f7782ccac5862a6f").unwrap(), 2000);
+            weights.insert(ExecutorId::from_str("c1b1d1aaba1e85d92bc3f9435b110909d9a0e1f73c2c242871a4edefdcd293ea").unwrap(), 2000);
+            weights.insert(ExecutorId::from_str("f09721496653b0f86a7ef85dbfd8585cb6e560006007389b2283b1a2fc14af2e").unwrap(), 2000);
+            weights.insert(ExecutorId::from_str("46bfd3164494fea65f58b848b0a702ad931e335354612f1b05259606b930d36d").unwrap(), 2000);
+        }
+        "H2M2L2" => {
+            weights.insert(ExecutorId::from_str("63d8d75d73303e66217ba9c48d654d6bb7e31ea5f8890459e0a51193dd5e8ab5").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("40c165755edcc714e564e43e692576951d600a4f416b471a436af5e786d944de").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("88d6d8e53dfae02fac118064124467ec5833b9b0a115d428f7782ccac5862a6f").unwrap(), 100);
+            weights.insert(ExecutorId::from_str("c1b1d1aaba1e85d92bc3f9435b110909d9a0e1f73c2c242871a4edefdcd293ea").unwrap(), 100);
+            weights.insert(ExecutorId::from_str("f09721496653b0f86a7ef85dbfd8585cb6e560006007389b2283b1a2fc14af2e").unwrap(), 2000);
+            weights.insert(ExecutorId::from_str("46bfd3164494fea65f58b848b0a702ad931e335354612f1b05259606b930d36d").unwrap(), 2000);
+        }
         _ => { panic!("bad heterogeneous") }
     };
     weights
@@ -109,6 +74,26 @@ pub fn metrics_to_even_weights(metrics: &Metrics, workload_config: &WorkloadConf
     let hetero = &workload_config.heterogeneous;
     match hetero.as_str() {
         "G2C6" => {
+            weights.insert(ExecutorId::from_str("d56e1c3294b2d1f9be7d112d9350294448a4c50a67bbc094b781b4bb6a5e750a").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("fdeeca3bab2eb1b8edbd60fa4577ef8619ae032f6104a3eb3fd439e4fe4053d2").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("63d8d75d73303e66217ba9c48d654d6bb7e31ea5f8890459e0a51193dd5e8ab5").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("40c165755edcc714e564e43e692576951d600a4f416b471a436af5e786d944de").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("88d6d8e53dfae02fac118064124467ec5833b9b0a115d428f7782ccac5862a6f").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("c1b1d1aaba1e85d92bc3f9435b110909d9a0e1f73c2c242871a4edefdcd293ea").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("f09721496653b0f86a7ef85dbfd8585cb6e560006007389b2283b1a2fc14af2e").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("46bfd3164494fea65f58b848b0a702ad931e335354612f1b05259606b930d36d").unwrap(), 10000);
+        }
+        "H2M4" => {
+            weights.insert(ExecutorId::from_str("d56e1c3294b2d1f9be7d112d9350294448a4c50a67bbc094b781b4bb6a5e750a").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("fdeeca3bab2eb1b8edbd60fa4577ef8619ae032f6104a3eb3fd439e4fe4053d2").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("63d8d75d73303e66217ba9c48d654d6bb7e31ea5f8890459e0a51193dd5e8ab5").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("40c165755edcc714e564e43e692576951d600a4f416b471a436af5e786d944de").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("88d6d8e53dfae02fac118064124467ec5833b9b0a115d428f7782ccac5862a6f").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("c1b1d1aaba1e85d92bc3f9435b110909d9a0e1f73c2c242871a4edefdcd293ea").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("f09721496653b0f86a7ef85dbfd8585cb6e560006007389b2283b1a2fc14af2e").unwrap(), 10000);
+            weights.insert(ExecutorId::from_str("46bfd3164494fea65f58b848b0a702ad931e335354612f1b05259606b930d36d").unwrap(), 10000);
+        }
+        "H2M2L2" => {
             weights.insert(ExecutorId::from_str("d56e1c3294b2d1f9be7d112d9350294448a4c50a67bbc094b781b4bb6a5e750a").unwrap(), 10000);
             weights.insert(ExecutorId::from_str("fdeeca3bab2eb1b8edbd60fa4577ef8619ae032f6104a3eb3fd439e4fe4053d2").unwrap(), 10000);
             weights.insert(ExecutorId::from_str("63d8d75d73303e66217ba9c48d654d6bb7e31ea5f8890459e0a51193dd5e8ab5").unwrap(), 10000);

@@ -16,7 +16,7 @@ use ledger::call::{generate_access_set, LedgerCall};
 use platform::config::load_base_config;
 use tx::intent::TxPayload;
 #[tokio::test]
-pub async fn smallbank_test() {
+pub async fn smallbank_simulate_test() {
     init_test();
 
     let base = load_base_config();

@@ -15,8 +15,8 @@ provers:
   - "c1b1d1aaba1e85d92bc3f9435b110909d9a0e1f73c2c242871a4edefdcd293ea" # aprova-2
   - "f09721496653b0f86a7ef85dbfd8585cb6e560006007389b2283b1a2fc14af2e" # aprova-3
   - "46bfd3164494fea65f58b848b0a702ad931e335354612f1b05259606b930d36d" # aprova-4
-  - "d56e1c3294b2d1f9be7d112d9350294448a4c50a67bbc094b781b4bb6a5e750a" # jhc-1
-  - "fdeeca3bab2eb1b8edbd60fa4577ef8619ae032f6104a3eb3fd439e4fe4053d2" # jhc-2
+#  - "d56e1c3294b2d1f9be7d112d9350294448a4c50a67bbc094b781b4bb6a5e750a" # jhc-1
+#  - "fdeeca3bab2eb1b8edbd60fa4577ef8619ae032f6104a3eb3fd439e4fe4053d2" # jhc-2
 #  - "1b925e4b25591ff32c845eafd836f47f70f576cf0f268e235cadb353461f9726" # jhc-3
 consensus:
   mode: "native" # "native" | "simulate"
@@ -40,24 +40,24 @@ consensus:
 #    - "12D3KooWSucW9iKNczQjJMQG4xPvGgJjK1ctVep4gtaCucn6EvEu" # jhc-2
 #    - "12D3KooWBfzdEbJmQGUk5Gw3xVv4CwsVAKLFacfCEkhFtqed88dB" # jhc-3
 prove:
-  mode: "native" # "native" | "simulate"
+  mode: "simulate" # "native" | "simulate"
   scheme: "succinct" # "succinct" | "fast" | "groth16"
   latency: 500
   offset: 50
 workload:
   accounts_num: 10000
-  tx_num: 5000
-  tps: 2.96
+  tx_num: 10000
+  tps: 28
   load_multi: 0.9
   workload_set: "low"
   with_slow: false
-  heterogeneous: "G2C6"
-  test_name: "real" # "real" | "simulate" | "conflict"
-  tail: 0
+  heterogeneous: "H2M4"
+  test_name: "simulate" # "real" | "simulate" | "conflict"
+  tail: 20
   init_balance: 100000000
 dispatch:
-  mode: "even" # "native" | "static" | "even"
-  window_size: 16
+  mode: "native" # "native" | "static" | "even"
+  window_size: 32
   warmup_size: 0
   ema_k: 2
   # max_score 10000
