@@ -43,6 +43,7 @@ pub struct WorkloadConfig {
     pub test_name: String,
     pub workload_set: String,
     pub heterogeneous: String,
+    pub tail: f64,
     pub init_balance: u64,
 }
 

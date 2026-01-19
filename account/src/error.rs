@@ -1,4 +1,5 @@
 use std::io;
+use hex::FromHexError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -19,4 +20,8 @@ pub enum AccountError {
     CreateDir(#[source] io::Error),
     #[error("write hex failed")]
     WriteHex(#[source] io::Error),
+    #[error("decode hex failed")]
+    DecodeHex(#[from] FromHexError),
+    #[error("decode hex failed")]
+    InvalidBytes,
 }

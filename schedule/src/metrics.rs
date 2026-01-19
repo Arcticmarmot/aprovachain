@@ -27,12 +27,16 @@ pub struct Timeliness {
 }
 
 impl Default for Timeliness {
-    fn default() -> Self { Self { score: MAX_SCORE / 100 } }
+    fn default() -> Self { Self { score: MAX_SCORE / 10000 } }
 }
 
 impl Timeliness {
     pub fn apply_event(&mut self, event: Score, ema_k: u128) {
-        self.score = ema_new_val(self.score, event, ema_k);
+        if self.score <= event {
+            self.score = ema_new_val(self.score, event, ema_k * 64);
+        } else {
+            self.score = ema_new_val(self.score, event, ema_k);
+        }
     }
 }
 

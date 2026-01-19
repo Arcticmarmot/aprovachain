@@ -74,9 +74,9 @@ pub fn select_static_executor_for_tx(tx_id: &TxEnvelopeId, metrics: &Metrics, wo
     None
 }
 
-pub fn select_even_executor_for_tx(tx_id: &TxEnvelopeId, metrics: &Metrics) -> Option<ExecutorId> {
+pub fn select_even_executor_for_tx(tx_id: &TxEnvelopeId, metrics: &Metrics, workload_config: &WorkloadConfig) -> Option<ExecutorId> {
     if metrics.is_empty() { return None }
-    let weights = metrics_to_even_weights(&metrics);
+    let weights = metrics_to_even_weights(&metrics, &workload_config);
     tracing::info!(target: "schedule::weight", ?weights, "weights");
     let rand = pseudo_random_u128(tx_id);
     let total_weight = total_weights(&weights);
@@ -108,7 +108,7 @@ pub fn assign_executor_for_tx(db_handle: &DBHandle, envelope_id: &TxEnvelopeId,
                 Ok(select_static_executor_for_tx(envelope_id, &scores, &workload_config))
             }
             "even" => {
-                Ok(select_even_executor_for_tx(envelope_id, &scores))
+                Ok(select_even_executor_for_tx(envelope_id, &scores, &workload_config))
             }
             _ => { panic!("bad schedule mode") }
         }

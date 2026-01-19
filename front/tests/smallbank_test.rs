@@ -30,9 +30,11 @@ pub async fn smallbank_test() {
         _ => { panic!("bad workload set param") }
     };
     let pct_transfer = workload_set.pct_transfer;
+    let tail = workload_config.tail;
     let workload_set_multi = (pct_transfer * 4 + (100 - pct_transfer) * 2) as f64 / 100f64;
     // let tx_slot = (workload_set_multi * 1000f64) / (workload_config.tps * workload_config.load_multi) + 20f64;
-    let tx_slot = (workload_set_multi * 1000f64) / (workload_config.tps * workload_config.load_multi) + 20f64;
+    // let tx_slot = 1000f64 / (workload_config.tps * workload_config.load_multi) + 20f64;
+    let tx_slot = 1000f64 / (workload_config.tps * workload_config.load_multi) + tail;
     tracing::info!(target: "smallbank", %tx_slot);
 
     let accounts = load_accounts();
