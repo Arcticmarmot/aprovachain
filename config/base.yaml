@@ -48,7 +48,7 @@ workload:
   accounts_num: 10000
   tx_num: 5000
   tps: 2.96
-  load_multi: 1
+  load_multi: 0.9
   workload_set: "low"
   with_slow: false
   heterogeneous: "G2C6"
@@ -56,7 +56,7 @@ workload:
   tail: 0
   init_balance: 100000000
 dispatch:
-  mode: "static" # "native" | "static" | "even"
+  mode: "even" # "native" | "static" | "even"
   window_size: 16
   warmup_size: 0
   ema_k: 2
