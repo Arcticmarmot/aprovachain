@@ -53,7 +53,7 @@ pub async fn smallbank_simulate_test() {
         sleep_for_millis(tx_slot as u64).await;
     }
 
-    sleep_for_slot(slot_secs * 15).await;
+    sleep_for_slot(slot_secs * 7).await;
     let response = req_get_catalogs().await;
     tracing::info!(target:"smallbank", ?response);
     tracing::info!(target:"smallbank", ?tx_slot);

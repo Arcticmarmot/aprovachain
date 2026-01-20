@@ -22,9 +22,9 @@ consensus:
   mode: "native" # "native" | "simulate"
   simulate_size: 100
   simulate_size_array: [1, 1, 10, 100, 1000, 10000]
-  protocol: "solo" # "solo" | "cft"
+  protocol: "cft" # "solo" | "cft"
   tx_capacity: 10000
-  leader_id: "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9"
+  leader_id: "12D3KooWQBWPbaTYcdQx6LmEVau1vuwjXzG9QzNWuQdh2fHku1Q5"
   members:
 #    - "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE" # smolensk
 #    - "12D3KooWEB9JUhgjPUuR5QVeokUNeRSpjcxxGaELnLvydLTpCFUZ" # mecca
@@ -36,9 +36,9 @@ consensus:
 #    - "12D3KooW9xQWWJA7PLomVn1MN1frgJpyYZpuGbSL1iQYqzZ1uEeE" # belgrade
 #    - "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9" # kol-server
 #    - "12D3KooWGAHCnk9v1kaBHYon4CUrLLQpRZ8tVcsWAHbDjpzha4Nh" # singapore
-#    - "12D3KooWQBWPbaTYcdQx6LmEVau1vuwjXzG9QzNWuQdh2fHku1Q5" # jhc-1
-#    - "12D3KooWSucW9iKNczQjJMQG4xPvGgJjK1ctVep4gtaCucn6EvEu" # jhc-2
-#    - "12D3KooWBfzdEbJmQGUk5Gw3xVv4CwsVAKLFacfCEkhFtqed88dB" # jhc-3
+    - "12D3KooWQBWPbaTYcdQx6LmEVau1vuwjXzG9QzNWuQdh2fHku1Q5" # jhc-1
+    - "12D3KooWSucW9iKNczQjJMQG4xPvGgJjK1ctVep4gtaCucn6EvEu" # jhc-2
+    - "12D3KooWBfzdEbJmQGUk5Gw3xVv4CwsVAKLFacfCEkhFtqed88dB" # jhc-3
 prove:
   mode: "simulate" # "native" | "simulate"
   scheme: "succinct" # "succinct" | "fast" | "groth16"
