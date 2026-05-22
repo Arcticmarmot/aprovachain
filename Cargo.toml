@@ -6,7 +6,7 @@ authors = ["marmot"]
 
 [workspace]
 members = ["account", "schedule", "front", "spec", "keygen", "validator", "engine", "methods", "methods/pass", "methods/fibonacci",
-    "methods/ledger_guest", "apps", "apps/ledger", "prover", "db", "prover/server", "orderer", "orderer/consensus",
+    "methods/ledger_guest", "methods/smallbank_guest", "apps", "apps/ledger", "apps/smallbank", "prover", "db", "prover/server", "orderer", "orderer/consensus",
     "primitives", "tx", "contract", "network", "chain", "platform", "schedule", "engine", "task", "bench"]
 
 [dependencies]
@@ -28,6 +28,7 @@ consensus = { path = "orderer/consensus" }
 db = { path = "db" }
 server = { path = "prover/server" }
 ledger = { path = "apps/ledger" }
+smallbank = { path = "apps/smallbank" }
 platform = { path = "platform" }
 
 directories = { version = "6" }

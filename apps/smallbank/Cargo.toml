@@ -1,0 +1,12 @@
+[package]
+name = "smallbank"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+account = { workspace = true }
+bcs = { workspace = true }
+spec = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+apps = { workspace = true }

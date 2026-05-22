@@ -6352,6 +6352,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a2ae44ef20feb57a68b23d846850f861394c2e02dc425a50098ae8c90267589"
 
 [[package]]
+name = "smallbank"
+version = "0.1.0"
+dependencies = [
+ "account",
+ "apps",
+ "bcs",
+ "serde",
+ "spec",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "smallbank_guest"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "apps",
+ "primitives",
+ "risc0-zkvm",
+ "smallbank",
+]
+
+[[package]]
 name = "smallvec"
 version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
