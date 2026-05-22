@@ -25,7 +25,7 @@ pub async fn run_server(sk: AccountSigningKey, db_handle: DBHandle,
     };
     let router = Router::new()
         .route("/api/submit-tx", post(submit_tx))
-        .route("/api/ledger", post(submit_ledger_call))
+        .route("/api/smallbank", post(submit_ledger_call))
         .route("/api/get-catalogs", post(get_catalogs))
         .with_state(state);
     let addr: SocketAddr = "0.0.0.0:8888".parse()?;

@@ -12,7 +12,7 @@ use platform::bench::{bench_smallbank_csv_append, bench_smallbank_csv_begin, ben
 use schedule::dispatch::assign_executor_for_tx;
 use tx::envelope::{TxEnvelopeWire};
 use tx::intent::TxPayload;
-use crate::ledger::{handle_ledger_request, LedgerRequest};
+use crate::smallbank::{build_envelope_wire_from_req, SmallbankRequest};
 
 /// 交易提交处理函数
 pub async fn submit_tx(State(state): State<AppState>, envelope_bytes: Bytes) -> ApiResult<SubmitTxResponse> {
@@ -72,8 +72,62 @@ pub async fn submit_tx(State(state): State<AppState>, envelope_bytes: Bytes) -> 
     }
 }
 
-pub async fn submit_ledger_call(State(state): State<AppState>, Json(request): Json<LedgerRequest>) -> ApiResult<SubmitTxResponse> {
-    handle_ledger_request(state, request).await
+pub async fn submit_ledger_call(State(state): State<AppState>, Json(req): Json<SmallbankRequest>) -> ApiResult<SubmitTxResponse> {
+    // 加载状态信息
+    let db_handle = state.db_handle;
+    let cmd_handle = state.cmd_handle;
+    let sk = state.sk;
+    let schedule = state.schedule;
+    let prove_mode = state.prove_mode;
+    let dispatch_config = state.dispatch_config;
+    let workload_config = state.server_base_config.workload;
+    let self_exec_id = ExecutorId(sk.verifying_key());
+
+    let wire = build_envelope_wire_from_req(req);
+    let envelope = verify_envelope_wire(wire)?;
+    let send_ts = envelope.intent.timestamp;
+    let payload = &envelope.intent.payload;
+    match payload {
+        TxPayload::Deploy { .. } | TxPayload::Update { .. } => {
+            let outcome = build_tx_outcome(&db_handle, envelope, prove_mode)?;
+            let response = resp_from_outcome(&outcome)?;
+            let tx = TxAttestation::create(outcome, sk);
+            let tx_bytes = tx.to_canonical_bytes();
+            tracing::info!(target: "executor::event", len=?tx_bytes.len(), "tx_size");
+            // 广播交易
+            cmd_handle.publish_tx(tx_bytes)?;
+            Ok(Json(response))
+        }
+        TxPayload::Exec { ctr_addr_str, input, access_set } => {
+            let envelope_id = envelope.tx_id();
+            let exec_id = match assign_executor_for_tx(&db_handle, &envelope_id, send_ts, dispatch_config, workload_config)? {
+                Some(exec_id) => { exec_id },
+                None => {
+                    tracing::info!(target: "node::server", %envelope_id, "no metrics yet, fall back to self as executor");
+                    self_exec_id
+                }
+            };
+            tracing::info!(target:"node::server", %exec_id, "executor id");
+            if exec_id == self_exec_id {
+                tracing::info!(target:"node::server", "handle envelope myself");
+                // 交易放入任务队列
+                let scale = pre_exec_tx(&db_handle, &envelope, ctr_addr_str, input, access_set)?;
+                match db_handle.load_ts_height(send_ts)? {
+                    Some(send_height) => {
+                        schedule.push(envelope.clone(), scale, send_height).await;
+                    }
+                    None => { return Err(ServerError::GenesisTs) }
+                }
+            } else {
+                // 广播 envelope 到执行层
+                tracing::info!(target:"node::server", "gossip envelope");
+                cmd_handle.publish_envelope(envelope.to_canonical_bytes())?;
+            }
+            // 返回 response
+            let ctr_addr_str = ctr_addr_str.clone();
+            Ok(Json(SubmitTxResponse::Pending { ctr_addr_str, executor_id: exec_id }))
+        }
+    }
 }
 
 pub async fn get_catalogs(State(state): State<AppState>, _: Bytes) -> ApiResult<SubmitTxResponse> {

@@ -24,7 +24,7 @@ serde = { workspace = true }
 platform = { workspace = true }
 apps = { workspace = true }
 
-ledger = { workspace = true }
+smallbank = { workspace = true }
 spec = { workspace = true }
 bench = { workspace = true }
 

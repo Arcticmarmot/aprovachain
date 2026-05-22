@@ -3,4 +3,4 @@ pub mod handle;
 pub mod context;
 pub mod error;
 pub mod pipeline;
-mod ledger;
+pub mod smallbank;

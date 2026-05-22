@@ -22,7 +22,7 @@ consensus:
   mode: "native" # "native" | "simulate"
   simulate_size: 100
   simulate_size_array: [1, 1, 10, 100, 1000, 10000]
-  protocol: "cft" # "solo" | "cft"
+  protocol: "solo" # "solo" | "cft"
   tx_capacity: 10000
   leader_id: "12D3KooWQBWPbaTYcdQx6LmEVau1vuwjXzG9QzNWuQdh2fHku1Q5"
   members:
