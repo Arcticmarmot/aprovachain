@@ -23,7 +23,10 @@ primitives = { workspace = true }
 serde = { workspace = true }
 platform = { workspace = true }
 apps = { workspace = true }
-chain = { workspace = true }
+
+ledger = { workspace = true }
+spec = { workspace = true }
+bench = { workspace = true }
 
 [features]
 default = []

@@ -8,7 +8,7 @@ use db::handle::DBHandle;
 use platform::config::{BaseConfig, DispatchConfig, ProveMode};
 use task::schedule::TaskSchedule;
 use crate::context::AppState;
-use crate::handle::{get_catalogs, submit_tx};
+use crate::handle::{get_catalogs, submit_ledger_call, submit_tx};
 
 pub async fn run_server(sk: AccountSigningKey, db_handle: DBHandle,
                         cmd_handle: P2pCmdHandle, schedule: TaskSchedule,
@@ -25,6 +25,7 @@ pub async fn run_server(sk: AccountSigningKey, db_handle: DBHandle,
     };
     let router = Router::new()
         .route("/api/submit-tx", post(submit_tx))
+        .route("/api/ledger", post(submit_ledger_call))
         .route("/api/get-catalogs", post(get_catalogs))
         .with_state(state);
     let addr: SocketAddr = "0.0.0.0:8888".parse()?;

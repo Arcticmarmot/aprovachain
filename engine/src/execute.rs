@@ -23,6 +23,14 @@ pub fn verify_and_build_envelope(envelope_bytes: &[u8]) -> Result<TxEnvelope> {
     Ok(envelope)
 }
 
+pub fn verify_envelope_wire(wire: TxEnvelopeWire) -> Result<TxEnvelope> {
+    let envelope = TxEnvelope::try_from(wire)?;
+    // TODO: 重放交易攻击，拒绝重复的 nonce
+    // 验证交易签名是否有效
+    envelope.self_verify()?;
+    Ok(envelope)
+}
+
 pub fn verify_and_build_tx(tx_bytes: &[u8]) -> Result<TxAttestation> {
     let wire: TxAttestationWire = TxAttestationWire::try_decode_bcs(tx_bytes)?;
     let tx = TxAttestation::try_from(wire)?;

@@ -7,10 +7,12 @@ use axum::body::{Bytes};
 use axum::extract::State;
 use axum::Json;
 use account::executor::ExecutorId;
-use engine::execute::{build_tx_outcome, pre_exec_tx, verify_and_build_envelope};
+use engine::execute::{build_tx_outcome, pre_exec_tx, verify_and_build_envelope, verify_envelope_wire};
 use platform::bench::{bench_smallbank_csv_append, bench_smallbank_csv_begin, bench_smallbank_csv_path};
 use schedule::dispatch::assign_executor_for_tx;
+use tx::envelope::{TxEnvelopeWire};
 use tx::intent::TxPayload;
+use crate::ledger::{handle_ledger_request, LedgerRequest};
 
 /// 交易提交处理函数
 pub async fn submit_tx(State(state): State<AppState>, envelope_bytes: Bytes) -> ApiResult<SubmitTxResponse> {
@@ -68,6 +70,10 @@ pub async fn submit_tx(State(state): State<AppState>, envelope_bytes: Bytes) -> 
             Ok(Json(SubmitTxResponse::Pending { ctr_addr_str, executor_id: exec_id }))
         }
     }
+}
+
+pub async fn submit_ledger_call(State(state): State<AppState>, Json(request): Json<LedgerRequest>) -> ApiResult<SubmitTxResponse> {
+    handle_ledger_request(state, request).await
 }
 
 pub async fn get_catalogs(State(state): State<AppState>, _: Bytes) -> ApiResult<SubmitTxResponse> {
