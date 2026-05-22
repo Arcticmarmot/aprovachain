@@ -14,6 +14,8 @@ const SMALLBANK_CTR_ADDR: &str = "mainctr17apdmw246n0xsajpdh5jrdmaghamq0fjjtws3c
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SmallbankRequest {
+    pub ctr_addr_str: String,
+
     pub operation: String,
 
     #[serde(default)]
@@ -41,7 +43,7 @@ fn account_addr(chain_id: ChainId, accounts: &[AccountSigningKey], customer_id: 
 pub fn build_envelope_wire_from_req(req: SmallbankRequest) -> TxEnvelopeWire {
     let chain_id = ChainId(CHAIN_ID);
     let accounts = load_accounts();
-
+    let ctr_addr_str = req.ctr_addr_str;
     let signer_id = match req.operation.as_str() {
         "transact_savings" | "deposit_checking" | "write_check" | "query" => {
             req.customer_id.expect("cid")
@@ -90,7 +92,7 @@ pub fn build_envelope_wire_from_req(req: SmallbankRequest) -> TxEnvelopeWire {
     let access_set = generate_access_set(chain_id, input.clone()).expect("access");
 
     let payload = TxPayload::Exec {
-        ctr_addr_str: SMALLBANK_CTR_ADDR.to_string(),
+        ctr_addr_str,
         input,
         access_set,
     };
