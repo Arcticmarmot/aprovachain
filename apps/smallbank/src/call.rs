@@ -8,6 +8,7 @@ pub const SMALLBANK_APP_NAME: &str = "smallbank";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SmallbankCall {
+    CreateAccount { customer_id: String, initial_checking_balance: i64, initial_savings_balance: i64 },
     TransactSavings { customer_id: String, amount: i64, }, //  支票账户存款 account.CheckingBalance += amount
     DepositChecking { customer_id: String, amount: i64, }, // 储蓄账户变动 account.SavingsBalance += amount
     // 转账 sourceAccount.CheckingBalance -= amount destAccount.CheckingBalance += amount
@@ -42,6 +43,10 @@ pub fn generate_access_set(chain_id: ChainId, input: Vec<u8>) -> Result<AccessSe
     let mut access_set = AccessSet::new();
 
     match call {
+        SmallbankCall::CreateAccount { customer_id, .. } => { 
+            access_set.insert(address_to_entry_key(chain_id, &customer_id)?);
+        }
+        
         SmallbankCall::TransactSavings { customer_id, .. } => {
             access_set.insert(address_to_entry_key(chain_id, &customer_id)?);
         }

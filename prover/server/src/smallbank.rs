@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 
 use account::address::UserAddress;
 use account::keypair::AccountSigningKey;
-use bench::accounts::load_accounts;
 use smallbank::call::{generate_access_set, SmallbankCall};
 use spec::chain::ChainId;
 use tx::envelope::{TxEnvelope, TxEnvelopeWire};
@@ -10,7 +9,6 @@ use tx::intent::{TxIntent, TxPayload, TxScale};
 
 const SCALE: u32 = 18;
 const CHAIN_ID: u64 = 1000;
-const SMALLBANK_CTR_ADDR: &str = "mainctr17apdmw246n0xsajpdh5jrdmaghamq0fjjtws3c";
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SmallbankRequest {
@@ -22,6 +20,9 @@ pub struct SmallbankRequest {
     pub customer_id: Option<u64>,
 
     #[serde(default)]
+    pub customer_name: Option<String>,
+
+    #[serde(default)]
     pub dest_customer_id: Option<u64>,
 
     #[serde(default)]
@@ -29,6 +30,12 @@ pub struct SmallbankRequest {
 
     #[serde(default)]
     pub amount: Option<i64>,
+
+    #[serde(default)]
+    pub initial_checking_balance: Option<i64>,
+
+    #[serde(default)]
+    pub initial_savings_balance: Option<i64>
 }
 
 fn account_sk(accounts: &[AccountSigningKey], customer_id: u64) -> &AccountSigningKey {
@@ -40,12 +47,11 @@ fn account_addr(chain_id: ChainId, accounts: &[AccountSigningKey], customer_id: 
     UserAddress::from_vk(chain_id, &vk).to_bech32m().expect("addr")
 }
 
-pub fn build_envelope_wire_from_req(req: SmallbankRequest) -> TxEnvelopeWire {
+pub fn build_envelope_wire_from_req(req: SmallbankRequest, accounts: &[AccountSigningKey]) -> TxEnvelopeWire {
     let chain_id = ChainId(CHAIN_ID);
-    let accounts = load_accounts();
     let ctr_addr_str = req.ctr_addr_str;
     let signer_id = match req.operation.as_str() {
-        "transact_savings" | "deposit_checking" | "write_check" | "query" => {
+        "create_account" | "transact_savings" | "deposit_checking" | "write_check" | "query" => {
             req.customer_id.expect("cid")
         }
         "send_payment" | "amalgamate" => {
@@ -55,6 +61,12 @@ pub fn build_envelope_wire_from_req(req: SmallbankRequest) -> TxEnvelopeWire {
     };
 
     let call = match req.operation.as_str() {
+        "create_account" => SmallbankCall::CreateAccount {
+            customer_id: account_addr(chain_id, &accounts, req.customer_id.expect("cid")),
+            initial_checking_balance: req.initial_checking_balance.expect("balance"),
+            initial_savings_balance: req.initial_savings_balance.expect("balance")
+        },
+
         "transact_savings" => SmallbankCall::TransactSavings {
             customer_id: account_addr(chain_id, &accounts, req.customer_id.expect("cid")),
             amount: req.amount.expect("amt"),

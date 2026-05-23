@@ -10,7 +10,6 @@ use account::executor::ExecutorId;
 use engine::execute::{build_tx_outcome, pre_exec_tx, verify_and_build_envelope, verify_envelope_wire};
 use platform::bench::{bench_smallbank_csv_append, bench_smallbank_csv_begin, bench_smallbank_csv_path};
 use schedule::dispatch::assign_executor_for_tx;
-use tx::envelope::{TxEnvelopeWire};
 use tx::intent::TxPayload;
 use crate::smallbank::{build_envelope_wire_from_req, SmallbankRequest};
 
@@ -72,7 +71,7 @@ pub async fn submit_tx(State(state): State<AppState>, envelope_bytes: Bytes) -> 
     }
 }
 
-pub async fn submit_ledger_call(State(state): State<AppState>, Json(req): Json<SmallbankRequest>) -> ApiResult<SubmitTxResponse> {
+pub async fn submit_smallbank_call(State(state): State<AppState>, Json(req): Json<SmallbankRequest>) -> ApiResult<SubmitTxResponse> {
     // 加载状态信息
     let db_handle = state.db_handle;
     let cmd_handle = state.cmd_handle;
@@ -81,9 +80,10 @@ pub async fn submit_ledger_call(State(state): State<AppState>, Json(req): Json<S
     let prove_mode = state.prove_mode;
     let dispatch_config = state.dispatch_config;
     let workload_config = state.server_base_config.workload;
+    let accounts = state.accounts;
     let self_exec_id = ExecutorId(sk.verifying_key());
 
-    let wire = build_envelope_wire_from_req(req);
+    let wire = build_envelope_wire_from_req(req, &accounts);
     let envelope = verify_envelope_wire(wire)?;
     let send_ts = envelope.intent.timestamp;
     let payload = &envelope.intent.payload;
@@ -172,7 +172,7 @@ pub async fn get_catalogs(State(state): State<AppState>, _: Bytes) -> ApiResult<
         &format!("catalog-stats-{hetero}-{test_name}-{slot_secs}slot-{dispatch_mode}-{cons_protocol}-{workload_set}-{load_multi}-{discipline}-{with_slot}-{ema_k}K-{tx_num}-{tps}-{tail}"));
     bench_smallbank_csv_begin(&catalog_stats).expect("catalog stats csv begin");
     for (code, count) in stats {
-        bench_smallbank_csv_append(&catalog_stats, "totol".to_string(), code.to_string(), count)
+        bench_smallbank_csv_append(&catalog_stats, "total".to_string(), code.to_string(), count)
             .expect("catalog stats csv append");
     }
     for ((prover_id, code), count) in &stats_by_prover {

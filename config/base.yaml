@@ -42,8 +42,8 @@ consensus:
 prove:
   mode: "simulate" # "native" | "simulate"
   scheme: "succinct" # "succinct" | "fast" | "groth16"
-  latency: 50
-  offset: 5
+  latency: 0
+  offset: 0
 workload:
   accounts_num: 10000
   tx_num: 10000

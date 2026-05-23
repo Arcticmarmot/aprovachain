@@ -61,6 +61,17 @@ fn handle_smallbank_call(ctr_input: &CtrInput) -> Result<CtrOutcome> {
     let mut answer: Vec<u8> = Vec::new();
 
     match call {
+        SmallbankCall::CreateAccount {
+            customer_id,
+            initial_checking_balance,
+            initial_savings_balance
+        } => {
+            let account_key = address_to_entry_key(chain_id, &customer_id)?;
+
+            let account = SmallbankAccount {savings_balance: initial_savings_balance, checking_balance: initial_checking_balance};
+
+            write_set.push((account_key, Some(account.encode())));
+        }
         SmallbankCall::TransactSavings {
             customer_id,
             amount,

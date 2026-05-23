@@ -20,13 +20,8 @@ pub async fn deploy_smallbank() {
     init_test();
 
     let base = load_base_config();
-    let chain_id = ChainId(base.chain_id);
 
     let slot_secs = base.slot_secs;
-
-    let accounts = load_accounts();
-    let accounts_map = accounts_to_map(chain_id, &accounts);
-    let user_addr_strings: Vec<String> = accounts_map.keys().cloned().collect();
 
     sleep_for_slot(slot_secs).await;
     let ctr_addr_str = deploy_ledger().await;

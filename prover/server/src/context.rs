@@ -19,6 +19,7 @@ pub struct AppState {
     pub prove_mode: ProveMode,
     pub dispatch_config: DispatchConfig,
     pub server_base_config: BaseConfig,
+    pub accounts: Vec<AccountSigningKey>
 }
 
 #[derive(Clone, Serialize, Deserialize)]
