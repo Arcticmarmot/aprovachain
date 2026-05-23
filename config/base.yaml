@@ -40,8 +40,8 @@ consensus:
 #    - "12D3KooWSucW9iKNczQjJMQG4xPvGgJjK1ctVep4gtaCucn6EvEu" # jhc-2
 #    - "12D3KooWBfzdEbJmQGUk5Gw3xVv4CwsVAKLFacfCEkhFtqed88dB" # jhc-3
 prove:
-  mode: "native" # "native" | "simulate"
-  scheme: "groth16" # "succinct" | "fast" | "groth16"
+  mode: "native_then_save" # "native" | "simulate" | "native_then_save" | "native_by_load"
+  scheme: "fast" # "succinct" | "fast" | "groth16"
   latency: 0
   offset: 0
 workload:

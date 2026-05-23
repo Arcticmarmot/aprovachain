@@ -68,6 +68,16 @@ pub enum ProveMode {
         offset: u64,
         enable_prove_receipt_recording: bool,
         prove_receipt_csv: String
+    },
+    NativeThenSave {
+        scheme: String,
+        enable_prove_receipt_recording: bool,
+        prove_receipt_csv: String,
+    },
+    NativeByLoad {
+        scheme: String,
+        enable_prove_receipt_recording: bool,
+        prove_receipt_csv: String,
     }
 }
 

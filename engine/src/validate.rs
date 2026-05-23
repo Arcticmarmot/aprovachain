@@ -19,8 +19,7 @@ use schedule::dispatch::assign_executor_for_tx;
 use tx::attestation::TxAttestation;
 use tx::id::{TxAttestationId, TxId};
 use tx::intent::TxPayload;
-use crate::execute::cycles_by_pre_exec;
-
+use crate::prove::cycles_by_pre_exec;
 
 const VERIFY_WORKERS: usize = 16;
 
