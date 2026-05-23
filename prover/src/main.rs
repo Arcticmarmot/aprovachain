@@ -71,6 +71,16 @@ async fn main() -> Result<()> {
             enable_prove_receipt_recording,
             prove_receipt_csv,
         },
+        "native_then_save" => ProveMode::NativeThenSave {
+            scheme: prove_scheme,
+            enable_prove_receipt_recording,
+            prove_receipt_csv,
+        },
+        "native_by_load" => ProveMode::NativeByLoad {
+            scheme: prove_scheme,
+            enable_prove_receipt_recording,
+            prove_receipt_csv,
+        },
         "simulate" => ProveMode::Simulate {
             scheme: prove_scheme,
             latency,

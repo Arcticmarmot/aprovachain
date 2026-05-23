@@ -92,11 +92,13 @@ pub fn generate_receipt_then_save(ctr_input: &CtrInput, elf: &Vec<u8>, envelope:
 pub fn generate_receipt_by_load(ctr_input: &CtrInput, elf: &Vec<u8>, envelope: &TxEnvelope, enable_prove_receipt_recording: bool,
                                 prove_scheme: String, prove_receipt_csv: String) -> crate::error::Result<Receipt> {
     let receipt_filename = generate_receipt_filename(ctr_input);
+    let start_prove = Instant::now();
     let receipt = load_receipt_from_file(&receipt_filename)
         .expect("load receipt failed");
-
+    let elapsed = Instant::now().saturating_duration_since(start_prove);
+    tracing::info!(target: "engine::execute", ?elapsed, "prove time: ");
     tracing::info!(
-        target: "engine::execute",
+        target: "engine::execute::load",
         path = %receipt_filename.display(),
         "load receipt from file success"
     );
