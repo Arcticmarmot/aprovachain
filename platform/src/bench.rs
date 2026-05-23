@@ -6,6 +6,11 @@ use anyhow::{Context,Result};
 use crate::file::aprova_proj_dir;
 use std::io::Write;
 
+pub fn bench_receipt_path(filename: &str) -> PathBuf {
+    let proj = aprova_proj_dir().expect("proj dir not found");
+    proj.data_local_dir().join("receipt").join(format!("{}.bsc", filename))
+}
+
 pub fn bench_csv_path(filename: &str) -> PathBuf {
     let proj = aprova_proj_dir().expect("proj dir not found");
     proj.data_local_dir().join("bench").join(format!("{}.csv", filename))

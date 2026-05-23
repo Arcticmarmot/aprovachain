@@ -3,7 +3,7 @@ use risc0_zkvm::{default_executor, default_prover, Digest, ExecutorEnv, ProverOp
 use account::address::ContractAddress;
 use apps::ctr_io::{AccessSet, CtrInput, ReadSet};
 use db::handle::DBHandle;
-use platform::bench::{bench_csv_path, bench_prove_receipt_csv_append};
+use platform::bench::{bench_csv_path, bench_prove_receipt_csv_append, bench_receipt_path};
 use platform::config::ProveMode;
 use platform::rand::sample_prove_time_ms;
 use primitives::hash::{sha256, Hash32};
@@ -12,6 +12,7 @@ use tx::envelope::{TxEnvelope, TxEnvelopeWire};
 use tx::intent::TxPayload;
 use tx::outcome::TxOutcome;
 use crate::error::{EngineError, Result};
+use crate::utils::{load_receipt_from_file, save_receipt_to_file};
 
 pub fn verify_and_build_envelope(envelope_bytes: &[u8]) -> Result<TxEnvelope> {
     // 从字节数组构造 TxEnvelope
@@ -36,6 +37,22 @@ pub fn verify_and_build_tx(tx_bytes: &[u8]) -> Result<TxAttestation> {
     let tx = TxAttestation::try_from(wire)?;
     tx.self_verify()?;
     Ok(tx)
+}
+
+pub fn generate_receipt_from_file(ctr_input: &CtrInput, elf: &Vec<u8>, enable_prove_receipt_recording: bool,
+                                  prove_scheme: String, prove_receipt_csv: String) -> Result<Receipt> {
+    let receipt_file_name = format!("receipt.bcs");
+    let receipt_path = bench_receipt_path(&receipt_file_name);
+
+    let receipt = load_receipt_from_file(&receipt_path).expect("load receipt failed");
+
+    tracing::info!(
+        target: "engine::execute",
+        path = %receipt_path.display(),
+        "load receipt from file success"
+    );
+
+    Ok(receipt)
 }
 
 pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, enable_prove_receipt_recording: bool,
@@ -64,6 +81,11 @@ pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, enable_prove_receip
     tracing::info!(target: "engine::execute", ?proof);
 
     let receipt = proof.receipt;
+    
+    // 保存 receipt 到文件
+    let receipt_file_name = format!("receipt.bcs");
+    let receipt_path = bench_receipt_path(&receipt_file_name);
+    save_receipt_to_file(&receipt, &receipt_path).expect("save receipt failed");
 
     if enable_prove_receipt_recording {
         let cycles = proof.stats.total_cycles;
