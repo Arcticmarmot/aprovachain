@@ -1,5 +1,5 @@
 chain_id: 1000
-slot_secs: 6
+slot_secs: 3
 enable_prove_receipt_recording: false
 prove_receipt_csv: "prove-receipt" # cycles, cycle_label, scale, prove_time, receipt_size
 enable_verify_receipt_recording: false
@@ -41,7 +41,7 @@ consensus:
 #    - "12D3KooWBfzdEbJmQGUk5Gw3xVv4CwsVAKLFacfCEkhFtqed88dB" # jhc-3
 prove:
   mode: "simulate" # "native" | "simulate"
-  scheme: "succinct" # "succinct" | "fast" | "groth16"
+  scheme: "groth16" # "succinct" | "fast" | "groth16"
   latency: 0
   offset: 0
 workload:
