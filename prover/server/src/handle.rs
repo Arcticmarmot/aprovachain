@@ -9,6 +9,7 @@ use axum::Json;
 use account::executor::ExecutorId;
 use engine::execute::{build_tx_outcome, pre_exec_tx, verify_and_build_envelope, verify_envelope_wire};
 use platform::bench::{bench_smallbank_csv_append, bench_smallbank_csv_begin, bench_smallbank_csv_path};
+use platform::config::ProveMode;
 use schedule::dispatch::assign_executor_for_tx;
 use tx::intent::TxPayload;
 use crate::smallbank::{build_envelope_wire_from_req, SmallbankRequest};
@@ -100,11 +101,19 @@ pub async fn submit_smallbank_call(State(state): State<AppState>, Json(req): Jso
         }
         TxPayload::Exec { ctr_addr_str, input, access_set } => {
             let envelope_id = envelope.tx_id();
-            let exec_id = match assign_executor_for_tx(&db_handle, &envelope_id, send_ts, dispatch_config, workload_config)? {
-                Some(exec_id) => { exec_id },
-                None => {
-                    tracing::info!(target: "node::server", %envelope_id, "no metrics yet, fall back to self as executor");
+            // prove then save 模式默认自己
+            let exec_id = match prove_mode {
+                ProveMode::NativeThenSave { .. } => {
                     self_exec_id
+                }
+                _ => {
+                    match assign_executor_for_tx(&db_handle, &envelope_id, send_ts, dispatch_config, workload_config)? {
+                        Some(exec_id) => { exec_id },
+                        None => {
+                            tracing::info!(target: "node::server", %envelope_id, "no metrics yet, fall back to self as executor");
+                            self_exec_id
+                        }
+                    }
                 }
             };
             tracing::info!(target:"node::server", %exec_id, "executor id");

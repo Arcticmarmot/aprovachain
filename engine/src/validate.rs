@@ -13,7 +13,7 @@ use chain::catalog::TxServiceCode::Success;
 use contract::contract::Contract;
 use db::handle::DBHandle;
 use platform::bench::{bench_csv_path, bench_validate_block_csv_append, bench_verify_receipt_csv_append};
-use platform::config::{DispatchConfig, ValidateMode, WorkloadConfig};
+use platform::config::{DispatchConfig, ProveMode, ValidateMode, WorkloadConfig};
 use primitives::hash::{sha256, Hash32};
 use schedule::dispatch::assign_executor_for_tx;
 use tx::attestation::TxAttestation;
@@ -56,7 +56,7 @@ pub enum ApplyInfo {
     }
 }
 
-pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, 
+pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, prove_mode: ProveMode,
                                     validate_mode: ValidateMode, dispatch_config: DispatchConfig,
                                     workload_config: WorkloadConfig
 ) -> Result<()> {
@@ -98,13 +98,14 @@ pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>,
         let sem = verify_sem.clone();
         let verify_receipt_csv = validate_mode.verify_receipt_csv.clone();
         let prove_scheme = validate_mode.prove_scheme.clone();
+        let prove_mode = prove_mode.clone();
         let dispatch_config = dispatch_config.clone();
         let workload_config = workload_config.clone();
         let permit = sem.acquire_owned().await.unwrap();
         verify_js.spawn_blocking(move || {
             let _permit = permit;
             verify_tx(&tx_db_handle, idx, tx, validate_mode.enable_verify_receipt_recording,
-                      verify_receipt_csv, prove_scheme, dispatch_config, workload_config)
+                      verify_receipt_csv, prove_scheme, prove_mode, dispatch_config, workload_config)
         });
     }
 
@@ -200,7 +201,7 @@ pub fn apply_tx(db_handle: &DBHandle, apply_info: ApplyInfo, curr_height: u128) 
 }
 pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation,
                  enable_verify_receipt_recording: bool,
-                 verify_receipt_csv: String, prove_scheme: String, 
+                 verify_receipt_csv: String, prove_scheme: String, prove_mode: ProveMode,
                  dispatch_config: DispatchConfig, workload_config: WorkloadConfig) -> Result<VerifyReport> {
     let tx_id = tx.tx_id;
     let executor_id = ExecutorId(tx.verifying_key.clone());
@@ -235,17 +236,26 @@ pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation,
         TxPayload::Exec { ctr_addr_str, input, .. } => {
             // schedule 指派校验（只读）
             let envelope_id = &envelope.tx_id();
-            match assign_executor_for_tx(db_handle, envelope_id, intent.timestamp, dispatch_config, workload_config)? {
-                Some(expect_exec_id) => {
-                    if expect_exec_id.verifying_key() != tx.verifying_key {
-                        if enable_verify_receipt_recording {
-                            tracing::error!(target: "engine::verify", %expect_exec_id, schedule_exec_id=%ExecutorId(tx.verifying_key));
+            // 跳过检查
+            match prove_mode {
+                ProveMode::NativeThenSave {..} => {
+                    // pass
+                }
+                _ => {
+                    match assign_executor_for_tx(db_handle, envelope_id, intent.timestamp, dispatch_config, workload_config)? {
+                        Some(expect_exec_id) => {
+                            if expect_exec_id.verifying_key() != tx.verifying_key {
+                                if enable_verify_receipt_recording {
+                                    tracing::error!(target: "engine::verify", %expect_exec_id, schedule_exec_id=%ExecutorId(tx.verifying_key));
+                                }
+                                return Ok(reject(TxServiceCode::InvalidTx));
+                            }
                         }
-                        return Ok(reject(TxServiceCode::InvalidTx));
+                        None => {}
                     }
                 }
-                None => {}
             }
+            
 
             // load contract -> image_id（只读）
             let ctr_addr = match ContractAddress::parse_bech32m_with_id(intent.chain_id, ctr_addr_str) {
