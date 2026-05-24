@@ -20,6 +20,7 @@ provers:
 #  - "1b925e4b25591ff32c845eafd836f47f70f576cf0f268e235cadb353461f9726" # jhc-3
 consensus:
   mode: "native" # "native" | "simulate"
+  slot_trigger: "size" # "time" | "size"
   simulate_size: 100
   simulate_size_array: [1, 1, 10, 100, 1000, 10000]
   protocol: "solo" # "solo" | "cft"

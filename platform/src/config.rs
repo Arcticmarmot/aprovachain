@@ -110,6 +110,7 @@ pub struct QueueConfig {
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConsensusConfig {
     pub mode: String,
+    pub slot_trigger: String,
     pub simulate_size: usize,
     pub simulate_size_array: Vec<usize>,
     pub protocol: String,

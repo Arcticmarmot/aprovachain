@@ -37,6 +37,7 @@ async fn main() -> Result<()> {
     let base = platform::config::load_base_config();
     let slot_secs = base.slot_secs;
     let cons_config = base.consensus;
+    let slot_trigger = cons_config.slot_trigger.clone();
 
     let (p2p_cmd_tx, p2p_cmd_rx) =
         mpsc::unbounded_channel::<P2pCmd>();
@@ -77,7 +78,7 @@ async fn main() -> Result<()> {
             let solo_cmd_hdl = SoloCmdHandle::new(solo_cmd_tx.clone());
             let solo_event_hdl = SoloEventHandle::new(solo_event_tx.clone());
             spawn(async move {
-                start_solo_consensus(solo, solo_cmd_rx, solo_cmd_hdl, solo_event_hdl).await
+                start_solo_consensus(solo, solo_cmd_rx, solo_cmd_hdl, solo_event_hdl, slot_trigger.clone()).await
             });
             tracing::info!(target:"orderer::init", "consensus init success(SOLO)...");
 

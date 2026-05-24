@@ -102,12 +102,17 @@ pub async fn slot_loop(solo_cmd_handle: SoloCmdHandle, slot_secs: u64) {
 pub async fn start_solo_consensus(mut service: SoloService,
                              mut solo_cmd_rx: UnboundedReceiver<SoloCmd>,
                              solo_cmd_hdl: SoloCmdHandle,
-                             solo_event_hdl: SoloEventHandle) -> Result<()> {
+                             solo_event_hdl: SoloEventHandle,
+                             slot_trigger: String,
+) -> Result<()> {
     let slot_secs = service.slot_secs;
-    spawn(async move {
-        slot_loop(solo_cmd_hdl, slot_secs).await
-    });
     let service = &mut service;
+    if(slot_trigger == "time") {
+        let time_solo_cmd_hdl = solo_cmd_hdl.clone();
+        spawn(async move {
+            slot_loop(time_solo_cmd_hdl, slot_secs).await
+        });
+    }
     loop {
         tokio::select! {
             Some(input) = solo_cmd_rx.recv() => {
@@ -118,7 +123,7 @@ pub async fn start_solo_consensus(mut service: SoloService,
                     },
                     SoloCmd::SubmitTx {tx_bytes}=> {
                         tracing::info!(target:"consensus::event", "received tx");
-                        handle_submit_tx(service, tx_bytes);
+                        handle_submit_tx(service, &solo_cmd_hdl, slot_trigger.clone(), tx_bytes);
                     },
                 }
             }
@@ -156,11 +161,14 @@ pub fn handle_new_slot(service: &mut SoloService, solo_event_hdl: &SoloEventHand
 }
 
 /// SoloCmd::SubmitTx 处理
-pub fn handle_submit_tx(service: &mut SoloService, tx_bytes: Vec<u8>) {
+pub fn handle_submit_tx(service: &mut SoloService, solo_cmd_handle: &SoloCmdHandle, slot_trigger: String, tx_bytes: Vec<u8>) {
     if !service.is_leader() { return; }
     match service.mempool_handle.received_tx(tx_bytes) {
         Ok(()) => {
             tracing::info!(target:"consensus::event", "pushed tx");
+            if slot_trigger == "size" && service.mempool_handle.is_ready_to_pack(5) {
+                let _ = solo_cmd_handle.new_slot();
+            }
         }
         Err(err) => {
             tracing::warn!(target:"consensus::event", %err, "received tx");

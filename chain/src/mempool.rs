@@ -62,6 +62,14 @@ impl MempoolHandle {
         }
     }
 
+    pub fn mempool_count(&self) -> usize {
+        self.mempool.count()
+    }
+
+    pub fn is_ready_to_pack(&self, tx_capacity: usize) -> bool {
+        self.mempool_count() >= tx_capacity
+    }
+
     pub fn received_tx(&mut self, tx_bytes: Vec<u8>) -> Result<()> {
         self.mempool.push_tx(tx_bytes)?;
         Ok(())
