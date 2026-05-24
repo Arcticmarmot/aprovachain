@@ -162,7 +162,7 @@ pub fn handle_new_slot(service: &mut SoloService, solo_event_hdl: &SoloEventHand
     }
 }
 
-const INIT_SIZE: usize = 1;
+const INIT_SIZE: usize = 2;
 
 /// SoloCmd::SubmitTx 处理
 pub fn handle_submit_tx(service: &mut SoloService, solo_cmd_handle: &SoloCmdHandle, slot_trigger: String, tx_bytes: Vec<u8>) {
