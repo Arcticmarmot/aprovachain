@@ -118,6 +118,7 @@ pub async fn start_solo_consensus(mut service: SoloService,
         });
     }
     if service.is_genesis_pack {
+        sleep(Duration::from_secs(slot_secs)).await;
         let _ = solo_cmd_hdl.new_slot();
         service.is_genesis_pack = false;
     }
