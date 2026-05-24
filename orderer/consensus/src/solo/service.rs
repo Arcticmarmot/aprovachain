@@ -21,7 +21,8 @@ pub struct SoloService {
     pub chain_state: ChainState,
     pub mempool_handle: MempoolHandle,
     pub tx_capacity: usize,
-    pub is_init_pack: bool
+    pub is_genesis_pack: bool,
+    pub is_deploy_pack: bool
 }
 
 impl SoloService {
@@ -42,7 +43,8 @@ impl SoloService {
             chain_state,
             mempool_handle,
             tx_capacity: cons_config.tx_capacity,
-            is_init_pack: true,
+            is_genesis_pack: true,
+            is_deploy_pack: true
         }
     }
 
@@ -115,6 +117,10 @@ pub async fn start_solo_consensus(mut service: SoloService,
             slot_loop(time_solo_cmd_hdl, slot_secs).await
         });
     }
+    if service.is_genesis_pack {
+        let _ = solo_cmd_hdl.new_slot();
+        service.is_genesis_pack = false;
+    }
     loop {
         tokio::select! {
             Some(input) = solo_cmd_rx.recv() => {
@@ -162,7 +168,7 @@ pub fn handle_new_slot(service: &mut SoloService, solo_event_hdl: &SoloEventHand
     }
 }
 
-const INIT_SIZE: usize = 2;
+const PACK_SIZE: usize = 5;
 
 /// SoloCmd::SubmitTx 处理
 pub fn handle_submit_tx(service: &mut SoloService, solo_cmd_handle: &SoloCmdHandle, slot_trigger: String, tx_bytes: Vec<u8>) {
@@ -171,9 +177,13 @@ pub fn handle_submit_tx(service: &mut SoloService, solo_cmd_handle: &SoloCmdHand
         Ok(()) => {
             tracing::info!(target:"consensus::event", "pushed tx");
             if slot_trigger == "size" {
-                if service.is_init_pack && service.mempool_handle.is_ready_to_pack(INIT_SIZE)
-                    || service.mempool_handle.is_ready_to_pack(5){
+                if service.is_deploy_pack {
                     let _ = solo_cmd_handle.new_slot();
+                    service.is_deploy_pack = false;
+                } else {
+                    if service.mempool_handle.is_ready_to_pack(5){
+                        let _ = solo_cmd_handle.new_slot();
+                    }
                 }
             }
         }
