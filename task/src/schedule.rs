@@ -43,7 +43,7 @@ impl TaskSchedule {
         let scale = scale;
         let task = Task { envelope, scale, deadline, seq };
         let mut discipline_guard = self.discipline.lock().await;
-        tracing::info!(target: "task::queue", %task, "push task");
+        tracing::debug!(target: "task::queue", %task, "push task");
         match &mut *discipline_guard {
             Discipline::Fcfs(queue) => {
                 queue.push_back(task);

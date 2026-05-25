@@ -77,3 +77,21 @@ opt-level = 3
 debug = false
 debug-assertions = false
 overflow-checks = false
+
+[profile.dev-deps-o1]
+inherits = "dev"
+opt-level = 0
+
+[profile.dev-deps-o1.package."*"]
+opt-level = 1
+
+[profile.dev-o1]
+inherits = "dev"
+opt-level = 1
+debug = true
+debug-assertions = true
+overflow-checks = true
+
+[profile.release-like]
+inherits = "release"
+opt-level = 0

@@ -12,7 +12,7 @@ use tokio::sync::Semaphore;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::SeqCst;
 use tx::envelope::TxEnvelope;
-use platform::config::{ ProveMode, QueueConfig};
+use platform::config::{ ProveMode };
 const MAX_PROVE: usize = 1;
 static INFLIGHT: AtomicUsize = AtomicUsize::new(0);
 

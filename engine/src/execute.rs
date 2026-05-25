@@ -129,7 +129,7 @@ pub fn pre_exec_tx(db_handle: &DBHandle, envelope: &TxEnvelope, ctr_addr_str: &S
             Err(EngineError::ContractNotFound)
         }
     };
-    tracing::info!(target: "engine::execute", "Contract: {:?}", ctr);
+    tracing::debug!(target: "engine::execute", "Contract: {:?}", ctr);
 
     // 从合约中获取 elf_hash
     let elf_hash = ctr.elf_hash;
@@ -142,7 +142,7 @@ pub fn pre_exec_tx(db_handle: &DBHandle, envelope: &TxEnvelope, ctr_addr_str: &S
             Err(EngineError::ElfFileNotFound)
         }
     };
-    tracing::info!("Elf file len: {}", elf.len());
+    tracing::debug!("Elf file len: {}", elf.len());
 
     // 加载 access_set 数据
     let mut read_set: ReadSet = ReadSet::new();
