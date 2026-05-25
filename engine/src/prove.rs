@@ -1,8 +1,9 @@
 use std::fmt::format;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
-use risc0_zkvm::{default_executor, default_prover, ExecutorEnv, ProverOpts, Receipt};
+use risc0_zkvm::{compute_image_id, default_executor, default_prover, ExecutorEnv, ProverOpts, Receipt};
 use apps::ctr_io::CtrInput;
+use chain::catalog::TxServiceCode;
 use platform::bench::{bench_csv_path, bench_prove_receipt_csv_append, bench_receipt_path};
 use primitives::hash::sha256;
 use tx::envelope::TxEnvelope;
@@ -74,6 +75,8 @@ pub fn generate_receipt_then_save(ctr_input: &CtrInput, elf: &Vec<u8>, envelope:
     tracing::info!(target: "engine::execute", ?proof);
 
     let receipt = proof.receipt;
+
+
 
     // 保存 receipt 到文件
     let receipt_filename = generate_receipt_filename(ctr_input, &prove_scheme);

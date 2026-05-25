@@ -20,7 +20,7 @@ prove:
 consensus:
   mode: "native" # "native" | "simulate"
   slot_trigger: "size" # "time" | "size"
-  tx_capacity: 10
+  tx_capacity: 1
   simulate_size: 100
   simulate_size_array: [1, 1, 10, 100, 1000, 10000]
   protocol: "solo" # "solo" | "cft"
