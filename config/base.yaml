@@ -1,11 +1,5 @@
 chain_id: 1000
 slot_secs: 3
-enable_prove_receipt_recording: false
-prove_receipt_csv: "prove-receipt" # cycles, cycle_label, scale, prove_time, receipt_size
-enable_verify_receipt_recording: false
-verify_receipt_csv: "verify-receipt" # cycles, verify_time,
-enable_validate_block_recording: false
-validate_block_csv: "validate-block"
 provers:
   - "63d8d75d73303e66217ba9c48d654d6bb7e31ea5f8890459e0a51193dd5e8ab5" # smolensk
 #  - "40c165755edcc714e564e43e692576951d600a4f416b471a436af5e786d944de" # mecca
@@ -18,13 +12,18 @@ provers:
 #  - "d56e1c3294b2d1f9be7d112d9350294448a4c50a67bbc094b781b4bb6a5e750a" # jhc-1
 #  - "fdeeca3bab2eb1b8edbd60fa4577ef8619ae032f6104a3eb3fd439e4fe4053d2" # jhc-2
 #  - "1b925e4b25591ff32c845eafd836f47f70f576cf0f268e235cadb353461f9726" # jhc-3
+prove:
+  mode: "native_then_save" # "native" | "simulate" | "native_then_save" | "native_by_load"
+  scheme: "groth16" # "succinct" | "fast" | "groth16"
+  latency: 0
+  offset: 0
 consensus:
   mode: "native" # "native" | "simulate"
   slot_trigger: "size" # "time" | "size"
+  tx_capacity: 10
   simulate_size: 100
   simulate_size_array: [1, 1, 10, 100, 1000, 10000]
   protocol: "solo" # "solo" | "cft"
-  tx_capacity: 10000
   leader_id: "12D3KooWK2XdMqgDizaidLY7t3Z8L8hkg2oviaDhRhg7q1FS5Kup"
   members:
 #    - "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE" # smolensk
@@ -40,11 +39,6 @@ consensus:
 #    - "12D3KooWQBWPbaTYcdQx6LmEVau1vuwjXzG9QzNWuQdh2fHku1Q5" # jhc-1
 #    - "12D3KooWSucW9iKNczQjJMQG4xPvGgJjK1ctVep4gtaCucn6EvEu" # jhc-2
 #    - "12D3KooWBfzdEbJmQGUk5Gw3xVv4CwsVAKLFacfCEkhFtqed88dB" # jhc-3
-prove:
-  mode: "native_then_save" # "native" | "simulate" | "native_then_save" | "native_by_load"
-  scheme: "fast" # "succinct" | "fast" | "groth16"
-  latency: 0
-  offset: 0
 workload:
   accounts_num: 10000
   tx_num: 10000
@@ -64,4 +58,10 @@ dispatch:
   # max_score 10000
 queue:
   discipline: "edf_spt" # fcfs | spt | edf | spt_edf | edf_spt
+enable_prove_receipt_recording: false
+prove_receipt_csv: "prove-receipt" # cycles, cycle_label, scale, prove_time, receipt_size
+enable_verify_receipt_recording: false
+verify_receipt_csv: "verify-receipt" # cycles, verify_time,
+enable_validate_block_recording: false
+validate_block_csv: "validate-block"
 

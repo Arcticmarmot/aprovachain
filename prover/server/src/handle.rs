@@ -103,7 +103,7 @@ pub async fn submit_smallbank_call(State(state): State<AppState>, Json(req): Jso
             let envelope_id = envelope.tx_id();
             // prove then save 模式默认自己
             let exec_id = match prove_mode {
-                ProveMode::NativeThenSave { .. } => {
+                ProveMode::NativeThenSave { .. } | ProveMode::NativeByLoad { .. }=> {
                     self_exec_id
                 }
                 _ => {

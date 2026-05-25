@@ -8,7 +8,12 @@ use std::io::Write;
 
 pub fn bench_receipt_path(filename: &str) -> PathBuf {
     let proj = aprova_proj_dir().expect("proj dir not found");
-    proj.data_local_dir().join("receipt").join(format!("{}.bsc", filename))
+    let filename = proj.data_local_dir().join("receipt").join(format!("{}.bsc", filename));
+    if let Some(parent) = filename.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("create bench dir: {}", parent.display())).expect("create receipt dir failed");
+    }
+    filename
 }
 
 pub fn bench_csv_path(filename: &str) -> PathBuf {

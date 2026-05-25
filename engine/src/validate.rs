@@ -238,7 +238,7 @@ pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation,
             let envelope_id = &envelope.tx_id();
             // 跳过检查
             match prove_mode {
-                ProveMode::NativeThenSave {..} => {
+                ProveMode::NativeThenSave {..} | ProveMode::NativeByLoad {..} => {
                     // pass
                 }
                 _ => {
@@ -255,7 +255,7 @@ pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation,
                     }
                 }
             }
-            
+
 
             // load contract -> image_id（只读）
             let ctr_addr = match ContractAddress::parse_bech32m_with_id(intent.chain_id, ctr_addr_str) {

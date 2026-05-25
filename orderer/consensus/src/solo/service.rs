@@ -169,8 +169,6 @@ pub fn handle_new_slot(service: &mut SoloService, solo_event_hdl: &SoloEventHand
     }
 }
 
-const PACK_SIZE: usize = 5;
-
 /// SoloCmd::SubmitTx 处理
 pub fn handle_submit_tx(service: &mut SoloService, solo_cmd_handle: &SoloCmdHandle, slot_trigger: String, tx_bytes: Vec<u8>) {
     if !service.is_leader() { return; }
@@ -182,7 +180,7 @@ pub fn handle_submit_tx(service: &mut SoloService, solo_cmd_handle: &SoloCmdHand
                     let _ = solo_cmd_handle.new_slot();
                     service.is_deploy_pack = false;
                 } else {
-                    if service.mempool_handle.is_ready_to_pack(5){
+                    if service.mempool_handle.is_ready_to_pack(service.tx_capacity){
                         let _ = solo_cmd_handle.new_slot();
                     }
                 }

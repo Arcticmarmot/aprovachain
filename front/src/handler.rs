@@ -128,6 +128,18 @@ pub async fn send_envelope(wire: TxEnvelopeWire) -> anyhow::Result<Response> {
     Ok(response)
 }
 
+pub async fn send_envelope_on_url(wire: TxEnvelopeWire, url: &str) -> anyhow::Result<Response> {
+    let client = Client::new();
+    let response = client
+        .post(url)
+        .header("content-type", "application/octet-stream")
+        .body(wire.encode_bcs())
+        .send()
+        .await?;
+    Ok(response)
+}
+
+
 pub async fn send_for_catalogs() -> anyhow::Result<Response> {
     let client = Client::new();
     let body = Vec::new();

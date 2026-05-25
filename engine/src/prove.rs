@@ -1,3 +1,4 @@
+use std::fmt::format;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use risc0_zkvm::{default_executor, default_prover, ExecutorEnv, ProverOpts, Receipt};
@@ -5,12 +6,12 @@ use apps::ctr_io::CtrInput;
 use platform::bench::{bench_csv_path, bench_prove_receipt_csv_append, bench_receipt_path};
 use primitives::hash::sha256;
 use tx::envelope::TxEnvelope;
-use tx::intent::TxPayload;
 use crate::error::EngineError;
 use crate::utils::{load_receipt_from_file, save_receipt_to_file};
+use crate::error::Result;
 
 pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, enable_prove_receipt_recording: bool,
-                        prove_scheme: String, prove_receipt_csv: String) -> crate::error::Result<Receipt> {
+                        prove_scheme: String, prove_receipt_csv: String) -> Result<Receipt> {
     #[cfg(feature = "cuda")]
     tracing::info!("server: CUDA feature ENABLED (will use GPU backend if possible)");
     // 搭建虚拟机环境传入 input
@@ -48,7 +49,7 @@ pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, enable_prove_receip
 }
 
 pub fn generate_receipt_then_save(ctr_input: &CtrInput, elf: &Vec<u8>, envelope: &TxEnvelope, enable_prove_receipt_recording: bool,
-                                  prove_scheme: String, prove_receipt_csv: String) -> crate::error::Result<Receipt> {
+                                  prove_scheme: String, prove_receipt_csv: String) -> Result<Receipt> {
     #[cfg(feature = "cuda")]
     tracing::info!("server: CUDA feature ENABLED (will use GPU backend if possible)");
     // 搭建虚拟机环境传入 input
@@ -75,7 +76,7 @@ pub fn generate_receipt_then_save(ctr_input: &CtrInput, elf: &Vec<u8>, envelope:
     let receipt = proof.receipt;
 
     // 保存 receipt 到文件
-    let receipt_filename = generate_receipt_filename(ctr_input);
+    let receipt_filename = generate_receipt_filename(ctr_input, &prove_scheme);
     save_receipt_to_file(&receipt, &receipt_filename).expect("save receipt failed");
 
     if enable_prove_receipt_recording {
@@ -91,7 +92,7 @@ pub fn generate_receipt_then_save(ctr_input: &CtrInput, elf: &Vec<u8>, envelope:
 
 pub fn generate_receipt_by_load(ctr_input: &CtrInput, elf: &Vec<u8>, envelope: &TxEnvelope, enable_prove_receipt_recording: bool,
                                 prove_scheme: String, prove_receipt_csv: String) -> crate::error::Result<Receipt> {
-    let receipt_filename = generate_receipt_filename(ctr_input);
+    let receipt_filename = generate_receipt_filename(ctr_input, &prove_scheme);
     let start_prove = Instant::now();
     let receipt = load_receipt_from_file(&receipt_filename)
         .expect("load receipt failed");
@@ -149,9 +150,9 @@ pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, enable_pro
     Ok(receipt)
 }
 
-fn generate_receipt_filename(ctr_input: &CtrInput) -> PathBuf {
+fn generate_receipt_filename(ctr_input: &CtrInput, prove_scheme: &String) -> PathBuf {
     let receipt_filename = hex::encode(sha256(ctr_input.encode_bcs()));
-    bench_receipt_path(&receipt_filename)
+    bench_receipt_path(&format!("{prove_scheme}-{receipt_filename}"))
 }
 
 fn burn_cpu_for(dur: Duration) -> u64 {
