@@ -56,14 +56,31 @@ bcs = { version = "0.1" }
 axum = { version = "0.8" }
 once_cell = { version = "1" }
 csv = { version = "1" }
-risc0-zkvm = { version = "=3.0.3" }
-risc0-build = { version = "=3.0.3" }
 libp2p = { version = "0.56", features = [
     "tokio", "noise", "yamux", "macros",
     "tcp", "dns", "websocket", "quic",
     "identify", "kad", "mdns", "ping", "gossipsub",
 ] }
 parking_lot = { version = "0.12" }
+
+risc0-zkvm = { version = "=3.0.3" }
+risc0-build = { version = "=3.0.3" }
+
+risc0-groth16 = { version = "=3.0.2" }
+risc0-zkp = { version = "=3.0.2" }
+risc0-binfmt = { version = "=3.0.2" }
+risc0-core = { version = "=3.0.0" }
+
+risc0-zkvm-platform = { version = "=2.2.1" }
+risc0-zkos-v1compat = { version = "=2.2.0" }
+
+risc0-circuit-keccak = { version = "=4.0.2" }
+risc0-circuit-recursion = { version = "=4.0.2" }
+risc0-circuit-rv32im = { version = "=4.0.2" }
+
+risc0-circuit-keccak-sys = { version = "=4.0.1" }
+risc0-circuit-recursion-sys = { version = "=4.0.1" }
+risc0-circuit-rv32im-sys = { version = "=4.0.1" }
 
 
 [profile.dev]
