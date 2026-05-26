@@ -56,8 +56,8 @@ bcs = { version = "0.1" }
 axum = { version = "0.8" }
 once_cell = { version = "1" }
 csv = { version = "1" }
-risc0-zkvm = { version = "=3.0.5" }
-risc0-build = { version = "=3.0.5" }
+risc0-zkvm = { version = "=3.0.3" }
+risc0-build = { version = "=3.0.3" }
 libp2p = { version = "0.56", features = [
     "tokio", "noise", "yamux", "macros",
     "tcp", "dns", "websocket", "quic",

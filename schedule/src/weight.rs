@@ -69,7 +69,7 @@ pub fn metrics_to_static_weights(_metrics: &Metrics, workload_config: &WorkloadC
     weights
 }
 
-pub fn metrics_to_even_weights(metrics: &Metrics, workload_config: &WorkloadConfig) -> Weights {
+pub fn metrics_to_even_weights(_metrics: &Metrics, workload_config: &WorkloadConfig) -> Weights {
     let mut weights = Weights::new();
     let hetero = &workload_config.heterogeneous;
     match hetero.as_str() {

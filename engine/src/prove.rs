@@ -1,9 +1,7 @@
-use std::fmt::format;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
-use risc0_zkvm::{compute_image_id, default_executor, default_prover, ExecutorEnv, ProverOpts, Receipt};
+use risc0_zkvm::{default_executor, default_prover, ExecutorEnv, ProverOpts, Receipt};
 use apps::ctr_io::CtrInput;
-use chain::catalog::TxServiceCode;
 use platform::bench::{bench_csv_path, bench_prove_receipt_csv_append, bench_receipt_path};
 use primitives::hash::sha256;
 use tx::envelope::TxEnvelope;
@@ -49,7 +47,7 @@ pub fn generate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, enable_prove_receip
     Ok(receipt)
 }
 
-pub fn generate_receipt_then_save(ctr_input: &CtrInput, elf: &Vec<u8>, envelope: &TxEnvelope, enable_prove_receipt_recording: bool,
+pub fn generate_receipt_then_save(ctr_input: &CtrInput, elf: &Vec<u8>, _envelope: &TxEnvelope, enable_prove_receipt_recording: bool,
                                   prove_scheme: String, prove_receipt_csv: String) -> Result<Receipt> {
     #[cfg(feature = "cuda")]
     tracing::info!("server: CUDA feature ENABLED (will use GPU backend if possible)");
