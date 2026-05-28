@@ -68,8 +68,9 @@ pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, 
     // 验证是否是合法区块，并存储 chain_state
     match db_handle.load_chain_state()? {
         Some(tip_header) => {
-            ensure!(header.height == tip_header.height + 1, "invalid new block header");
-            ensure!(header.parent_hash == tip_header.hash(), "invalid new block header");
+            ensure!(header.height == tip_header.height + 1, "current height = {}, receiving height = {}, invalid new block header",
+                tip_header.height, header.height);
+            ensure!(header.parent_hash == tip_header.hash(), "invalid new block header hash");
         },
         None => {
             // NOTE: 主网需要保证从第 0 个区块开始存储
@@ -126,7 +127,7 @@ pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, 
 
         let code = match report.outcome {
             VerifyOutcome::Reject(code) => code,
-            VerifyOutcome::Accept(apply_info) => apply_tx(db_handle, apply_info, header.height)?,
+            VerifyOutcome::Accept(apply_info) => apply_tx(db_handle, &prove_mode, apply_info, header.height)?,
         };
 
         catalog.insert(tx_id, (executor_id, code));
@@ -164,19 +165,27 @@ pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, 
     }
     // TODO: delete the tracing info
     if let Some(block) = db_handle.load_block(header.height)? {
-        tracing::info!(target: "executor::block", ?block, "=======BLOCK=======\r\n");
+        tracing::warn!(target: "executor::block", ?block, "=======BLOCK=======\r\n");
     }
 
     Ok(())
 }
 
-pub fn apply_tx(db_handle: &DBHandle, apply_info: ApplyInfo, curr_height: u128) -> Result<TxServiceCode> {
+pub fn apply_tx(db_handle: &DBHandle, prove_mode: &ProveMode, apply_info: ApplyInfo, curr_height: u128) -> Result<TxServiceCode> {
     match apply_info {
         ApplyInfo::Exec { read_set, write_set, send_height, slot_range } => {
             // 先 timeout：避免超时交易写状态
-            if send_height + slot_range < curr_height {
-                return Ok(TxServiceCode::Timeout);
-            }
+            // 序列化模式不需要判断超时
+            match prove_mode {
+                ProveMode::NativeThenSave { .. } | ProveMode::NativeByLoad { .. } => {
+                    // pass
+                }
+                _ => {
+                    if send_height + slot_range < curr_height {
+                        return Ok(TxServiceCode::Timeout);
+                    }
+                }
+            };
 
             let is_conflict = db_handle.apply_rw_set(&read_set, &write_set)?;
             if is_conflict {
@@ -355,7 +364,6 @@ pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation,
                 Some(h) => h,
                 None => return Ok(reject(TxServiceCode::InvalidTx)),
             };
-
             Ok(accept(ApplyInfo::Exec {
                 read_set,
                 write_set,

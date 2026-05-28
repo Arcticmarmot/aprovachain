@@ -21,6 +21,7 @@ dotenvy = { workspace = true }
 spec = { workspace = true }
 platform = { workspace = true }
 account = { workspace = true }
+chain = { workspace = true }
 
 [features]
 cuda = ["engine/cuda"]

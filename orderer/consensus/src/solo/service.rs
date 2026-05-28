@@ -22,7 +22,8 @@ pub struct SoloService {
     pub mempool_handle: MempoolHandle,
     pub tx_capacity: usize,
     pub is_genesis_pack: bool,
-    pub is_deploy_pack: bool
+    pub is_deploy_pack: bool,
+    pub is_packing: bool,
 }
 
 impl SoloService {
@@ -44,7 +45,8 @@ impl SoloService {
             mempool_handle,
             tx_capacity: cons_config.tx_capacity,
             is_genesis_pack: true,
-            is_deploy_pack: true
+            is_deploy_pack: true,
+            is_packing: false,
         }
     }
 
@@ -120,7 +122,6 @@ pub async fn start_solo_consensus(mut service: SoloService,
     if service.is_genesis_pack {
         sleep(Duration::from_secs(slot_secs)).await;
         let _ = solo_cmd_hdl.new_slot();
-        service.is_genesis_pack = false;
     }
     loop {
         tokio::select! {
@@ -142,31 +143,98 @@ pub async fn start_solo_consensus(mut service: SoloService,
 
 /// SoloCmd::NewSlot 处理
 pub fn handle_new_slot(service: &mut SoloService, solo_event_hdl: &SoloEventHandle) {
-    if !service.is_leader() { return; }
-    match service.pack_block() {
-        Ok(block) => {
-            match service.update_chain_state(block.header) {
-                Ok(()) => {
-                    tracing::info!(target:"consensus::event", chain=?service.chain_state, "state");
-                    match solo_event_hdl.block_commited(block.encode_bcs()) {
-                        Ok(()) => {
-                            service.mempool_handle.clear_pending();
-                            tracing::info!(target:"consensus::event", pool=?service.mempool_handle, "state");
-                        }
-                        Err(err) => {
-                            tracing::warn!(target:"consensus::event", %err, "output event");
-                        }
-                    }
-                }
+    if !service.is_leader() {
+        return;
+    }
+
+    // 已经有一个出块循环在跑了，新的 new_slot 只是重复唤醒，直接忽略
+    if service.is_packing {
+        tracing::debug!(
+            target: "consensus::event",
+            "pack loop is already running, ignore duplicated new slot"
+        );
+        return;
+    }
+
+    service.is_packing = true;
+
+    loop {
+        if service.is_genesis_pack {
+            match pack_commit_broadcast_once(service, solo_event_hdl) {
+                Ok(()) => {}
                 Err(err) => {
-                    tracing::warn!(target:"consensus::event", %err, "update chain state");
+                    tracing::warn!(target: "consensus::event",%err,"pack commit broadcast once failed");
+                    break;
                 }
             }
-        },
-        Err(err) => {
-            tracing::warn!(target:"consensus::event", %err, "pack block");
+            service.is_genesis_pack = false;
+            break;
+        }
+
+        if service.is_deploy_pack {
+            match pack_commit_broadcast_once(service, solo_event_hdl) {
+                Ok(()) => {}
+                Err(err) => {
+                    tracing::warn!(target: "consensus::event",%err,"pack commit broadcast once failed");
+                    break;
+                }
+            }
+            service.is_deploy_pack = false;
+            break;
+        }
+        // size 模式下，如果 mempool 不够一个块，就停止
+        if service.mempool_handle.mempool_count() < service.tx_capacity {
+            break;
+        }
+
+        match pack_commit_broadcast_once(service, solo_event_hdl) {
+            Ok(()) => {}
+            Err(err) => {
+                tracing::warn!(target: "consensus::event",%err,"pack commit broadcast once failed");
+                break;
+            }
         }
     }
+
+    service.is_packing = false;
+}
+
+
+fn pack_commit_broadcast_once(
+    service: &mut SoloService,
+    solo_event_hdl: &SoloEventHandle,
+) -> Result<()> {
+    let block = service.pack_block()?;
+
+    let height = block.header.height;
+    let block_bytes = block.encode_bcs();
+
+    tracing::info!(
+        target: "consensus::event",
+        height = height,
+        "pack block done"
+    );
+
+    service.update_chain_state(block.header)?;
+
+    tracing::info!(
+        target: "consensus::event",
+        height = height,
+        chain = ?service.chain_state,
+        "update chain state done"
+    );
+
+    // 关键：必须在这里同步发送，不能 spawn 一个异步任务去 broadcast
+    solo_event_hdl.block_commited(block_bytes)?;
+
+    tracing::warn!(
+        target: "consensus::event",
+        height = height,
+        "block committed event sent"
+    );
+
+    service.mempool_handle.clear_pending();
+    Ok(())
 }
 
 /// SoloCmd::SubmitTx 处理
@@ -178,7 +246,6 @@ pub fn handle_submit_tx(service: &mut SoloService, solo_cmd_handle: &SoloCmdHand
             if slot_trigger == "size" {
                 if service.is_deploy_pack {
                     let _ = solo_cmd_handle.new_slot();
-                    service.is_deploy_pack = false;
                 } else {
                     if service.mempool_handle.is_ready_to_pack(service.tx_capacity){
                         let _ = solo_cmd_handle.new_slot();
@@ -191,3 +258,4 @@ pub fn handle_submit_tx(service: &mut SoloService, solo_cmd_handle: &SoloCmdHand
         }
     }
 }
+

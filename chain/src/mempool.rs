@@ -72,6 +72,7 @@ impl MempoolHandle {
 
     pub fn received_tx(&mut self, tx_bytes: Vec<u8>) -> Result<()> {
         self.mempool.push_tx(tx_bytes)?;
+
         Ok(())
     }
 

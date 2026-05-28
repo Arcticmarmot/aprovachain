@@ -1,5 +1,7 @@
+use std::collections::BTreeMap;
 use anyhow::{anyhow, Context, Result};
 use account::executor::ExecutorId;
+use chain::block::OrderedBlock;
 use db::handle::DBHandle;
 use engine::execute::{pre_exec_tx, verify_and_build_envelope};
 use engine::validate::verify_and_apply_block;
@@ -47,7 +49,49 @@ pub async fn on_envelope_received(schedule: TaskSchedule, self_exec_id: Executor
     Ok(())
 }
 
-pub async fn on_block_received(db_handle: &DBHandle, block_bytes: Vec<u8>, prove_mode: ProveMode,
-                               validate_mode: ValidateMode, dispatch_config: DispatchConfig, workload_config: WorkloadConfig) -> Result<()> {
-    verify_and_apply_block(db_handle, block_bytes, prove_mode, validate_mode, dispatch_config, workload_config).await
+pub async fn on_block_received(db_handle: &DBHandle, block_bytes: Vec<u8>,
+                               pending_blocks: &mut BTreeMap<u128, Vec<u8>>,
+                               prove_mode: ProveMode,
+                               validate_mode: ValidateMode,
+                               dispatch_config: DispatchConfig,
+                               workload_config: WorkloadConfig) -> Result<()> {
+    let block = OrderedBlock::try_decode_bcs(&block_bytes)?;
+    let height = block.header.height;
+
+    let expected = expected_height(db_handle)?;
+
+    // 旧块 / 重复块，直接忽略
+    if height < expected {
+        return Ok(());
+    }
+
+    // 当前块或未来块，先缓存
+    pending_blocks.entry(height).or_insert(block_bytes);
+
+    // 只要缓存里有 expected height，就连续处理
+    loop {
+        let expected = expected_height(db_handle)?;
+
+        let Some(next_block_bytes) = pending_blocks.remove(&expected) else {
+            break;
+        };
+
+        verify_and_apply_block(
+            db_handle,
+            next_block_bytes,
+            prove_mode.clone(),
+            validate_mode.clone(),
+            dispatch_config.clone(),
+            workload_config.clone(),
+        ).await?;
+    }
+
+    Ok(())
+}
+
+fn expected_height(db_handle: &DBHandle) -> Result<u128> {
+    Ok(match db_handle.load_chain_state()? {
+        Some(header) => header.height + 1,
+        None => 0,
+    })
 }

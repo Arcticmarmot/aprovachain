@@ -51,52 +51,57 @@ pub fn generate_receipt_then_save(ctr_input: &CtrInput, elf: &Vec<u8>, _envelope
                                   prove_scheme: String, prove_receipt_csv: String) -> Result<Receipt> {
     #[cfg(feature = "cuda")]
     tracing::info!("server: CUDA feature ENABLED (will use GPU backend if possible)");
-    // 搭建虚拟机环境传入 input
-    let env = ExecutorEnv::builder()
-        .segment_limit_po2(19) // NOTE: 8GB 4060 out of memory in po2 20
-        .write(&ctr_input.encode_bcs())
-        .unwrap()
-        .build().map_err(EngineError::ExecutorEnvBuild)?;
-    let opt = match prove_scheme.as_str() {
-        "succinct" => { ProverOpts::succinct() }
-        "fast" => { ProverOpts::fast() }
-        "groth16" => { ProverOpts::groth16() }
-        _ => { return Err(EngineError::ProveScheme) }
-    };
-    // 根据虚拟机环境和 ELF 文件生成证明
-    let prover = default_prover();
 
-    let start_prove = Instant::now();
-    let proof = prover.prove_with_opts(env, &elf, &opt).map_err(EngineError::ProofGenerate)?;
-    let elapsed = Instant::now().saturating_duration_since(start_prove);
-    tracing::info!(target: "engine::execute", ?elapsed, "prove time: ");
-    tracing::info!(target: "engine::execute", ?proof);
-
-    let receipt = proof.receipt;
-
-
-
-    // 保存 receipt 到文件
     let receipt_filename = generate_receipt_filename(ctr_input, &prove_scheme);
-    save_receipt_to_file(&receipt, &receipt_filename).expect("save receipt failed");
+    Ok(match load_receipt_from_file(&receipt_filename) {
+        Ok(receipt) => {
+            receipt
+        }
+        Err(_) => {
+            // 搭建虚拟机环境传入 input
+            let env = ExecutorEnv::builder()
+                .segment_limit_po2(19) // NOTE: 8GB 4060 out of memory in po2 20
+                .write(&ctr_input.encode_bcs())
+                .unwrap()
+                .build().map_err(EngineError::ExecutorEnvBuild)?;
+            let opt = match prove_scheme.as_str() {
+                "succinct" => { ProverOpts::succinct() }
+                "fast" => { ProverOpts::fast() }
+                "groth16" => { ProverOpts::groth16() }
+                _ => { return Err(EngineError::ProveScheme) }
+            };
+            // 根据虚拟机环境和 ELF 文件生成证明
+            let prover = default_prover();
 
-    if enable_prove_receipt_recording {
-        let cycles = proof.stats.total_cycles;
-        let prove_time = elapsed.as_millis();
-        let receipt_size = bcs::to_bytes(&receipt).expect("encode receipt failed").len();
-        let csv_name = format!("{prove_receipt_csv}-{prove_scheme}");
-        let prove_receipt_csv_path = bench_csv_path(&csv_name);
-        bench_prove_receipt_csv_append(&prove_receipt_csv_path, cycles, prove_time, receipt_size).expect("bench csv append failed");
-    }
-    Ok(receipt)
+            let start_prove = Instant::now();
+            let proof = prover.prove_with_opts(env, &elf, &opt).map_err(EngineError::ProofGenerate)?;
+            let elapsed = Instant::now().saturating_duration_since(start_prove);
+            tracing::info!(target: "engine::execute", ?elapsed, "prove time: ");
+            tracing::info!(target: "engine::execute", ?proof);
+            let receipt = proof.receipt;
+
+            // 保存 receipt 到文件
+            let receipt_filename = generate_receipt_filename(ctr_input, &prove_scheme);
+            save_receipt_to_file(&receipt, &receipt_filename).expect("save receipt failed");
+
+            if enable_prove_receipt_recording {
+                let cycles = proof.stats.total_cycles;
+                let prove_time = elapsed.as_millis();
+                let receipt_size = bcs::to_bytes(&receipt).expect("encode receipt failed").len();
+                let csv_name = format!("{prove_receipt_csv}-{prove_scheme}");
+                let prove_receipt_csv_path = bench_csv_path(&csv_name);
+                bench_prove_receipt_csv_append(&prove_receipt_csv_path, cycles, prove_time, receipt_size).expect("bench csv append failed");
+            }
+            receipt
+        }
+    })
 }
 
 pub fn generate_receipt_by_load(ctr_input: &CtrInput, _elf: &Vec<u8>, _envelope: &TxEnvelope, _enable_prove_receipt_recording: bool,
                                 prove_scheme: String, _prove_receipt_csv: String) -> Result<Receipt> {
     let receipt_filename = generate_receipt_filename(ctr_input, &prove_scheme);
     let start_prove = Instant::now();
-    let receipt = load_receipt_from_file(&receipt_filename)
-        .expect("load receipt failed");
+    let receipt = load_receipt_from_file(&receipt_filename).expect("receipt loading failed");
     let elapsed = Instant::now().saturating_duration_since(start_prove);
     tracing::info!(target: "engine::execute", ?elapsed, "prove time: ");
     tracing::info!(
@@ -153,7 +158,7 @@ pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, enable_pro
 
 fn generate_receipt_filename(ctr_input: &CtrInput, prove_scheme: &String) -> PathBuf {
     let receipt_filename = hex::encode(sha256(ctr_input.encode_bcs()));
-    bench_receipt_path(&format!("{prove_scheme}-{receipt_filename}"))
+    bench_receipt_path(&format!("{prove_scheme}-{receipt_filename}"), prove_scheme)
 }
 
 fn burn_cpu_for(dur: Duration) -> u64 {

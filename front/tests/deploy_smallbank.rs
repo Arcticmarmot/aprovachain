@@ -45,7 +45,7 @@ async fn deploy_ledger() -> String {
     let tx_envelope_wire = build_envelope_wire(tx_build_spec).unwrap();
     let response = send_envelope(tx_envelope_wire.clone()).await.unwrap();
     let parsed_resp = response.json::<SubmitTxResponse>().await.unwrap();
-    tracing::info!(target:"apps::resp", "Response: {:?}", parsed_resp);
+    tracing::warn!(target:"apps::resp", "Response: {:?}", parsed_resp);
 
     let ctr_addr_str = extract_ctr_addr(parsed_resp).unwrap();
     ctr_addr_str

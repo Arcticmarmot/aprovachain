@@ -35,7 +35,7 @@ pub async fn submit_tx(State(state): State<AppState>, envelope_bytes: Bytes) -> 
             let response = resp_from_outcome(&outcome)?;
             let tx = TxAttestation::create(outcome, sk);
             let tx_bytes = tx.to_canonical_bytes();
-            tracing::info!(target: "executor::event", len=?tx_bytes.len(), "tx_size");
+            tracing::debug!(target: "executor::event", len=?tx_bytes.len(), "tx_size");
             // 广播交易
             cmd_handle.publish_tx(tx_bytes)?;
             Ok(Json(response))
@@ -94,7 +94,7 @@ pub async fn submit_smallbank_call(State(state): State<AppState>, Json(req): Jso
             let response = resp_from_outcome(&outcome)?;
             let tx = TxAttestation::create(outcome, sk);
             let tx_bytes = tx.to_canonical_bytes();
-            tracing::info!(target: "executor::event", len=?tx_bytes.len(), "tx_size");
+            tracing::debug!(target: "executor::event", len=?tx_bytes.len(), "tx_size");
             // 广播交易
             cmd_handle.publish_tx(tx_bytes)?;
             Ok(Json(response))
@@ -102,39 +102,44 @@ pub async fn submit_smallbank_call(State(state): State<AppState>, Json(req): Jso
         TxPayload::Exec { ctr_addr_str, input, access_set } => {
             let envelope_id = envelope.tx_id();
             // prove then save 模式默认自己
-            let exec_id = match prove_mode {
+            match prove_mode {
                 ProveMode::NativeThenSave { .. } | ProveMode::NativeByLoad { .. }=> {
-                    self_exec_id
+                    let exec_id = self_exec_id;
+                    let scale = 18;
+                    let send_height = 0;
+                    schedule.push(envelope.clone(), scale, send_height).await;
+                    let ctr_addr_str = ctr_addr_str.clone();
+                    Ok(Json(SubmitTxResponse::Pending { ctr_addr_str, executor_id: exec_id }))
                 }
                 _ => {
-                    match assign_executor_for_tx(&db_handle, &envelope_id, send_ts, dispatch_config, workload_config)? {
+                    let exec_id = match assign_executor_for_tx(&db_handle, &envelope_id, send_ts, dispatch_config, workload_config)? {
                         Some(exec_id) => { exec_id },
                         None => {
                             tracing::info!(target: "node::server", %envelope_id, "no metrics yet, fall back to self as executor");
                             self_exec_id
                         }
+                    };
+                    tracing::info!(target:"node::server", %exec_id, "executor id");
+                    if exec_id == self_exec_id {
+                        tracing::info!(target:"node::server", "handle envelope myself");
+                        // 交易放入任务队列
+                        let scale = pre_exec_tx(&db_handle, &envelope, ctr_addr_str, input, access_set)?;
+                        match db_handle.load_ts_height(send_ts)? {
+                            Some(send_height) => {
+                                schedule.push(envelope.clone(), scale, send_height).await;
+                            }
+                            None => { return Err(ServerError::GenesisTs) }
+                        }
+                    } else {
+                        // 广播 envelope 到执行层
+                        tracing::info!(target:"node::server", "gossip envelope");
+                        cmd_handle.publish_envelope(envelope.to_canonical_bytes())?;
                     }
+                    // 返回 response
+                    let ctr_addr_str = ctr_addr_str.clone();
+                    Ok(Json(SubmitTxResponse::Pending { ctr_addr_str, executor_id: exec_id }))
                 }
-            };
-            tracing::info!(target:"node::server", %exec_id, "executor id");
-            if exec_id == self_exec_id {
-                tracing::info!(target:"node::server", "handle envelope myself");
-                // 交易放入任务队列
-                let scale = pre_exec_tx(&db_handle, &envelope, ctr_addr_str, input, access_set)?;
-                match db_handle.load_ts_height(send_ts)? {
-                    Some(send_height) => {
-                        schedule.push(envelope.clone(), scale, send_height).await;
-                    }
-                    None => { return Err(ServerError::GenesisTs) }
-                }
-            } else {
-                // 广播 envelope 到执行层
-                tracing::info!(target:"node::server", "gossip envelope");
-                cmd_handle.publish_envelope(envelope.to_canonical_bytes())?;
             }
-            // 返回 response
-            let ctr_addr_str = ctr_addr_str.clone();
-            Ok(Json(SubmitTxResponse::Pending { ctr_addr_str, executor_id: exec_id }))
         }
     }
 }

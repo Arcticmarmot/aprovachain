@@ -9,7 +9,7 @@ use crate::error::TxError;
 use crate::outcome::{TxOutcome, TxOutcomeWire};
 use crate::id::TxAttestationId;
 use crate::error::Result;
-use crate::intent::TxPayload;
+// use crate::intent::TxPayload;
 
 #[derive(Clone)]
 pub struct TxAttestation {
@@ -35,16 +35,21 @@ impl Hash for TxAttestation {
 
 impl Ord for TxAttestation {
     fn cmp(&self, other: &Self) -> Ordering {
-        fn pri(payload: &TxPayload) -> u8 {
-            match payload {
-                TxPayload::Deploy { .. } => 0,
-                TxPayload::Update { .. } => 1,
-                TxPayload::Exec { .. } => 2,
-            }
-        }
-        let self_key = (pri(&self.outcome.envelope.intent.payload), &self.tx_id);
-        let other_key = (pri(&other.outcome.envelope.intent.payload), &other.tx_id);
-        self_key.cmp(&other_key)
+        // TODO: 按照时间排序
+        let self_ts = self.outcome.envelope.intent.timestamp;
+        let other_ts = other.outcome.envelope.intent.timestamp;
+        self_ts.cmp(&other_ts)
+        // fn pri(payload: &TxPayload) -> u8 {
+        //     match payload {
+        //         TxPayload::Deploy { .. } => 0,
+        //         TxPayload::Update { .. } => 1,
+        //         TxPayload::Exec { .. } => 2,
+        //     }
+        // }
+        //
+        // let self_key = (pri(&self.outcome.envelope.intent.payload), &self.tx_id);
+        // let other_key = (pri(&other.outcome.envelope.intent.payload), &other.tx_id);
+        // self_key.cmp(&other_key)
     }
 }
 

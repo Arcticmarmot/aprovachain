@@ -46,7 +46,7 @@ async fn deploy_ledger() -> String {
     let response = send_envelope_on_url(tx_envelope_wire.clone(),
                                         "http://192.168.1.116:8888/api/submit-tx").await.unwrap();
     let parsed_resp = response.json::<SubmitTxResponse>().await.unwrap();
-    tracing::info!(target:"apps::resp", "Response: {:?}", parsed_resp);
+    tracing::warn!(target:"apps::resp", "Response: {:?}", parsed_resp);
 
     let ctr_addr_str = extract_ctr_addr(parsed_resp).unwrap();
     ctr_addr_str

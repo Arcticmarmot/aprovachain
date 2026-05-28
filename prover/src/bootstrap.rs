@@ -20,7 +20,7 @@ pub fn init_logging() -> anyhow::Result<()> {
         .with_target(true)
         .with_file(true)
         .with_line_number(true)
-        .with_writer(rolling::daily(&log_dir, "aprova"));
+        .with_writer(rolling::hourly(&log_dir, "aprova"));
 
     let console_layer = fmt::layer()
         .with_target(true)

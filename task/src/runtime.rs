@@ -14,12 +14,21 @@ use std::sync::atomic::Ordering::SeqCst;
 use tx::envelope::TxEnvelope;
 use platform::config::{ ProveMode };
 const MAX_PROVE: usize = 1;
+const MAX_LOAD: usize = 16;
 static INFLIGHT: AtomicUsize = AtomicUsize::new(0);
 
 pub async fn run_task(db_handle: DBHandle, cmd_handle: P2pCmdHandle,
                       sk: AccountSigningKey, schedule: TaskSchedule, mut shutdown_rx: Receiver<bool>,
                       prove_mode: ProveMode) {
-    let prove_sem = Arc::new(Semaphore::new(MAX_PROVE));
+    let prove_sem = match prove_mode {
+        ProveMode::NativeByLoad { .. } => {
+            Arc::new(Semaphore::new(MAX_LOAD))
+        }
+        _ => {
+            Arc::new(Semaphore::new(MAX_PROVE))
+        }
+    };
+
     loop {
         tokio::select! {
             bytes = schedule.pop_or_wait() => {
@@ -54,7 +63,7 @@ pub fn handle_envelope(db_handle: &DBHandle, cmd_handle: &P2pCmdHandle, sk: &Acc
 
     let tx = TxAttestation::create(outcome, sk.clone());
     let tx_bytes = tx.to_canonical_bytes();
-    tracing::info!(target: "task::runtime", len=?tx_bytes.len(), "tx_size");
+    tracing::debug!(target: "task::runtime", len=?tx_bytes.len(), "tx_size");
 
     // 广播交易
     cmd_handle.publish_tx(tx_bytes.clone())?;

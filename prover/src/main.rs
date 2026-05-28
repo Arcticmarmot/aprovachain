@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use anyhow::Result;
 use std::process::exit;
 use clap::{arg, Parser};
@@ -111,6 +112,7 @@ async fn main() -> Result<()> {
 
     let (p2p_cmd_tx, p2p_cmd_rx) =
         mpsc::unbounded_channel::<P2pCmd>();
+    // let (p2p_cmd_tx, p2p_cmd_rx) = mpsc::channel::<P2pCmd>(1024);
     let (p2p_event_tx, mut p2p_event_rx) =
         mpsc::unbounded_channel::<P2pEvent>();
     // 结束信号
@@ -165,6 +167,7 @@ async fn main() -> Result<()> {
     });
     tracing::info!(target:"executor::init", "server init success...");
 
+    let mut pending_blocks: BTreeMap<u128, Vec<u8>> = BTreeMap::new();
     loop {
         tokio::select! {
             Some(cmd) = p2p_event_rx.recv() => {
@@ -178,7 +181,7 @@ async fn main() -> Result<()> {
                     }
                     P2pEvent::BlockReceived(block_bytes) => {
                         tracing::info!(target:"executor::event", "executor received block");
-                        if let Err(err) = on_block_received(&db_handle, block_bytes, prove_mode.clone(),
+                        if let Err(err) = on_block_received(&db_handle, block_bytes, &mut pending_blocks, prove_mode.clone(),
                             validate_mode.clone(), dispatch_config.clone(), workload_config.clone()).await {
                             tracing::warn!(target:"executor::event::block", %err);
                         }
