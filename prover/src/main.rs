@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 use anyhow::Result;
 use std::process::exit;
 use clap::{arg, Parser};
@@ -110,6 +111,9 @@ async fn main() -> Result<()> {
     // db_handle.init_ledger_data_entry(chain_id, workload_config.init_balance)?;
     let init_bal = workload_config.init_balance as i64;
     db_handle.init_smallbank_accounts(chain_id, init_bal, init_bal)?;
+    let elf_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../front/fixtures/elf/smallbank_guest.bin");
+    db_handle.init_smallbank_contract(chain_id, elf_path)?;
     tracing::info!(target:"executor::init", "rocksdb({db_file_mode:?}) init success...");
 
     let (p2p_cmd_tx, p2p_cmd_rx) =

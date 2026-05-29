@@ -1670,6 +1670,7 @@ dependencies = [
  "once_cell",
  "platform",
  "primitives",
+ "risc0-zkvm",
  "rocksdb",
  "spec",
  "tempfile",

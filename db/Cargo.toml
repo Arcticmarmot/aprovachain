@@ -20,3 +20,4 @@ primitives = { workspace = true }
 spec = { workspace = true }
 apps = { workspace = true }
 platform = { workspace = true }
+risc0-zkvm = { workspace = true }

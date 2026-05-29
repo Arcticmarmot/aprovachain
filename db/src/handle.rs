@@ -1,10 +1,13 @@
 use std::cmp::max;
+use std::fs;
+use std::path::Path;
 use std::sync::Arc;
 use rocksdb::{ColumnFamily, WriteBatch, DB};
 use account::address::{ChainAddrBytes};
+use account::keypair::AccountVerifyingKey;
 use chain::block::{BlockHeader, LedgerBlock, OrderedBlock};
 use contract::contract::{Contract, ContractWire};
-use primitives::hash::Hash32;
+use primitives::hash::{sha256, Hash32, HASH32_ZERO};
 use apps::ctr_io::{NamespaceKey, ReadSet, WriteSet};
 use bench::accounts::{accounts_to_ledger_keys, accounts_to_smallbank_keys, load_accounts};
 use chain::catalog::TxServiceCatalog;
@@ -93,6 +96,38 @@ impl DBHandle {
         "init smallbank accounts success"
         );
 
+        Ok(())
+    }
+
+    pub fn init_smallbank_contract(
+        &self,
+        chain_id: ChainId,
+        elf_path: impl AsRef<Path>,
+    ) -> Result<()> {
+        let elf_bytes = fs::read(elf_path).expect("elf loading failed");
+        let image_id = risc0_zkvm::compute_image_id(&elf_bytes).expect("image id computing failed");
+        let elf_hash = sha256(&elf_bytes);
+        let vk = AccountVerifyingKey::from_bytes(&HASH32_ZERO).expect("vk loading failed");
+
+        let ctr = Contract::create(
+            chain_id,
+            &image_id,
+            &elf_hash,
+            &vk,
+            0,
+        );
+
+        let ctr_addr_str = ctr.addr.to_bech32m().expect("ctr to bech32m failed");
+        let ctr_addr_bytes = ctr.addr.to_bytes();
+        let ctr_bytes = ctr.to_canonical_bytes();
+
+        self.save_contract(&ctr_addr_bytes, &ctr_bytes)?;
+        self.save_elf(elf_hash, &elf_bytes)?;
+        tracing::warn!(
+            target: "db::init",
+            %ctr_addr_str,
+            "init smallbank contract success"
+        );
         Ok(())
     }
     

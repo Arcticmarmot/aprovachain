@@ -22,7 +22,6 @@ pub struct SoloService {
     pub mempool_handle: MempoolHandle,
     pub tx_capacity: usize,
     pub is_genesis_pack: bool,
-    pub is_deploy_pack: bool,
     pub is_packing: bool,
 }
 
@@ -45,7 +44,6 @@ impl SoloService {
             mempool_handle,
             tx_capacity: cons_config.tx_capacity,
             is_genesis_pack: true,
-            is_deploy_pack: true,
             is_packing: false,
         }
     }
@@ -171,17 +169,6 @@ pub fn handle_new_slot(service: &mut SoloService, solo_event_hdl: &SoloEventHand
             break;
         }
 
-        if service.is_deploy_pack {
-            match pack_commit_broadcast_once(service, solo_event_hdl) {
-                Ok(()) => {}
-                Err(err) => {
-                    tracing::warn!(target: "consensus::event",%err,"pack commit broadcast once failed");
-                    break;
-                }
-            }
-            service.is_deploy_pack = false;
-            break;
-        }
         // size 模式下，如果 mempool 不够一个块，就停止
         if service.mempool_handle.mempool_count() < service.tx_capacity {
             break;
@@ -244,12 +231,8 @@ pub fn handle_submit_tx(service: &mut SoloService, solo_cmd_handle: &SoloCmdHand
         Ok(()) => {
             tracing::info!(target:"consensus::event", "pushed tx");
             if slot_trigger == "size" {
-                if service.is_deploy_pack {
+                if service.mempool_handle.is_ready_to_pack(service.tx_capacity){
                     let _ = solo_cmd_handle.new_slot();
-                } else {
-                    if service.mempool_handle.is_ready_to_pack(service.tx_capacity){
-                        let _ = solo_cmd_handle.new_slot();
-                    }
                 }
             }
         }
