@@ -5,8 +5,9 @@ use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
 use account::address::UserAddress;
 use apps::ctr_io::NamespaceKey;
-use ledger::call::address_to_entry_key;
+use ledger::call::address_to_ledger_entry_key;
 use platform::config::load_base_config;
+use smallbank::call::address_to_smallbank_entry_key;
 use spec::chain::ChainId;
 
 pub fn accounts_path() -> PathBuf {
@@ -48,12 +49,22 @@ pub fn save_accounts() {
     }
 }
 
-pub fn accounts_to_keys(chain_id: ChainId, accounts: &Vec<AccountSigningKey>) -> Vec<NamespaceKey> {
+pub fn accounts_to_ledger_keys(chain_id: ChainId, accounts: &Vec<AccountSigningKey>) -> Vec<NamespaceKey> {
     let mut ns_keys = Vec::with_capacity(accounts.len());
     for account in accounts {
         let vk = account.verifying_key();
         let user_addr_str = UserAddress::from_vk(chain_id, &vk).to_bech32m().expect("encode bech32m failed");
-        ns_keys.push(address_to_entry_key(chain_id, &user_addr_str).expect("address to entry key failed"))
+        ns_keys.push(address_to_ledger_entry_key(chain_id, &user_addr_str).expect("address to entry key failed"))
+    }
+    ns_keys
+}
+
+pub fn accounts_to_smallbank_keys(chain_id: ChainId, accounts: &Vec<AccountSigningKey>) -> Vec<NamespaceKey> {
+    let mut ns_keys = Vec::with_capacity(accounts.len());
+    for account in accounts {
+        let vk = account.verifying_key();
+        let user_addr_str = UserAddress::from_vk(chain_id, &vk).to_bech32m().expect("encode bech32m failed");
+        ns_keys.push(address_to_smallbank_entry_key(chain_id, &user_addr_str).expect("address to entry key failed"))
     }
     ns_keys
 }

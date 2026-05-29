@@ -12,7 +12,7 @@ use apps::ctr_io::{
 };
 use primitives::hash::sha256;
 use risc0_zkvm::guest::env;
-use smallbank::call::{address_to_entry_key, SmallbankCall};
+use smallbank::call::{address_to_smallbank_entry_key, SmallbankCall};
 
 risc0_zkvm::guest::entry!(main);
 
@@ -66,7 +66,7 @@ fn handle_smallbank_call(ctr_input: &CtrInput) -> Result<CtrOutcome> {
             initial_checking_balance,
             initial_savings_balance
         } => {
-            let account_key = address_to_entry_key(chain_id, &customer_id)?;
+            let account_key = address_to_smallbank_entry_key(chain_id, &customer_id)?;
 
             let account = SmallbankAccount {savings_balance: initial_savings_balance, checking_balance: initial_checking_balance};
 
@@ -76,7 +76,7 @@ fn handle_smallbank_call(ctr_input: &CtrInput) -> Result<CtrOutcome> {
             customer_id,
             amount,
         } => {
-            let account_key = address_to_entry_key(chain_id, &customer_id)?;
+            let account_key = address_to_smallbank_entry_key(chain_id, &customer_id)?;
             let mut account = load_account_must_exist(&account_key, read_set)?;
 
             account.savings_balance += amount;
@@ -88,7 +88,7 @@ fn handle_smallbank_call(ctr_input: &CtrInput) -> Result<CtrOutcome> {
             customer_id,
             amount,
         } => {
-            let account_key = address_to_entry_key(chain_id, &customer_id)?;
+            let account_key = address_to_smallbank_entry_key(chain_id, &customer_id)?;
             let mut account = load_account_must_exist(&account_key, read_set)?;
 
             account.checking_balance += amount;
@@ -101,8 +101,8 @@ fn handle_smallbank_call(ctr_input: &CtrInput) -> Result<CtrOutcome> {
             dest_customer_id,
             amount,
         } => {
-            let source_key = address_to_entry_key(chain_id, &source_customer_id)?;
-            let dest_key = address_to_entry_key(chain_id, &dest_customer_id)?;
+            let source_key = address_to_smallbank_entry_key(chain_id, &source_customer_id)?;
+            let dest_key = address_to_smallbank_entry_key(chain_id, &dest_customer_id)?;
 
             let mut source_account = load_account_must_exist(&source_key, read_set)?;
             let mut dest_account = load_account_must_exist(&dest_key, read_set)?;
@@ -118,7 +118,7 @@ fn handle_smallbank_call(ctr_input: &CtrInput) -> Result<CtrOutcome> {
             customer_id,
             amount,
         } => {
-            let account_key = address_to_entry_key(chain_id, &customer_id)?;
+            let account_key = address_to_smallbank_entry_key(chain_id, &customer_id)?;
             let mut account = load_account_must_exist(&account_key, read_set)?;
 
             account.checking_balance -= amount;
@@ -130,8 +130,8 @@ fn handle_smallbank_call(ctr_input: &CtrInput) -> Result<CtrOutcome> {
             source_customer_id,
             dest_customer_id,
         } => {
-            let source_key = address_to_entry_key(chain_id, &source_customer_id)?;
-            let dest_key = address_to_entry_key(chain_id, &dest_customer_id)?;
+            let source_key = address_to_smallbank_entry_key(chain_id, &source_customer_id)?;
+            let dest_key = address_to_smallbank_entry_key(chain_id, &dest_customer_id)?;
 
             let mut source_account = load_account_must_exist(&source_key, read_set)?;
             let mut dest_account = load_account_must_exist(&dest_key, read_set)?;
@@ -144,7 +144,7 @@ fn handle_smallbank_call(ctr_input: &CtrInput) -> Result<CtrOutcome> {
         }
 
         SmallbankCall::Query { customer_id } => {
-            let account_key = address_to_entry_key(chain_id, &customer_id)?;
+            let account_key = address_to_smallbank_entry_key(chain_id, &customer_id)?;
             let account = load_account_must_exist(&account_key, read_set)?;
 
             answer = account.encode();

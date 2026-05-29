@@ -107,7 +107,9 @@ async fn main() -> Result<()> {
     let db_file_mode = args.db_file_mode;
     let _ = init_db(db_file_mode)?;
     let db_handle = DBHandle::new()?;
-    db_handle.init_ledger_data_entry(chain_id, workload_config.init_balance)?;
+    // db_handle.init_ledger_data_entry(chain_id, workload_config.init_balance)?;
+    let init_bal = workload_config.init_balance as i64;
+    db_handle.init_smallbank_accounts(chain_id, init_bal, init_bal)?;
     tracing::info!(target:"executor::init", "rocksdb({db_file_mode:?}) init success...");
 
     let (p2p_cmd_tx, p2p_cmd_rx) =

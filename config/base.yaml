@@ -63,5 +63,5 @@ workload:
   heterogeneous: "H2M4"
   test_name: "simulate" # "real" | "simulate" | "conflict"
   tail: 20
-  init_balance: 100000000
+  init_balance: 1000000
 

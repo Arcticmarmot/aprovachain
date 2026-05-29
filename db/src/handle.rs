@@ -6,7 +6,7 @@ use chain::block::{BlockHeader, LedgerBlock, OrderedBlock};
 use contract::contract::{Contract, ContractWire};
 use primitives::hash::Hash32;
 use apps::ctr_io::{NamespaceKey, ReadSet, WriteSet};
-use bench::accounts::{accounts_to_keys, load_accounts};
+use bench::accounts::{accounts_to_ledger_keys, accounts_to_smallbank_keys, load_accounts};
 use chain::catalog::TxServiceCatalog;
 use platform::config::load_base_config;
 use primitives::trans::u64_to_be_vec;
@@ -58,10 +58,41 @@ impl DBHandle {
 
     pub fn init_ledger_data_entry(&self, chain_id: ChainId, balance: u64) -> Result<()> {
         let accounts = load_accounts();
-        let ns_keys = accounts_to_keys(chain_id, &accounts);
+        let ns_keys = accounts_to_ledger_keys(chain_id, &accounts);
         for ns_key in ns_keys {
             self.save_data_entry(&ns_key, u64_to_be_vec(balance))?;
         }
+        Ok(())
+    }
+
+    pub fn init_smallbank_accounts(
+        &self,
+        chain_id: ChainId,
+        savings_balance: i64,
+        checking_balance: i64,
+    ) -> Result<()> {
+        let accounts = load_accounts();
+        let ns_keys = accounts_to_smallbank_keys(chain_id, &accounts);
+
+        let mut batch = WriteBatch::default();
+
+        for ns_key in ns_keys {
+            let mut value = Vec::with_capacity(16);
+            value.extend_from_slice(&savings_balance.to_be_bytes());
+            value.extend_from_slice(&checking_balance.to_be_bytes());
+            batch.put_cf(self.cf_data(), ns_key.encode_bcs(), value);
+        }
+
+        self.dbh.write(batch).map_err(DBError::DBPut)?;
+
+        tracing::info!(
+        target: "db::init",
+        account_count = accounts.len(),
+        savings_balance,
+        checking_balance,
+        "init smallbank accounts success"
+        );
+
         Ok(())
     }
     

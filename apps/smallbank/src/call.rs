@@ -29,7 +29,7 @@ impl SmallbankCall {
     }
 }
 
-pub fn address_to_entry_key(chain_id: ChainId, addr: &str) -> Result<NamespaceKey> {
+pub fn address_to_smallbank_entry_key(chain_id: ChainId, addr: &str) -> Result<NamespaceKey> {
     let addr = UserAddress::parse_bech32m_with_id(chain_id, addr)?;
 
     Ok(NamespaceKey {
@@ -44,15 +44,15 @@ pub fn generate_access_set(chain_id: ChainId, input: Vec<u8>) -> Result<AccessSe
 
     match call {
         SmallbankCall::CreateAccount { customer_id, .. } => { 
-            access_set.insert(address_to_entry_key(chain_id, &customer_id)?);
+            access_set.insert(address_to_smallbank_entry_key(chain_id, &customer_id)?);
         }
         
         SmallbankCall::TransactSavings { customer_id, .. } => {
-            access_set.insert(address_to_entry_key(chain_id, &customer_id)?);
+            access_set.insert(address_to_smallbank_entry_key(chain_id, &customer_id)?);
         }
 
         SmallbankCall::DepositChecking { customer_id, .. } => {
-            access_set.insert(address_to_entry_key(chain_id, &customer_id)?);
+            access_set.insert(address_to_smallbank_entry_key(chain_id, &customer_id)?);
         }
 
         SmallbankCall::SendPayment {
@@ -60,24 +60,24 @@ pub fn generate_access_set(chain_id: ChainId, input: Vec<u8>) -> Result<AccessSe
             dest_customer_id,
             ..
         } => {
-            access_set.insert(address_to_entry_key(chain_id, &source_customer_id)?);
-            access_set.insert(address_to_entry_key(chain_id, &dest_customer_id)?);
+            access_set.insert(address_to_smallbank_entry_key(chain_id, &source_customer_id)?);
+            access_set.insert(address_to_smallbank_entry_key(chain_id, &dest_customer_id)?);
         }
 
         SmallbankCall::WriteCheck { customer_id, .. } => {
-            access_set.insert(address_to_entry_key(chain_id, &customer_id)?);
+            access_set.insert(address_to_smallbank_entry_key(chain_id, &customer_id)?);
         }
 
         SmallbankCall::Amalgamate {
             source_customer_id,
             dest_customer_id,
         } => {
-            access_set.insert(address_to_entry_key(chain_id, &source_customer_id)?);
-            access_set.insert(address_to_entry_key(chain_id, &dest_customer_id)?);
+            access_set.insert(address_to_smallbank_entry_key(chain_id, &source_customer_id)?);
+            access_set.insert(address_to_smallbank_entry_key(chain_id, &dest_customer_id)?);
         }
 
         SmallbankCall::Query { customer_id } => {
-            access_set.insert(address_to_entry_key(chain_id, &customer_id)?);
+            access_set.insert(address_to_smallbank_entry_key(chain_id, &customer_id)?);
         }
     }
 

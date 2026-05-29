@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 ledger = { workspace = true }
+smallbank = { workspace = true }
 account = { workspace = true }
 hex = { workspace = true }
 rand = { workspace = true }

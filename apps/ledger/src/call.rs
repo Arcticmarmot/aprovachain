@@ -5,7 +5,7 @@ use apps::ctr_io::{AccessSet, NamespaceKey};
 use crate::error::Result;
 
 // TODO: 改成可读性更好的 APP_NAME
-pub const APP_NAME: &'static str = "l";
+pub const LEDGER_NAME: &'static str = "l";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LedgerCall {
@@ -25,10 +25,10 @@ impl LedgerCall {
     }
 }
 
-pub fn address_to_entry_key(chain_id: ChainId, addr: &String) -> Result<NamespaceKey> {
+pub fn address_to_ledger_entry_key(chain_id: ChainId, addr: &String) -> Result<NamespaceKey> {
     let addr = UserAddress::parse_bech32m_with_id(chain_id, addr)?;
     Ok(NamespaceKey {
-        ns: APP_NAME.to_string(),
+        ns: LEDGER_NAME.to_string(),
         key: Vec::from(addr.to_bytes()),
     })
 }
@@ -38,17 +38,17 @@ pub fn generate_access_set(chain_id: ChainId, input: Vec<u8>) -> Result<AccessSe
     let mut access_set = AccessSet::new();
     match call {
         LedgerCall::Transfer { from, to, .. } => {
-            access_set.insert(address_to_entry_key(chain_id, &from)?);
-            access_set.insert(address_to_entry_key(chain_id, &to)?);
+            access_set.insert(address_to_ledger_entry_key(chain_id, &from)?);
+            access_set.insert(address_to_ledger_entry_key(chain_id, &to)?);
         },
         LedgerCall::QueryBalance { addr } => {
-            access_set.insert(address_to_entry_key(chain_id, &addr)?);
+            access_set.insert(address_to_ledger_entry_key(chain_id, &addr)?);
         },
         LedgerCall::Mint { to, .. } => {
-            access_set.insert(address_to_entry_key(chain_id, &to)?);
+            access_set.insert(address_to_ledger_entry_key(chain_id, &to)?);
         },
         LedgerCall::Burn { from, .. } => {
-            access_set.insert(address_to_entry_key(chain_id, &from)?);
+            access_set.insert(address_to_ledger_entry_key(chain_id, &from)?);
         }
     }
     Ok(access_set)
