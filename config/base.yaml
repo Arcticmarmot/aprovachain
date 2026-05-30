@@ -1,7 +1,7 @@
 chain_id: 1000
 slot_secs: 3
 provers:
-  - "63d8d75d73303e66217ba9c48d654d6bb7e31ea5f8890459e0a51193dd5e8ab5" # smolensk
+#  - "63d8d75d73303e66217ba9c48d654d6bb7e31ea5f8890459e0a51193dd5e8ab5" # smolensk
 #  - "40c165755edcc714e564e43e692576951d600a4f416b471a436af5e786d944de" # mecca
 #  - "6df7ffc94bf76d992aa26d535fd4ef881703d243e70f7bc57a3fa3349c5e5d5e" # kol-server
 #  - "0fd61a0a7c9c79d028fe1aa3d761681eef9d61a48d8942dcf26b6737244df1d1" # cairo
@@ -13,14 +13,14 @@ provers:
 #  - "fdeeca3bab2eb1b8edbd60fa4577ef8619ae032f6104a3eb3fd439e4fe4053d2" # jhc-2
 #  - "1b925e4b25591ff32c845eafd836f47f70f576cf0f268e235cadb353461f9726" # jhc-3
 prove:
-  mode: "native_by_load" # "native" | "simulate" | "native_then_save" | "native_by_load"
-  scheme: "succinct" # "succinct" | "fast" | "groth16"
+  mode: "native_then_save" # "native" | "simulate" | "native_then_save" | "native_by_load"
+  scheme: "groth16" # "succinct" | "fast" | "groth16"
   latency: 0
   offset: 0
 consensus:
   mode: "native" # "native" | "simulate"
   slot_trigger: "size" # "time" | "size"
-  tx_capacity: 1000
+  tx_capacity: 10000
   simulate_size: 100
   simulate_size_array: [1, 1, 10, 100, 1000, 10000]
   protocol: "solo" # "solo" | "cft"

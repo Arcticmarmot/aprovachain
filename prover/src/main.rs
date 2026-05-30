@@ -179,7 +179,7 @@ async fn main() -> Result<()> {
             Some(cmd) = p2p_event_rx.recv() => {
                 match cmd {
                     P2pEvent::EnvelopeReceived(envelope_bytes) => {
-                        tracing::info!(target:"executor::event", "executor received envelope");
+                        tracing::warn!(target:"executor::event", "executor received envelope");
                         if let Err(err) = on_envelope_received(queue.clone(), self_exec_id,
                             envelope_bytes, dispatch_config.clone(), workload_config.clone()).await {
                             tracing::warn!(target:"executor::event", %err);

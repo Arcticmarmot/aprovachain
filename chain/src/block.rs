@@ -1,8 +1,9 @@
 use std::fmt::{Debug, Formatter};
+use std::ops::Deref;
 use serde::{Deserialize, Serialize};
 use platform::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32, HASH32_ZERO};
-use tx::attestation::{TxAttestationWire};
+use tx::attestation::{TxAttestation, TxAttestationWire};
 use crate::catalog::TxServiceCatalog;
 use crate::error::Result;
 
@@ -58,11 +59,11 @@ impl Debug for OrderedBlock {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Block {{")?;
         writeln!(f, "  header: {:?},", self.header)?;
-        // writeln!(f, "  txs: [")?;
-        // for tx in &self.txs {
-        //     writeln!(f, "    {:?},", TxAttestation::try_from(tx.clone()).unwrap())?;
-        // }
-        // writeln!(f, "  ]")?;
+        writeln!(f, "  txs: [")?;
+        for tx in &self.txs {
+            writeln!(f, "    {:?},", TxAttestation::try_from(tx.clone()).unwrap())?;
+        }
+        writeln!(f, "  ]")?;
         write!(f, "}}")
     }
 }
@@ -118,9 +119,9 @@ impl Debug for LedgerBlock {
         //     writeln!(f, "    {:?},", TxAttestation::try_from(tx.clone()).unwrap())?;
         // }
         // writeln!(f, "  ]")?;
-        // for (tx_id, (exec_id, code)) in self.catalog.deref() {
-        //     writeln!(f, "  tx_id: {tx_id}, exec_id: {exec_id}, code: {code:?}")?;
-        // }
+        for (tx_id, (exec_id, code)) in self.catalog.deref() {
+            writeln!(f, "  tx_id: {tx_id}, exec_id: {exec_id}, code: {code:?}")?;
+        }
         write!(f, "}}")
     }
 }
