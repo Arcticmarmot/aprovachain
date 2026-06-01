@@ -55,6 +55,11 @@ pub fn generate_receipt_then_save(ctr_input: &CtrInput, elf: &Vec<u8>, _envelope
     let receipt_filename = generate_receipt_filename(ctr_input, &prove_scheme);
     Ok(match load_receipt_from_file(&receipt_filename) {
         Ok(receipt) => {
+            tracing::info!(
+                target: "engine::execute::load",
+                path = %receipt_filename.display(),
+                "load receipt from file"
+            );
             receipt
         }
         Err(_) => {
@@ -101,16 +106,25 @@ pub fn generate_receipt_by_load(ctr_input: &CtrInput, _elf: &Vec<u8>, _envelope:
                                 prove_scheme: String, _prove_receipt_csv: String) -> Result<Receipt> {
     let receipt_filename = generate_receipt_filename(ctr_input, &prove_scheme);
     let start_prove = Instant::now();
-    let receipt = load_receipt_from_file(&receipt_filename).expect("receipt loading failed");
-    let elapsed = Instant::now().saturating_duration_since(start_prove);
-    tracing::info!(target: "engine::execute", ?elapsed, "prove time: ");
-    tracing::info!(
-        target: "engine::execute::load",
-        path = %receipt_filename.display(),
-        "load receipt from file success"
-    );
-
-    Ok(receipt)
+    match load_receipt_from_file(&receipt_filename) {
+        Ok(receipt) => {
+            let elapsed = Instant::now().saturating_duration_since(start_prove);
+            tracing::info!(target: "engine::execute", ?elapsed, "prove time: ");
+            tracing::info!(
+                target: "engine::execute::load",
+                path = %receipt_filename.display(),
+                "load receipt from file"
+            );
+            Ok(receipt)
+        }
+        Err(e) => {
+            tracing::warn!(
+            path = %receipt_filename.display(),
+            error = %e,
+            "load receipt from file failed");
+            Err(EngineError::ReceiptFileNotFound(e))
+        }
+    }
 }
 
 pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, enable_prove_receipt_recording: bool,
@@ -156,7 +170,7 @@ pub fn generate_simulate_receipt(ctr_input: &CtrInput, elf: &Vec<u8>, enable_pro
     Ok(receipt)
 }
 
-fn generate_receipt_filename(ctr_input: &CtrInput, prove_scheme: &String) -> PathBuf {
+pub fn generate_receipt_filename(ctr_input: &CtrInput, prove_scheme: &String) -> PathBuf {
     let receipt_filename = hex::encode(sha256(ctr_input.encode_bcs()));
     bench_receipt_path(&format!("{prove_scheme}-{receipt_filename}"), prove_scheme)
 }

@@ -144,6 +144,35 @@ pub async fn submit_smallbank_call(State(state): State<AppState>, Json(req): Jso
     }
 }
 
+pub async fn get_stats(State(state): State<AppState>, _: Bytes) -> ApiResult<SubmitTxResponse> {
+    tracing::info!(target:"node::server", "get stats");
+    let db_handle = state.db_handle;
+
+    let ts = platform::clock::unix_time_millis()?;
+    let catalogs = db_handle.load_stats_window(usize::MAX, ts)?;
+    let mut stats = HashMap::new();
+    for catalog in &catalogs {
+        for (_, (_, code)) in catalog.iter() {
+            let entry: &mut usize = stats.entry(code).or_default();
+            *entry += 1;
+        }
+    }
+    let mut stats_by_prover = HashMap::new();
+    for catalog in &catalogs {
+        for (_, (exec_id, code)) in catalog.iter() {
+            let entry: &mut usize = stats_by_prover.entry((exec_id, code)).or_default();
+            *entry += 1;
+        }
+    }
+    for (code, count) in &stats {
+        tracing::warn!(target:"node::server::catalog", ?code, count);
+    }
+    tracing::info!(target:"node::server", ?stats);
+    tracing::info!(target:"node::server", ?stats_by_prover);
+    let resp = Json(SubmitTxResponse::CatalogStore);
+    Ok(resp)
+}
+
 pub async fn get_catalogs(State(state): State<AppState>, _: Bytes) -> ApiResult<SubmitTxResponse> {
     tracing::info!(target:"node::server", "get catalogs");
     let db_handle = state.db_handle;
@@ -164,6 +193,9 @@ pub async fn get_catalogs(State(state): State<AppState>, _: Bytes) -> ApiResult<
             let entry: &mut usize = stats_by_prover.entry((exec_id, code)).or_default();
             *entry += 1;
         }
+    }
+    for (code, count) in &stats {
+        tracing::warn!(target:"node::server::catalog", ?code, count);
     }
     tracing::info!(target:"node::server", ?stats);
     tracing::info!(target:"node::server", ?stats_by_prover);

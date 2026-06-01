@@ -13,14 +13,14 @@ provers:
 #  - "fdeeca3bab2eb1b8edbd60fa4577ef8619ae032f6104a3eb3fd439e4fe4053d2" # jhc-2
 #  - "1b925e4b25591ff32c845eafd836f47f70f576cf0f268e235cadb353461f9726" # jhc-3
 prove:
-  mode: "native_then_save" # "native" | "simulate" | "native_then_save" | "native_by_load"
+  mode: "native_by_load" # "native" | "simulate" | "native_then_save" | "native_by_load"
   scheme: "groth16" # "succinct" | "fast" | "groth16"
   latency: 0
   offset: 0
 consensus:
   mode: "native" # "native" | "simulate"
   slot_trigger: "size" # "time" | "size"
-  tx_capacity: 10000
+  tx_capacity: 100
   simulate_size: 100
   simulate_size_array: [1, 1, 10, 100, 1000, 10000]
   protocol: "solo" # "solo" | "cft"

@@ -19,7 +19,7 @@ use schedule::dispatch::assign_executor_for_tx;
 use tx::attestation::TxAttestation;
 use tx::id::{TxAttestationId, TxId};
 use tx::intent::TxPayload;
-use crate::prove::cycles_by_pre_exec;
+use crate::prove::{cycles_by_pre_exec, generate_receipt_filename};
 
 const VERIFY_WORKERS: usize = 6;
 
@@ -296,10 +296,7 @@ pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation,
             // proof verify（最重）
 
             let verify_time = Instant::now();
-            if let Err(err) = receipt.verify(image_id) {
-                tracing::error!(target:"engine::verify", %err, "fake receipt");
-                return Ok(reject(TxServiceCode::FakeReceipt));
-            }
+   
             let verify_elapsed = Instant::now().saturating_duration_since(verify_time);
             if enable_verify_receipt_recording {
                 tracing::info!(target: "engine::execute", ?verify_elapsed, "verify time: ");
@@ -330,6 +327,12 @@ pub fn verify_tx(db_handle: &DBHandle, idx: usize, tx: TxAttestation,
                 input: input.clone(),
                 read_set: read_set.clone(),
             };
+
+            if let Err(err) = receipt.verify(image_id) {
+                let filename = generate_receipt_filename(&ctr_input, &prove_scheme);
+                tracing::error!(target:"engine::verify", %err, ?filename, "fake receipt"); 
+                return Ok(reject(TxServiceCode::FakeReceipt));
+            }
 
             if enable_verify_receipt_recording {
                 let elf_hash = ctr.elf_hash;

@@ -49,6 +49,8 @@ pub enum EngineError {
     ContractExec { message: String },
     #[error("bad prove scheme")]
     ProveScheme,
+    #[error("receipt file not found")]
+    ReceiptFileNotFound(#[from] anyhow::Error)
 }
 
 pub type Result<T> = std::result::Result<T, EngineError>;
