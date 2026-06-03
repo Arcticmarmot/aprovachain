@@ -149,7 +149,7 @@ pub async fn get_stats(State(state): State<AppState>, _: Bytes) -> ApiResult<Sub
     let db_handle = state.db_handle;
 
     let ts = platform::clock::unix_time_millis()?;
-    let catalogs = db_handle.load_stats_window(usize::MAX, ts)?;
+    let catalogs = db_handle.load_full_stats()?;
     let mut stats = HashMap::new();
     for catalog in &catalogs {
         for (_, (_, code)) in catalog.iter() {

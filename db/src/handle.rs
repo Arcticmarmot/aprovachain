@@ -163,6 +163,29 @@ impl DBHandle {
         }
     }
 
+    pub fn load_full_stats(&self) -> Result<Vec<TxServiceCatalog>> {
+        let start_height= 0;
+        match self.load_chain_state()? { 
+            Some(header) => {
+                let end_height = header.height + 1;
+                tracing::warn!(target: "db::window", %start_height, %end_height, "window");
+                let mut stats = Vec::new();
+                for height in start_height..end_height {
+                    match self.load_catalog(height)? {
+                        Some(catalog) => {
+                            stats.push(catalog)
+                        },
+                        None => { return Err(DBError::DBIntegrity) }
+                    }
+                }
+                Ok(stats)
+            }
+            None => {
+                Ok(Vec::new())
+            }
+        }
+    }
+
     pub fn apply_rw_set(&self, read_set: &ReadSet, write_set: &WriteSet) -> Result<bool> {
         // 检查 read_set 视图是否和当前执行过程中一致
         for (ns_key, read_value_opt) in read_set {
