@@ -1,5 +1,4 @@
 use std::fmt::{Debug, Formatter};
-use std::ops::Deref;
 use serde::{Deserialize, Serialize};
 use platform::clock::unix_time_millis;
 use primitives::hash::{sha256, Hash32, HASH32_ZERO};

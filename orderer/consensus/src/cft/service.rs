@@ -28,6 +28,8 @@ pub struct CftService {
     pub quorum: usize,
     pub pending_acks: HashMap<u128, HashSet<PeerId>>,
     pub staged_blocks: HashMap<u128, (Hash32, Vec<u8>)>,
+    pub is_genesis_pack: bool,
+    pub is_packing: bool,
 }
 
 impl CftService {
@@ -53,7 +55,9 @@ impl CftService {
             members,
             quorum,
             pending_acks: HashMap::new(),
-            staged_blocks: HashMap::new()
+            staged_blocks: HashMap::new(),
+            is_genesis_pack: true,
+            is_packing: false,
         })
     }
 
@@ -90,13 +94,20 @@ pub async fn slot_loop(cft_cmd_handle: CftCmdHandle, slot_secs: u64) {
 pub async fn start_cft_consensus(mut service: Arc<Mutex<CftService>>,
                                  mut cft_cmd_rx: UnboundedReceiver<CftCmd>,
                                  cft_cmd_hdl: CftCmdHandle,
-                                 cft_event_hdl: CftEventHandle) -> Result<()> {
-    let slot_cmd_hdl = cft_cmd_hdl.clone();
+                                 cft_event_hdl: CftEventHandle,
+                                 slot_trigger: String) -> Result<()> {
     let slot_secs = service.lock().await.slot_secs;
-    spawn(async move {
-        slot_loop(slot_cmd_hdl, slot_secs).await
-    });
     let service = &mut service;
+    if slot_trigger == "time" {
+        let time_cft_cmd_hdl = cft_cmd_hdl.clone();
+        spawn(async move {
+            slot_loop(time_cft_cmd_hdl, slot_secs).await
+        });
+    }
+    if service.lock().await.is_genesis_pack {
+        sleep(Duration::from_secs(slot_secs)).await;
+        let _ = cft_cmd_hdl.new_slot();
+    }
 
     loop {
         tokio::select! {
@@ -120,7 +131,8 @@ pub async fn start_cft_consensus(mut service: Arc<Mutex<CftService>>,
                     CftCmd::SubmitTx {tx_bytes}=> {
                         if service.is_leader() {
                             tracing::info!(target:"consensus::event", "received tx");
-                            if let Err(err) = handle_submit_tx(&mut service, tx_bytes) {
+                            if let Err(err) =
+                                handle_submit_tx(&mut service, &cft_cmd_hdl, tx_bytes, slot_trigger.clone()) {
                                 tracing::info!(target:"consensus::event", %err);
                             }
                         }

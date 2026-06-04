@@ -17,28 +17,6 @@ prove:
   scheme: "groth16" # "succinct" | "fast" | "groth16"
   latency: 0
   offset: 0
-consensus:
-  mode: "native" # "native" | "simulate"
-  slot_trigger: "size" # "time" | "size"
-  tx_capacity: 100
-  simulate_size: 100
-  simulate_size_array: [1, 1, 10, 100, 1000, 10000]
-  protocol: "solo" # "solo" | "cft"
-  leader_id: "12D3KooWK2XdMqgDizaidLY7t3Z8L8hkg2oviaDhRhg7q1FS5Kup"
-  members:
-#    - "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE" # smolensk
-#    - "12D3KooWEB9JUhgjPUuR5QVeokUNeRSpjcxxGaELnLvydLTpCFUZ" # mecca
-    - "12D3KooWK2XdMqgDizaidLY7t3Z8L8hkg2oviaDhRhg7q1FS5Kup" # aprova-1
-#    - "12D3KooWNrU7pw2gmPiLwSt6AADkqvXNQ5jQc3fULbaKShhqVWky" # aprova-2
-#    - "12D3KooWS1XgBn8A2h5JGRJBeGZomkQveC48i5tvbesBYwZDCsMf" # aprova-3
-#    - "12D3KooWEaYMjTag1NrtG5GpwekhhXCpWPNxbbsXFs3cMGC3ENMi" # aprova-4
-#    - "12D3KooWAtBdtsUCzN9oe5fRjXb1K66hZ3EPbzi6iAKjv5Vq7WbS" # cairo
-#    - "12D3KooW9xQWWJA7PLomVn1MN1frgJpyYZpuGbSL1iQYqzZ1uEeE" # belgrade
-#    - "12D3KooWHDdwT22WmhiVVvyWQ85wtDEsBX7ERAhGZfYigJL7vzA9" # kol-server
-#    - "12D3KooWGAHCnk9v1kaBHYon4CUrLLQpRZ8tVcsWAHbDjpzha4Nh" # singapore
-#    - "12D3KooWQBWPbaTYcdQx6LmEVau1vuwjXzG9QzNWuQdh2fHku1Q5" # jhc-1
-#    - "12D3KooWSucW9iKNczQjJMQG4xPvGgJjK1ctVep4gtaCucn6EvEu" # jhc-2
-#    - "12D3KooWBfzdEbJmQGUk5Gw3xVv4CwsVAKLFacfCEkhFtqed88dB" # jhc-3
 dispatch:
   mode: "native" # "native" | "static" | "even"
   window_size: 32
@@ -64,4 +42,16 @@ workload:
   test_name: "simulate" # "real" | "simulate" | "conflict"
   tail: 20
   init_balance: 1000000
-
+consensus:
+  mode: "native" # "native" | "simulate"
+  slot_trigger: "size" # "time" | "size"
+  tx_capacity: 100
+  simulate_size: 100
+  simulate_size_array: [1, 1, 10, 100, 1000, 10000]
+  protocol: "cft" # "solo" | "cft"
+  leader_id: "12D3KooWQbEhMxXtnydPFVE4CrhsXzLW9uM6PRhDxE6MUEsR491a"
+  members:
+    #    - "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE" # smolensk
+    - "12D3KooWQbEhMxXtnydPFVE4CrhsXzLW9uM6PRhDxE6MUEsR491a" # jhc-1
+    - "12D3KooWHDLHZNPrSDEZrWe7dCfaEJCYKu8FyJu5oWWJSi8poTwS" # jhc-2
+    - "12D3KooWGpaUm4dwupAt3bxZVeNhSrtfAF7avVLmsUSam6fEJKbR" # jhc-3

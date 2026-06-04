@@ -153,7 +153,7 @@ async fn main() -> Result<()> {
             let cft_event_hdl = CftEventHandle::new(cft_event_tx.clone());
             spawn(async move {
                 let cft = Arc::clone(&cft);
-                start_cft_consensus(cft, cft_cmd_rx, cft_cmd_hdl, cft_event_hdl).await
+                start_cft_consensus(cft, cft_cmd_rx, cft_cmd_hdl, cft_event_hdl, slot_trigger.clone()).await
             });
             tracing::info!(target:"orderer::init", "consensus init success(CFT)...");
 

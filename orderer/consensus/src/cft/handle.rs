@@ -1,13 +1,59 @@
 use libp2p::PeerId;
 use chain::block::{BlockHeader, OrderedBlock};
 use crate::cft::agreement::Agreement;
-use crate::cft::protocol::{CftEventHandle};
+use crate::cft::protocol::{CftCmdHandle, CftEventHandle};
 use crate::cft::service::CftService;
 use crate::error::Result;
 
 pub fn handle_new_slot(service: &mut CftService, cft_event_hdl: &CftEventHandle) -> Result<()> {
     if !service.is_leader() { return Ok(()); }
 
+    // 已经有一个出块循环在跑了，新的 new_slot 只是重复唤醒，直接忽略
+    if service.is_packing {
+        tracing::debug!(
+            target: "consensus::event",
+            "pack loop is already running, ignore duplicated new slot"
+        );
+        return Ok(());
+    }
+
+    service.is_packing = true;
+
+    loop {
+        if service.is_genesis_pack {
+            match pack_commit_broadcast_once(service, cft_event_hdl) {
+                Ok(()) => {}
+                Err(err) => {
+                    tracing::warn!(target: "consensus::event",%err,"pack commit broadcast once failed");
+                    break;
+                }
+            }
+            service.is_genesis_pack = false;
+            break;
+        }
+
+        // size 模式下，如果 mempool 不够一个块，就停止
+        if service.mempool_handle.mempool_count() < service.tx_capacity {
+            break;
+        }
+
+        match pack_commit_broadcast_once(service, cft_event_hdl) {
+            Ok(()) => {}
+            Err(err) => {
+                tracing::warn!(target: "consensus::event",%err,"pack commit broadcast once failed");
+                break;
+            }
+        }
+    }
+
+    service.is_packing = false;
+
+    Ok(())
+}
+fn pack_commit_broadcast_once(
+    service: &mut CftService,
+    cft_event_hdl: &CftEventHandle,
+) -> Result<()> {
     if !service.pending_acks.is_empty() || !service.staged_blocks.is_empty() {
         return Ok(());
     }
@@ -31,6 +77,13 @@ pub fn handle_new_slot(service: &mut CftService, cft_event_hdl: &CftEventHandle)
         header_bytes,
     };
     cft_event_hdl.agreement_commited(agr.encode_bcs())?;
+
+    tracing::warn!(
+        target: "consensus::event",
+        height = height,
+        "block committed event sent"
+    );
+    
     Ok(())
 }
 
@@ -194,8 +247,21 @@ pub fn handle_submit_agreement(service: &mut CftService,
 }
 
 
-pub fn handle_submit_tx(service: &mut CftService, tx_bytes: Vec<u8>) -> Result<()> {
+pub fn handle_submit_tx(service: &mut CftService, cft_cmd_hdl: &CftCmdHandle, tx_bytes: Vec<u8>, slot_trigger: String) -> Result<()> {
     if !service.is_leader() { return Ok(()) }
-    service.mempool_handle.received_tx(tx_bytes)?;
+    match service.mempool_handle.received_tx(tx_bytes) {
+        Ok(()) => {
+            tracing::info!(target:"consensus::event", "pushed tx");
+            if slot_trigger == "size" {
+                if service.mempool_handle.is_ready_to_pack(service.tx_capacity){
+                    let _ = cft_cmd_hdl.new_slot();
+                }
+            }
+        }
+        Err(err) => {
+            tracing::warn!(target:"consensus::event", %err, "received tx");
+        }
+    }
     Ok(())
+
 }
