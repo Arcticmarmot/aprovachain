@@ -1,5 +1,5 @@
 chain_id: 1000
-slot_secs: 3
+slot_secs: 1
 provers:
 #  - "63d8d75d73303e66217ba9c48d654d6bb7e31ea5f8890459e0a51193dd5e8ab5" # smolensk
 #  - "40c165755edcc714e564e43e692576951d600a4f416b471a436af5e786d944de" # mecca
@@ -48,7 +48,7 @@ consensus:
   tx_capacity: 100
   simulate_size: 100
   simulate_size_array: [1, 1, 10, 100, 1000, 10000]
-  protocol: "cft" # "solo" | "cft"
+  protocol: "solo" # "solo" | "cft"
   leader_id: "12D3KooWQbEhMxXtnydPFVE4CrhsXzLW9uM6PRhDxE6MUEsR491a"
   members:
     #    - "12D3KooWGY8Jj1KCjfa9ib6njuufGHsoBWrRrr4TMEJrgcBjsThE" # smolensk

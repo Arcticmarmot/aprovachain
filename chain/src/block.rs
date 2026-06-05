@@ -110,9 +110,10 @@ pub struct LedgerBlock {
 
 impl Debug for LedgerBlock {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "")?;
-        writeln!(f, "Block {{")?;
-        writeln!(f, "  header: {:?},", self.ordered.header)?;
+        // writeln!(f, "")?;
+        // writeln!(f, "Block {{")?;
+        // writeln!(f, "  header: {:?},", self.ordered.header)?;
+        writeln!(f, "  height: {:?},", self.ordered.header.height)
         // writeln!(f, "  txs: [")?;
         // for tx in &self.ordered.txs {
         //     writeln!(f, "    {:?},", TxAttestation::try_from(tx.clone()).unwrap())?;
@@ -121,7 +122,7 @@ impl Debug for LedgerBlock {
         // for (tx_id, (exec_id, code)) in self.catalog.deref() {
         //     writeln!(f, "  tx_id: {tx_id}, exec_id: {exec_id}, code: {code:?}")?;
         // }
-        write!(f, "}}")
+        // write!(f, "}}")
     }
 }
 

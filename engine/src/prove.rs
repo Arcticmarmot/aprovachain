@@ -118,7 +118,7 @@ pub fn generate_receipt_by_load(ctr_input: &CtrInput, _elf: &Vec<u8>, _envelope:
             Ok(receipt)
         }
         Err(e) => {
-            tracing::warn!(
+            tracing::info!(
             path = %receipt_filename.display(),
             error = %e,
             "load receipt from file failed");

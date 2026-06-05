@@ -21,7 +21,7 @@ use tx::id::{TxAttestationId, TxId};
 use tx::intent::TxPayload;
 use crate::prove::{cycles_by_pre_exec, generate_receipt_filename};
 
-const VERIFY_WORKERS: usize = 6;
+const VERIFY_WORKERS: usize = 12;
 
 pub struct VerifyReport {
     idx: usize,
@@ -151,7 +151,7 @@ pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, 
     db_handle.save_chain_state(&header)?;
 
     let validate_elapsed = Instant::now().saturating_duration_since(validate_time);
-    tracing::warn!(target: "engine::execute", ?validate_elapsed, "validate time: ");
+    tracing::info!(target: "engine::execute", ?validate_elapsed, "validate time: ");
 
     if validate_mode.enable_validate_block_recording && validate_mode.simulate_size_array.contains(&tx_num) {
         let validate_time = validate_elapsed.as_millis();
@@ -165,7 +165,8 @@ pub async fn verify_and_apply_block(db_handle: &DBHandle, block_bytes: Vec<u8>, 
     }
     // TODO: delete the tracing info
     if let Some(block) = db_handle.load_block(header.height)? {
-        tracing::warn!(target: "executor::block", ?block, "=======BLOCK=======\r\n");
+        // tracing::warn!(target: "executor::block", ?block, "=======BLOCK=======\r\n");
+        tracing::warn!(target: "executor::block", ?block);
     }
 
     Ok(())
